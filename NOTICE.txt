@@ -1,0 +1,8 @@
+This project, titled "Looptronics", contains original symbolic computation research and code by GitHub user 012notforu.
+
+Use is permitted under the Creative Commons Attribution-NonCommercial 4.0 International License.
+
+Commercial use, redistribution in for-profit tools, or inclusion in proprietary systems requires explicit permission.
+
+Authorship is verified via public commit history and GitHub repository metadata.
+
