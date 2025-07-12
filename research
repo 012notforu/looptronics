@@ -1,1 +1,1255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wave-Based Symbolic Computation System</title>
+    <style>
+        /* Clean, educational CSS that's easy to understand and modify */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: white;
+            margin: 0;
+            padding: 8px;
+            min-height: 100vh;
+            overflow-x: auto;
+        }
+        
+        .container {
+            min-width: 800px;
+            margin: 0 auto;
+            zoom: 0.7;
+            transform-origin: top left;
+        }
+        
+        /* Responsive design for different screen sizes */
+        @media (max-width: 768px) {
+            .container {
+                zoom: 0.5;
+                min-width: 1000px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .container {
+                zoom: 0.4;
+                min-width: 1200px;
+            }
+        }
+        
+        /* Header styling for clear visual hierarchy */
+        .header {
+            text-align: center;
+            margin-bottom: 15px;
+            background: rgba(255,255,255,0.1);
+            padding: 10px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .header h1 {
+            margin: 5px 0;
+            font-size: 24px;
+        }
+        
+        .header p {
+            margin: 5px 0;
+            font-size: 12px;
+        }
+        
+        /* Educational explanation box */
+        .explanation {
+            background: rgba(255,255,255,0.15);
+            padding: 8px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-size: 10px;
+            line-height: 1.4;
+        }
+        
+        /* Four-panel grid layout for comprehensive view */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        /* Panel styling with clear visual boundaries */
+        .panel {
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+            padding: 8px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        .panel h3 {
+            margin: 0 0 8px 0;
+            color: #ffeb3b;
+            font-size: 12px;
+            border-bottom: 1px solid rgba(255,235,59,0.3);
+            padding-bottom: 4px;
+        }
+        
+        /* Canvas styling for wave and pattern visualization */
+        canvas {
+            width: 100%;
+            background: rgba(0,0,0,0.3);
+            border-radius: 4px;
+            border: 1px solid rgba(255,255,255,0.2);
+            height: 80px;
+        }
+        
+        /* Control styling for user interaction */
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4px;
+            margin: 8px 0;
+        }
+        
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            margin: 3px 0;
+            font-size: 9px;
+        }
+        
+        .control-group label {
+            min-width: 35px;
+            font-size: 8px;
+            font-weight: bold;
+        }
+        
+        .control-group input[type="range"] {
+            flex: 1;
+            height: 15px;
+        }
+        
+        .control-group .value {
+            min-width: 25px;
+            text-align: right;
+            font-family: monospace;
+            background: rgba(0,0,0,0.3);
+            padding: 1px 3px;
+            border-radius: 2px;
+            font-size: 8px;
+        }
+        
+        /* Button styling with clear interaction feedback */
+        button {
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+            border: none;
+            padding: 4px 6px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+            font-size: 9px;
+        }
+        
+        button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .pause-btn {
+            background: linear-gradient(135deg, #ff9800, #f57c00);
+        }
+        
+        .reset-btn {
+            background: linear-gradient(135deg, #f44336, #d32f2f);
+        }
+        
+        /* Metrics display for system status monitoring */
+        .metrics {
+            background: rgba(0,0,0,0.4);
+            padding: 4px;
+            border-radius: 4px;
+            margin: 4px 0;
+            font-family: monospace;
+            font-size: 8px;
+            line-height: 1.2;
+        }
+        
+        .metrics-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 1px 0;
+        }
+        
+        .metrics-label {
+            color: #ffeb3b;
+        }
+        
+        .metrics-value {
+            color: #4CAF50;
+            font-weight: bold;
+        }
+        
+        /* Output area for symbolic generation display */
+        .output-area {
+            background: rgba(0,0,0,0.4);
+            padding: 4px;
+            border-radius: 4px;
+            height: 60px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 8px;
+            line-height: 1.2;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .symbol {
+            color: #4CAF50;
+            font-weight: bold;
+        }
+        
+        /* Color coding for ternary states */
+        .ternary-0 { color: #ff5722; }
+        .ternary-1 { color: #ffeb3b; }
+        .ternary-2 { color: #2196f3; }
+        
+        .status-bar {
+            background: rgba(0,0,0,0.3);
+            padding: 3px 6px;
+            border-radius: 4px;
+            margin: 4px 0;
+            text-align: center;
+            font-weight: bold;
+            color: #4CAF50;
+            font-size: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌊 Wave-Based Symbolic Computation System</h1>
+            <p>Exploring how continuous wave interference can generate discrete symbolic computation</p>
+        </div>
 
+        <div class="explanation">
+            <strong>Educational Demonstration:</strong> This system shows how three interfering sine waves create complex patterns that 
+            get stored in a spatial memory grid using ternary logic (states 0, 1, 2). These spatial patterns then generate symbolic 
+            representations, demonstrating how continuous physical processes might give rise to discrete symbolic thinking.
+        </div>
+
+        <div class="main-grid">
+            <!-- Wave Interference Substrate Panel -->
+            <div class="panel">
+                <h3>🌊 Wave Substrate</h3>
+                <canvas id="waveCanvas" width="200" height="80"></canvas>
+                
+                <div class="control-group">
+                    <label>ω₁:</label>
+                    <input type="range" id="freq1" min="0.3" max="5.0" step="0.001" value="1.0">
+                    <input type="number" id="freq1Input" min="0.3" max="5.0" step="0.001" value="1.0" style="width: 50px; font-size: 7px; padding: 1px;">
+                </div>
+                <div class="control-group">
+                    <label>ω₂:</label>
+                    <input type="range" id="freq2" min="0.3" max="5.0" step="0.001" value="1.5">
+                    <input type="number" id="freq2Input" min="0.3" max="5.0" step="0.001" value="1.5" style="width: 50px; font-size: 7px; padding: 1px;">
+                </div>
+                <div class="control-group">
+                    <label>ω₃:</label>
+                    <input type="range" id="freq3" min="0.3" max="5.0" step="0.001" value="2.0">
+                    <input type="number" id="freq3Input" min="0.3" max="5.0" step="0.001" value="2.0" style="width: 50px; font-size: 7px; padding: 1px;">
+                </div>
+                <div class="control-group">
+                    <label>Threshold:</label>
+                    <input type="range" id="threshold" min="0.1" max="0.9" step="0.001" value="0.5">
+                    <span class="value" id="thresholdVal">0.5</span>
+                </div>
+                
+                <div style="margin: 8px 0; padding: 4px; background: rgba(0,0,0,0.2); border-radius: 4px;">
+                    <div style="font-size: 8px; margin-bottom: 4px;"><strong>Ramanujan Presets:</strong></div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2px;">
+                        <button onclick="setRamanujanRatio('golden')" style="font-size: 7px; padding: 2px;">φ Golden</button>
+                        <button onclick="setRamanujanRatio('sqrt2')" style="font-size: 7px; padding: 2px;">√2 Ratio</button>
+                        <button onclick="setRamanujanRatio('sqrt3')" style="font-size: 7px; padding: 2px;">√3 Ratio</button>
+                        <button onclick="setRamanujanRatio('sqrt5')" style="font-size: 7px; padding: 2px;">√5 Ratio</button>
+                    </div>
+                </div>
+
+                <div class="controls">
+                    <button id="pauseBtn" class="pause-btn">⏸️ Pause</button>
+                    <button id="resetBtn" class="reset-btn">🔄 Reset</button>
+                </div>
+
+                <div class="metrics">
+                    <div class="metrics-row">
+                        <span class="metrics-label">Interference:</span>
+                        <span class="metrics-value" id="interferenceLevel">0.00</span>
+                    </div>
+                    <div class="metrics-row">
+                        <span class="metrics-label">Resonance:</span>
+                        <span class="metrics-value" id="resonanceEvents">0</span>
+                    </div>
+                    <div class="metrics-row">
+                        <span class="metrics-label">Time:</span>
+                        <span class="metrics-value" id="waveTime">0.0s</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Spatial Memory Grid Panel -->
+            <div class="panel">
+                <h3>🧠 Spatial Memory</h3>
+                <canvas id="spatialCanvas" width="200" height="80"></canvas>
+                
+                <div class="control-group">
+                    <label>Learn:</label>
+                    <input type="range" id="learnRate" min="0.1" max="1.0" step="0.1" value="0.5">
+                    <span class="value" id="learnRateVal">0.5</span>
+                </div>
+                <div class="control-group">
+                    <label>Decay:</label>
+                    <input type="range" id="memoryDecay" min="0.90" max="0.99" step="0.01" value="0.95">
+                    <span class="value" id="memoryDecayVal">0.95</span>
+                </div>
+
+                <div class="controls">
+                    <button id="clearMemory">🧹 Clear</button>
+                    <button id="toggleLearning">🧠 Learning</button>
+                </div>
+
+                <div class="metrics">
+                    <div class="metrics-row">
+                        <span class="metrics-label">Active:</span>
+                        <span class="metrics-value" id="activeCells">0</span>
+                    </div>
+                    <div class="metrics-row">
+                        <span class="metrics-label">Load:</span>
+                        <span class="metrics-value" id="memoryLoad">0%</span>
+                    </div>
+                    <div class="metrics-row">
+                        <span class="metrics-label">Entropy:</span>
+                        <span class="metrics-value" id="patternEntropy">0.00</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Symbolic Generation Panel -->
+            <div class="panel">
+                <h3>🔢 Symbolic Generation</h3>
+                
+                <div class="status-bar">
+                    Symbol: <span id="currentSymbol" class="symbol">∅</span>
+                </div>
+                
+                <div class="output-area" id="symbolicOutput">
+                    System initializing...
+                </div>
+
+                <div class="controls">
+                    <button id="clearSymbols">🧹 Clear</button>
+                    <button id="analyzeSymbols">📊 Analyze</button>
+                </div>
+
+                <div class="metrics">
+                    <div class="metrics-row">
+                        <span class="metrics-label">Count:</span>
+                        <span class="metrics-value" id="symbolCount">0</span>
+                    </div>
+                    <div class="metrics-row">
+                        <span class="metrics-label">Unique:</span>
+                        <span class="metrics-value" id="uniqueSymbols">0</span>
+                    </div>
+                    <div class="metrics-row">
+                        <span class="metrics-label">Rate:</span>
+                        <span class="metrics-value" id="symbolRate">0.0/s</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- System Analysis Panel -->
+            <div class="panel">
+                <h3>📊 Analysis</h3>
+                
+                <canvas id="analysisCanvas" width="200" height="80"></canvas>
+                
+                <div class="controls">
+                    <button id="runAnalysis">🔬 Analyze</button>
+                    <button id="exportData">💾 Export</button>
+                </div>
+
+                <div class="metrics">
+                    <div class="metrics-row">
+                        <span class="metrics-label">Complexity:</span>
+                        <span class="metrics-value" id="complexity">0.00</span>
+                    </div>
+                    <div class="metrics-row">
+                        <span class="metrics-label">Stability:</span>
+                        <span class="metrics-value" id="stability">0.00</span>
+                    </div>
+                    <div class="metrics-row">
+                        <span class="metrics-label">Info Flow:</span>
+                        <span class="metrics-value" id="infoFlow">0.00</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * Wave-Based Symbolic Computation System
+         * Educational Implementation - Built Step by Step for Learning
+         * 
+         * This system demonstrates how continuous wave interference can generate
+         * discrete symbolic computation through ternary spatial memory
+         */
+        
+        class WaveSymbolicSystem {
+            constructor() {
+                // Step 1: Initialize core system components with clear documentation
+                console.log('🚀 Initializing Wave-Based Symbolic Computation System...');
+                
+                // Core system state variables
+                this.time = 0;
+                this.isRunning = true;
+                this.learningEnabled = true;
+                
+                // Wave parameters that drive the entire system
+                this.frequencies = [1.0, 1.5, 2.0];  // The three interfering wave frequencies
+                this.threshold = 0.5;                // Threshold for detecting resonance events
+                this.interferenceLevel = 0;          // Current interference amplitude
+                this.resonanceEvents = 0;            // Counter for significant interference events
+                
+                // Step 2: Initialize the canvas elements for visualization
+                this.initializeCanvases();
+                
+                // Step 3: Create the spatial memory grid (this is where magic happens)
+                this.initializeSpatialMemory();
+                
+                // Step 4: Set up symbolic generation system
+                this.initializeSymbolicGeneration();
+                
+                // Step 5: Initialize analysis and metrics tracking
+                this.initializeAnalysisSystem();
+                
+                // Step 6: Connect all the user interface controls
+                this.setupUserControls();
+                
+                // Step 7: Start the main computational loop
+                this.startComputationalLoop();
+                
+                console.log('✅ System initialization complete - wave computation active');
+                this.addToOutput('🌊 Wave-based symbolic computation system online');
+            }
+            
+            /**
+             * Step 2: Initialize all canvas elements for system visualization
+             * Each canvas shows a different aspect of the computation
+             */
+            initializeCanvases() {
+                // Wave interference visualization canvas
+                this.waveCanvas = document.getElementById('waveCanvas');
+                this.waveCtx = this.waveCanvas.getContext('2d');
+                
+                // Spatial memory grid visualization canvas
+                this.spatialCanvas = document.getElementById('spatialCanvas');
+                this.spatialCtx = this.spatialCanvas.getContext('2d');
+                
+                // Analysis and metrics visualization canvas
+                this.analysisCanvas = document.getElementById('analysisCanvas');
+                this.analysisCtx = this.analysisCanvas.getContext('2d');
+                
+                console.log('📊 Canvas elements initialized for visualization');
+            }
+            
+            /**
+             * Step 3: Create the spatial memory grid - the heart of the system
+             * This is where wave patterns get converted into discrete ternary states
+             */
+            initializeSpatialMemory() {
+                // Grid dimensions - optimized for both computation and visualization
+                this.gridWidth = 20;
+                this.gridHeight = 12;
+                
+                // Learning parameters that control how patterns form and persist
+                this.learningRate = 0.5;    // How quickly new patterns are learned
+                this.memoryDecay = 0.95;    // How quickly old patterns fade
+                
+                // Create the grid of memory cells
+                this.spatialMemory = [];
+                for (let y = 0; y < this.gridHeight; y++) {
+                    const row = [];
+                    for (let x = 0; x < this.gridWidth; x++) {
+                        row.push({
+                            // Each cell has three ternary state components [0, 1, 2]
+                            state: [0, 0, 0],
+                            // Persistent memory that decays over time
+                            memory: [0, 0, 0],
+                            // Metadata for analysis
+                            lastActive: 0
+                        });
+                    }
+                    this.spatialMemory.push(row);
+                }
+                
+                console.log(`🧠 Spatial memory grid created: ${this.gridWidth}x${this.gridHeight} cells`);
+            }
+            
+            /**
+             * Step 4: Initialize symbolic generation system
+             * This converts spatial patterns into discrete symbols
+             */
+            initializeSymbolicGeneration() {
+                // Greek alphabet for symbolic representation
+                this.symbols = ['α', 'β', 'γ', 'δ', 'ε', 'ζ', 'η', 'θ', 'ι', 'κ', 'λ', 'μ', 'ν', 'ξ', 'ο', 'π', 'ρ', 'σ', 'τ', 'υ', 'φ', 'χ', 'ψ', 'ω'];
+                
+                // Current system state
+                this.currentSymbol = '∅';
+                this.symbolHistory = [];
+                this.symbolCount = 0;
+                this.uniqueSymbols = new Set();
+                
+                // Metrics for analysis
+                this.lastSymbolTime = 0;
+                this.symbolRate = 0;
+                
+                console.log('🔢 Symbolic generation system initialized with Greek alphabet');
+            }
+            
+            /**
+             * Step 5: Initialize analysis and metrics tracking
+             * This helps us understand the computational behavior
+             */
+            initializeAnalysisSystem() {
+                // History tracking for pattern analysis
+                this.metricsHistory = [];
+                
+                // Current computational metrics
+                this.computationalComplexity = 0;
+                this.systemStability = 0;
+                this.informationFlow = 0;
+                
+                console.log('📈 Analysis system initialized for computational metrics');
+            }
+            
+            /**
+             * Step 6: Connect all user interface controls to system functions
+             * This creates the interactive layer for experimentation
+             */
+            setupUserControls() {
+                // Wave parameter controls with enhanced precision
+                document.getElementById('freq1').addEventListener('input', (e) => {
+                    this.frequencies[0] = parseFloat(e.target.value);
+                    document.getElementById('freq1Input').value = e.target.value;
+                });
+                
+                document.getElementById('freq1Input').addEventListener('input', (e) => {
+                    this.frequencies[0] = parseFloat(e.target.value);
+                    document.getElementById('freq1').value = e.target.value;
+                });
+                
+                document.getElementById('freq2').addEventListener('input', (e) => {
+                    this.frequencies[1] = parseFloat(e.target.value);
+                    document.getElementById('freq2Input').value = e.target.value;
+                });
+                
+                document.getElementById('freq2Input').addEventListener('input', (e) => {
+                    this.frequencies[1] = parseFloat(e.target.value);
+                    document.getElementById('freq2').value = e.target.value;
+                });
+                
+                document.getElementById('freq3').addEventListener('input', (e) => {
+                    this.frequencies[2] = parseFloat(e.target.value);
+                    document.getElementById('freq3Input').value = e.target.value;
+                });
+                
+                document.getElementById('freq3Input').addEventListener('input', (e) => {
+                    this.frequencies[2] = parseFloat(e.target.value);
+                    document.getElementById('freq3').value = e.target.value;
+                });
+                
+                document.getElementById('threshold').addEventListener('input', (e) => {
+                    this.threshold = parseFloat(e.target.value);
+                    document.getElementById('thresholdVal').textContent = e.target.value;
+                });
+                
+                // Memory parameter controls
+                document.getElementById('learnRate').addEventListener('input', (e) => {
+                    this.learningRate = parseFloat(e.target.value);
+                    document.getElementById('learnRateVal').textContent = e.target.value;
+                });
+                
+                document.getElementById('memoryDecay').addEventListener('input', (e) => {
+                    this.memoryDecay = parseFloat(e.target.value);
+                    document.getElementById('memoryDecayVal').textContent = e.target.value;
+                });
+                
+                // System control buttons
+                document.getElementById('pauseBtn').addEventListener('click', () => {
+                    this.isRunning = !this.isRunning;
+                    document.getElementById('pauseBtn').innerHTML = this.isRunning ? '⏸️ Pause' : '▶️ Play';
+                });
+                
+                document.getElementById('resetBtn').addEventListener('click', () => {
+                    this.resetSystem();
+                });
+                
+                document.getElementById('clearMemory').addEventListener('click', () => {
+                    this.clearSpatialMemory();
+                });
+                
+                document.getElementById('toggleLearning').addEventListener('click', () => {
+                    this.learningEnabled = !this.learningEnabled;
+                    document.getElementById('toggleLearning').innerHTML = 
+                        this.learningEnabled ? '🧠 Learning' : '🧠 Frozen';
+                });
+                
+                document.getElementById('clearSymbols').addEventListener('click', () => {
+                    this.clearSymbolicOutput();
+                });
+                
+                document.getElementById('analyzeSymbols').addEventListener('click', () => {
+                    this.analyzeSymbolicOutput();
+                });
+                
+                document.getElementById('runAnalysis').addEventListener('click', () => {
+                    this.runSystemAnalysis();
+                });
+                
+                document.getElementById('exportData').addEventListener('click', () => {
+                    this.exportSystemData();
+                });
+                
+                console.log('🎛️ User interface controls connected and active');
+            }
+            
+            /**
+             * Step 7: Start the main computational loop
+             * This is where the wave-to-symbol transformation happens continuously
+             */
+            startComputationalLoop() {
+                const computeFrame = () => {
+                    if (this.isRunning) {
+                        // Advance system time
+                        this.time += 0.05;
+                        
+                        // Core computational pipeline:
+                        // 1. Calculate wave interference patterns
+                        this.updateWaveInterference();
+                        
+                        // 2. Update spatial memory based on wave patterns
+                        this.updateSpatialMemory();
+                        
+                        // 3. Generate symbolic output from spatial patterns
+                        this.generateSymbolicOutput();
+                        
+                        // 4. Update all visualizations
+                        this.renderAllVisualizations();
+                        
+                        // 5. Update metrics and analysis
+                        this.updateSystemMetrics();
+                    }
+                    
+                    // Continue the loop
+                    requestAnimationFrame(computeFrame);
+                };
+                
+                // Start the computational loop
+                computeFrame();
+                console.log('🔄 Main computational loop started');
+            }
+            
+            /**
+             * Core computation: Calculate three-wave interference pattern
+             * This creates the foundational "computational substrate"
+             */
+            updateWaveInterference() {
+                // Calculate each wave at the current time
+                const wave1 = Math.sin(this.frequencies[0] * this.time);
+                const wave2 = Math.sin(this.frequencies[1] * this.time + Math.PI/3);
+                const wave3 = Math.sin(this.frequencies[2] * this.time + 2*Math.PI/3);
+                
+                // Calculate interference pattern (sum of all waves)
+                this.interferenceLevel = (wave1 + wave2 + wave3) / 3;
+                
+                // Detect resonance events (high interference)
+                if (Math.abs(this.interferenceLevel) > this.threshold) {
+                    this.resonanceEvents++;
+                }
+                
+                // Store current wave values for visualization
+                this.currentWaves = [wave1, wave2, wave3];
+            }
+            
+            /**
+             * Update spatial memory grid based on wave interference
+             * This is where continuous waves become discrete ternary patterns
+             */
+            updateSpatialMemory() {
+                if (!this.learningEnabled) return;
+                
+                // Process each cell in the spatial grid
+                for (let y = 0; y < this.gridHeight; y++) {
+                    for (let x = 0; x < this.gridWidth; x++) {
+                        const cell = this.spatialMemory[y][x];
+                        
+                        // Calculate spatial influence based on position and waves
+                        const spatialX = (x / this.gridWidth) * 2 * Math.PI;
+                        const spatialY = (y / this.gridHeight) * 2 * Math.PI;
+                        
+                        // Each wave influences different parts of the grid differently
+                        const influence1 = Math.sin(spatialX + this.frequencies[0] * this.time) * this.currentWaves[0];
+                        const influence2 = Math.sin(spatialY + this.frequencies[1] * this.time) * this.currentWaves[1];
+                        const influence3 = Math.sin(spatialX + spatialY + this.frequencies[2] * this.time) * this.currentWaves[2];
+                        
+                        // Convert to ternary activation (only positive values activate)
+                        const activation = [
+                            Math.max(0, influence1),
+                            Math.max(0, influence2), 
+                            Math.max(0, influence3)
+                        ];
+                        
+                        // Update memory with learning and decay
+                        for (let i = 0; i < 3; i++) {
+                            cell.memory[i] = cell.memory[i] * this.memoryDecay + 
+                                           activation[i] * this.learningRate;
+                            cell.state[i] = activation[i];
+                        }
+                        
+                        // Track activity for analysis
+                        if (activation.some(a => a > 0.1)) {
+                            cell.lastActive = this.time;
+                        }
+                    }
+                }
+            }
+            
+            /**
+             * Generate symbolic output from spatial memory patterns
+             * This demonstrates discrete symbol emergence from continuous substrates
+             */
+            generateSymbolicOutput() {
+                // Extract characteristic pattern from spatial memory
+                const pattern = this.extractSpatialPattern();
+                const symbol = this.patternToSymbol(pattern);
+                
+                // If we have a new symbol, update the symbolic output
+                if (symbol !== this.currentSymbol && symbol !== '∅') {
+                    this.currentSymbol = symbol;
+                    this.symbolHistory.push({
+                        symbol: symbol,
+                        time: this.time,
+                        pattern: pattern.slice()
+                    });
+                    this.symbolCount++;
+                    this.uniqueSymbols.add(symbol);
+                    this.lastSymbolTime = this.time;
+                    
+                    // Add to output display
+                    this.addToOutput(`${symbol} (t=${this.time.toFixed(1)})`);
+                }
+                
+                // Update symbol generation rate
+                if (this.time > 3) { // After startup period
+                    this.symbolRate = this.symbolCount / this.time;
+                }
+            }
+            
+            /**
+             * Extract a characteristic pattern from the spatial memory
+             * Samples key positions to create a unique signature
+             */
+            extractSpatialPattern() {
+                const pattern = [];
+                
+                // Sample strategic positions across the grid
+                const samplePoints = [
+                    [5, 3], [10, 3], [15, 3],    // Top row
+                    [5, 6], [10, 6], [15, 6],    // Middle row
+                    [5, 9], [10, 9], [15, 9]     // Bottom row
+                ];
+                
+                for (const [x, y] of samplePoints) {
+                    const cell = this.spatialMemory[y][x];
+                    const maxIndex = cell.memory.indexOf(Math.max(...cell.memory));
+                    const maxValue = cell.memory[maxIndex];
+                    
+                    if (maxValue > 0.1) {
+                        pattern.push(maxIndex);  // Active ternary state
+                    } else {
+                        pattern.push(-1);        // Inactive
+                    }
+                }
+                
+                return pattern;
+            }
+            
+            /**
+             * Convert spatial pattern to symbolic representation
+             * Maps ternary patterns to symbols using deterministic hash function
+             */
+            patternToSymbol(pattern) {
+                if (pattern.every(p => p === -1)) return '∅';
+                
+                // Create hash from pattern (simple but effective)
+                let hash = 0;
+                for (let i = 0; i < pattern.length; i++) {
+                    if (pattern[i] !== -1) {
+                        hash += pattern[i] * (i + 1) * 7;
+                    }
+                }
+                
+                // Map hash to symbol
+                const symbolIndex = Math.abs(hash) % this.symbols.length;
+                return this.symbols[symbolIndex];
+            }
+            
+            /**
+             * Render all system visualizations
+             * This makes the invisible computational processes visible
+             */
+            renderAllVisualizations() {
+                this.renderWaveCanvas();
+                this.renderSpatialCanvas();
+                this.renderAnalysisCanvas();
+            }
+            
+            /**
+             * Render wave interference visualization
+             * Shows the continuous wave substrate that drives everything
+             */
+            renderWaveCanvas() {
+                const ctx = this.waveCtx;
+                const width = this.waveCanvas.width;
+                const height = this.waveCanvas.height;
+                
+                // Clear with slight fade for trail effect
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+                ctx.fillRect(0, 0, width, height);
+                
+                // Draw individual waves
+                ctx.lineWidth = 1;
+                
+                // Wave 1 (red)
+                ctx.strokeStyle = '#ff5722';
+                ctx.beginPath();
+                for (let x = 0; x < width; x++) {
+                    const t = this.time - (width - x) * 0.02;
+                    const y = height/2 + Math.sin(this.frequencies[0] * t) * height/4;
+                    if (x === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.stroke();
+                
+                // Wave 2 (yellow)
+                ctx.strokeStyle = '#ffeb3b';
+                ctx.beginPath();
+                for (let x = 0; x < width; x++) {
+                    const t = this.time - (width - x) * 0.02;
+                    const y = height/2 + Math.sin(this.frequencies[1] * t + Math.PI/3) * height/4;
+                    if (x === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.stroke();
+                
+                // Wave 3 (blue)
+                ctx.strokeStyle = '#2196f3';
+                ctx.beginPath();
+                for (let x = 0; x < width; x++) {
+                    const t = this.time - (width - x) * 0.02;
+                    const y = height/2 + Math.sin(this.frequencies[2] * t + 2*Math.PI/3) * height/4;
+                    if (x === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.stroke();
+                
+                // Interference pattern (white/green for resonance)
+                ctx.strokeStyle = this.interferenceLevel > this.threshold ? '#4CAF50' : 'white';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                for (let x = 0; x < width; x++) {
+                    const t = this.time - (width - x) * 0.02;
+                    const wave1 = Math.sin(this.frequencies[0] * t);
+                    const wave2 = Math.sin(this.frequencies[1] * t + Math.PI/3);
+                    const wave3 = Math.sin(this.frequencies[2] * t + 2*Math.PI/3);
+                    const interference = (wave1 + wave2 + wave3) / 3;
+                    const y = height/2 + interference * height/3;
+                    if (x === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.stroke();
+            }
+            
+            /**
+             * Render spatial memory grid visualization
+             * Shows how wave patterns create ternary memory states
+             */
+            renderSpatialCanvas() {
+                const ctx = this.spatialCtx;
+                const width = this.spatialCanvas.width;
+                const height = this.spatialCanvas.height;
+                
+                ctx.clearRect(0, 0, width, height);
+                
+                const cellWidth = width / this.gridWidth;
+                const cellHeight = height / this.gridHeight;
+                
+                // Draw memory grid with color-coded ternary states
+                for (let y = 0; y < this.gridHeight; y++) {
+                    for (let x = 0; x < this.gridWidth; x++) {
+                        const cell = this.spatialMemory[y][x];
+                        const px = x * cellWidth;
+                        const py = y * cellHeight;
+                        
+                        // Determine dominant state and its strength
+                        const maxMemory = Math.max(...cell.memory);
+                        const maxIndex = cell.memory.indexOf(maxMemory);
+                        
+                        if (maxMemory > 0.05) {
+                            const alpha = Math.min(maxMemory, 1);
+                            
+                            // Color based on ternary state
+                            if (maxIndex === 0) {
+                                ctx.fillStyle = `rgba(255, 87, 34, ${alpha})`;   // Red for state 0
+                            } else if (maxIndex === 1) {
+                                ctx.fillStyle = `rgba(255, 235, 59, ${alpha})`; // Yellow for state 1
+                            } else {
+                                ctx.fillStyle = `rgba(33, 150, 243, ${alpha})`; // Blue for state 2
+                            }
+                            
+                            ctx.fillRect(px, py, cellWidth, cellHeight);
+                        }
+                        
+                        // Draw grid lines for structure
+                        ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+                        ctx.lineWidth = 0.5;
+                        ctx.strokeRect(px, py, cellWidth, cellHeight);
+                    }
+                }
+            }
+            
+            /**
+             * Render analysis visualization
+             * Shows computational metrics over time
+             */
+            renderAnalysisCanvas() {
+                const ctx = this.analysisCtx;
+                const width = this.analysisCanvas.width;
+                const height = this.analysisCanvas.height;
+                
+                // Fade background
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+                ctx.fillRect(0, 0, width, height);
+                
+                if (this.metricsHistory.length > 1) {
+                    const maxPoints = width;
+                    const start = Math.max(0, this.metricsHistory.length - maxPoints);
+                    
+                    // Draw complexity over time (green)
+                    ctx.strokeStyle = '#4CAF50';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    for (let i = start; i < this.metricsHistory.length; i++) {
+                        const x = ((i - start) / maxPoints) * width;
+                        const y = height - (this.metricsHistory[i].complexity * height);
+                        if (i === start) ctx.moveTo(x, y);
+                        else ctx.lineTo(x, y);
+                    }
+                    ctx.stroke();
+                    
+                    // Draw stability (yellow)
+                    ctx.strokeStyle = '#ffeb3b';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    for (let i = start; i < this.metricsHistory.length; i++) {
+                        const x = ((i - start) / maxPoints) * width;
+                        const y = height - (this.metricsHistory[i].stability * height);
+                        if (i === start) ctx.moveTo(x, y);
+                        else ctx.lineTo(x, y);
+                    }
+                    ctx.stroke();
+                }
+            }
+            
+            /**
+             * Update all system metrics and displays
+             * This provides real-time feedback about computational behavior
+             */
+            updateSystemMetrics() {
+                // Update wave metrics
+                document.getElementById('interferenceLevel').textContent = this.interferenceLevel.toFixed(3);
+                document.getElementById('resonanceEvents').textContent = this.resonanceEvents;
+                document.getElementById('waveTime').textContent = this.time.toFixed(1) + 's';
+                
+                // Calculate and update spatial metrics
+                let activeCells = 0;
+                let totalMemory = 0;
+                for (let y = 0; y < this.gridHeight; y++) {
+                    for (let x = 0; x < this.gridWidth; x++) {
+                        const cell = this.spatialMemory[y][x];
+                        const maxMemory = Math.max(...cell.memory);
+                        if (maxMemory > 0.05) activeCells++;
+                        totalMemory += maxMemory;
+                    }
+                }
+                
+                document.getElementById('activeCells').textContent = activeCells;
+                document.getElementById('memoryLoad').textContent = 
+                    Math.round((totalMemory / (this.gridWidth * this.gridHeight)) * 100) + '%';
+                
+                // Calculate pattern entropy
+                const entropy = this.calculatePatternEntropy();
+                document.getElementById('patternEntropy').textContent = entropy.toFixed(3);
+                
+                // Update symbolic metrics
+                document.getElementById('currentSymbol').textContent = this.currentSymbol;
+                document.getElementById('symbolCount').textContent = this.symbolCount;
+                document.getElementById('uniqueSymbols').textContent = this.uniqueSymbols.size;
+                document.getElementById('symbolRate').textContent = this.symbolRate.toFixed(2) + '/s';
+                
+                // Calculate and update analysis metrics
+                this.computationalComplexity = this.calculateComplexity();
+                this.systemStability = this.calculateStability();
+                this.informationFlow = this.calculateInformationFlow();
+                
+                document.getElementById('complexity').textContent = this.computationalComplexity.toFixed(3);
+                document.getElementById('stability').textContent = this.systemStability.toFixed(3);
+                document.getElementById('infoFlow').textContent = this.informationFlow.toFixed(3);
+                
+                // Store metrics for historical analysis
+                this.metricsHistory.push({
+                    time: this.time,
+                    complexity: this.computationalComplexity,
+                    stability: this.systemStability,
+                    infoFlow: this.informationFlow,
+                    activeCells: activeCells,
+                    symbolCount: this.symbolCount
+                });
+                
+                // Keep history manageable
+                if (this.metricsHistory.length > 500) {
+                    this.metricsHistory = this.metricsHistory.slice(-250);
+                }
+            }
+            
+            /**
+             * Calculate pattern entropy in the spatial memory
+             * Measures the diversity of ternary states
+             */
+            calculatePatternEntropy() {
+                const stateCounts = [0, 0, 0];
+                let totalCells = 0;
+                
+                for (let y = 0; y < this.gridHeight; y++) {
+                    for (let x = 0; x < this.gridWidth; x++) {
+                        const cell = this.spatialMemory[y][x];
+                        const maxIndex = cell.memory.indexOf(Math.max(...cell.memory));
+                        if (Math.max(...cell.memory) > 0.05) {
+                            stateCounts[maxIndex]++;
+                            totalCells++;
+                        }
+                    }
+                }
+                
+                if (totalCells === 0) return 0;
+                
+                let entropy = 0;
+                for (const count of stateCounts) {
+                    if (count > 0) {
+                        const p = count / totalCells;
+                        entropy -= p * Math.log2(p);
+                    }
+                }
+                
+                return entropy;
+            }
+            
+            /**
+             * Calculate computational complexity measure
+             * Based on spatial pattern diversity and symbolic output
+             */
+            calculateComplexity() {
+                const patternEntropy = this.calculatePatternEntropy();
+                const symbolDiversity = this.uniqueSymbols.size / Math.max(1, this.symbolCount);
+                return (patternEntropy + symbolDiversity) / 2;
+            }
+            
+            /**
+             * Calculate system stability measure
+             * Based on consistency of computational metrics over time
+             */
+            calculateStability() {
+                if (this.metricsHistory.length < 10) return 0;
+                
+                const recent = this.metricsHistory.slice(-10);
+                const avgComplexity = recent.reduce((sum, m) => sum + m.complexity, 0) / recent.length;
+                const variance = recent.reduce((sum, m) => sum + Math.pow(m.complexity - avgComplexity, 2), 0) / recent.length;
+                
+                return Math.max(0, 1 - variance);
+            }
+            
+            /**
+             * Calculate information flow measure
+             * Based on how actively the system is generating new symbols
+             */
+            calculateInformationFlow() {
+                if (this.symbolCount === 0) return 0;
+                
+                const timeSinceLastSymbol = this.time - this.lastSymbolTime;
+                const flow = Math.exp(-timeSinceLastSymbol) * this.symbolRate;
+                
+                return Math.min(1, flow);
+            }
+            
+            /**
+             * Utility functions for system control
+             */
+            
+            addToOutput(text) {
+                const output = document.getElementById('symbolicOutput');
+                output.innerHTML += text + ' ';
+                output.scrollTop = output.scrollHeight;
+            }
+            
+            clearSpatialMemory() {
+                for (let y = 0; y < this.gridHeight; y++) {
+                    for (let x = 0; x < this.gridWidth; x++) {
+                        const cell = this.spatialMemory[y][x];
+                        cell.state = [0, 0, 0];
+                        cell.memory = [0, 0, 0];
+                        cell.lastActive = 0;
+                    }
+                }
+                this.addToOutput('🧹 Spatial memory cleared');
+            }
+            
+            clearSymbolicOutput() {
+                document.getElementById('symbolicOutput').innerHTML = 'Symbolic output cleared... ';
+                this.symbolHistory = [];
+                this.symbolCount = 0;
+                this.uniqueSymbols.clear();
+                this.currentSymbol = '∅';
+            }
+            
+            resetSystem() {
+                this.time = 0;
+                this.resonanceEvents = 0;
+                this.clearSpatialMemory();
+                this.clearSymbolicOutput();
+                this.metricsHistory = [];
+                this.addToOutput('🔄 System reset complete');
+            }
+            
+            analyzeSymbolicOutput() {
+                const analysis = `=== SYMBOLIC ANALYSIS ===
+Total symbols: ${this.symbolCount}
+Unique symbols: ${this.uniqueSymbols.size}
+Diversity: ${(this.uniqueSymbols.size / Math.max(1, this.symbolCount)).toFixed(3)}
+Rate: ${this.symbolRate.toFixed(3)} symbols/sec
+Recent: ${this.symbolHistory.slice(-5).map(s => s.symbol).join('')}`;
+                
+                this.addToOutput(analysis.replace(/\n/g, ' | '));
+            }
+            
+            runSystemAnalysis() {
+                this.addToOutput('🔬 SYSTEM ANALYSIS: ');
+                this.addToOutput(`Complexity: ${this.computationalComplexity.toFixed(3)} | `);
+                this.addToOutput(`Stability: ${this.systemStability.toFixed(3)} | `);
+                this.addToOutput(`Info Flow: ${this.informationFlow.toFixed(3)} | `);
+                this.addToOutput(`Entropy: ${this.calculatePatternEntropy().toFixed(3)}`);
+            }
+            
+            exportSystemData() {
+                const data = {
+                    timestamp: new Date().toISOString(),
+                    systemState: {
+                        time: this.time,
+                        frequencies: this.frequencies,
+                        threshold: this.threshold,
+                        learningRate: this.learningRate,
+                        memoryDecay: this.memoryDecay
+                    },
+                    metrics: this.metricsHistory.slice(-50),
+                    symbols: this.symbolHistory,
+                    spatialMemory: this.spatialMemory
+                };
+                
+                const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `wave-computation-data-${Date.now()}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+                
+                this.addToOutput('💾 System data exported');
+            }
+            
+            /**
+             * Update UI controls to reflect current frequency values
+             * Used when applying Ramanujan presets or loading saved states
+             */
+            updateUIFromFrequencies() {
+                // Update sliders
+                document.getElementById('freq1').value = this.frequencies[0];
+                document.getElementById('freq2').value = this.frequencies[1];
+                document.getElementById('freq3').value = this.frequencies[2];
+                
+                // Update number inputs
+                document.getElementById('freq1Input').value = this.frequencies[0].toFixed(3);
+                document.getElementById('freq2Input').value = this.frequencies[1].toFixed(3);
+                document.getElementById('freq3Input').value = this.frequencies[2].toFixed(3);
+            }
+        }
+        
+        /**
+         * Global function to set Ramanujan-inspired frequency ratios
+         * These implement the precise mathematical relationships Ramanujan discovered
+         */
+        function setRamanujanRatio(preset) {
+            const system = window.waveSystem; // Reference to the main system instance
+            if (!system) return;
+            
+            switch(preset) {
+                case 'golden':
+                    // Golden ratio combination: φ, √2, φ²
+                    system.frequencies = [1.0, 1.6180339887, 2.6180339887];
+                    system.addToOutput('🌟 Golden ratio φ preset applied');
+                    break;
+                    
+                case 'sqrt2':
+                    // Square root of 2 series: 1, √2, 2
+                    system.frequencies = [1.0, 1.4142135624, 2.0];
+                    system.addToOutput('📐 √2 harmonic series applied');
+                    break;
+                    
+                case 'sqrt3':
+                    // Square root of 3 series: 1, √3, 3
+                    system.frequencies = [1.0, 1.7320508076, 3.0];
+                    system.addToOutput('△ √3 harmonic series applied');
+                    break;
+                    
+                case 'sqrt5':
+                    // Square root of 5 series: 1, √5, φ×√5
+                    system.frequencies = [1.0, 2.2360679775, 3.6180339887];
+                    system.addToOutput('⭐ √5 harmonic series applied');
+                    break;
+            }
+            
+            // Update all the UI controls to reflect the new values
+            system.updateUIFromFrequencies();
+        }
+        
+        // Initialize the system when the page loads
+        window.addEventListener('load', () => {
+            console.log('🎯 Page loaded - starting system initialization...');
+            window.waveSystem = new WaveSymbolicSystem(); // Store reference globally for presets
+        });
+    </script>
+</body>
+</html>
