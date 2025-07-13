@@ -1,0 +1,1657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Self-Optimizing Wave Computer</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: white;
+            margin: 0;
+            padding: 8px;
+            min-height: 100vh;
+            overflow-x: auto;
+        }
+        
+        .container {
+            min-width: 800px;
+            margin: 0 auto;
+            zoom: 0.7;
+            transform-origin: top left;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                zoom: 0.5;
+                min-width: 1000px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .container {
+                zoom: 0.4;
+                min-width: 1200px;
+            }
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 15px;
+            background: rgba(255,255,255,0.1);
+            padding: 10px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .header h1 {
+            margin: 5px 0;
+            font-size: 24px;
+        }
+        
+        .header p {
+            margin: 5px 0;
+            font-size: 12px;
+        }
+        
+        .explanation {
+            background: rgba(255,255,255,0.15);
+            padding: 8px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-size: 10px;
+            line-height: 1.4;
+        }
+        
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .panel {
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+            padding: 8px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        .panel h3 {
+            margin: 0 0 8px 0;
+            color: #ffeb3b;
+            font-size: 12px;
+            border-bottom: 1px solid rgba(255,235,59,0.3);
+            padding-bottom: 4px;
+        }
+        
+        canvas {
+            width: 100%;
+            background: rgba(0,0,0,0.3);
+            border-radius: 4px;
+            border: 1px solid rgba(255,255,255,0.2);
+            height: 80px;
+        }
+        
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4px;
+            margin: 8px 0;
+        }
+        
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            margin: 3px 0;
+            font-size: 9px;
+        }
+        
+        .control-group label {
+            min-width: 35px;
+            font-size: 8px;
+            font-weight: bold;
+        }
+        
+        .control-group input[type="range"] {
+            flex: 1;
+            height: 15px;
+        }
+        
+        .control-group .value {
+            min-width: 25px;
+            text-align: right;
+            font-family: monospace;
+            background: rgba(0,0,0,0.3);
+            padding: 1px 3px;
+            border-radius: 2px;
+            font-size: 8px;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+            border: none;
+            padding: 4px 6px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+            font-size: 9px;
+        }
+        
+        button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .pause-btn {
+            background: linear-gradient(135deg, #ff9800, #f57c00);
+        }
+        
+        .reset-btn {
+            background: linear-gradient(135deg, #f44336, #d32f2f);
+        }
+        
+        .metrics {
+            background: rgba(0,0,0,0.4);
+            padding: 4px;
+            border-radius: 4px;
+            margin: 4px 0;
+            font-family: monospace;
+            font-size: 8px;
+            line-height: 1.2;
+        }
+        
+        .metrics-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 1px 0;
+        }
+        
+        .metrics-label {
+            color: #ffeb3b;
+        }
+        
+        .metrics-value {
+            color: #4CAF50;
+            font-weight: bold;
+        }
+        
+        .output-area {
+            background: rgba(0,0,0,0.4);
+            padding: 4px;
+            border-radius: 4px;
+            height: 60px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 8px;
+            line-height: 1.2;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .symbol {
+            color: #4CAF50;
+            font-weight: bold;
+        }
+        
+        .ternary-0 { color: #ff5722; }
+        .ternary-1 { color: #ffeb3b; }
+        .ternary-2 { color: #2196f3; }
+        
+        .status-bar {
+            background: rgba(0,0,0,0.3);
+            padding: 3px 6px;
+            border-radius: 4px;
+            margin: 4px 0;
+            text-align: center;
+            font-weight: bold;
+            color: #4CAF50;
+            font-size: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧠 Self-Optimizing Wave Computer</h1>
+            <p>Autonomous machine learning system generating interpretable mathematical expressions</p>
+        </div>
+
+        <div class="explanation">
+            <strong>Self-Optimizing Wave Computer:</strong> This system learns to optimize its own wave parameters while generating interpretable 
+            mathematical expressions. It evolves toward different objectives (complexity, stability, novelty) and communicates its discoveries 
+            through symbolic math rather than random symbols, making its "thoughts" readable and meaningful.
+        </div>
+
+        <!-- Self-Optimization Engine -->
+        <div style="margin-bottom: 15px;">
+            <div class="panel" style="width: 100%;">
+                <h3>🧠 Self-Optimization Engine</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 15px; align-items: start;">
+                    
+                    <!-- Optimization Objectives -->
+                    <div>
+                        <div style="font-size: 10px; margin-bottom: 8px; color: #ffeb3b;"><strong>Learning Objectives:</strong></div>
+                        <div style="display: grid; grid-template-columns: 1fr; gap: 3px;">
+                            <label style="font-size: 8px; display: flex; align-items: center; gap: 4px;">
+                                <input type="checkbox" id="optimizeComplexity" checked style="transform: scale(0.8);">
+                                Maximize Complexity
+                            </label>
+                            <label style="font-size: 8px; display: flex; align-items: center; gap: 4px;">
+                                <input type="checkbox" id="optimizeStability" style="transform: scale(0.8);">
+                                Maximize Stability
+                            </label>
+                            <label style="font-size: 8px; display: flex; align-items: center; gap: 4px;">
+                                <input type="checkbox" id="optimizeNovelty" checked style="transform: scale(0.8);">
+                                Maximize Novelty
+                            </label>
+                            <label style="font-size: 8px; display: flex; align-items: center; gap: 4px;">
+                                <input type="checkbox" id="optimizeExpression" checked style="transform: scale(0.8);">
+                                Rich Expressions
+                            </label>
+                        </div>
+                        
+                        <div class="control-group" style="margin-top: 8px;">
+                            <label>Learn Rate:</label>
+                            <input type="range" id="optimizationRate" min="0.001" max="0.1" step="0.001" value="0.01">
+                            <span class="value" id="optimizationRateVal">0.01</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Performance Metrics -->
+                    <div>
+                        <div style="font-size: 10px; margin-bottom: 8px; color: #ffeb3b;"><strong>Performance Tracking:</strong></div>
+                        <div class="metrics">
+                            <div class="metrics-row">
+                                <span class="metrics-label">Fitness Score:</span>
+                                <span class="metrics-value" id="fitnessScore">0.000</span>
+                            </div>
+                            <div class="metrics-row">
+                                <span class="metrics-label">Generation:</span>
+                                <span class="metrics-value" id="generation">0</span>
+                            </div>
+                            <div class="metrics-row">
+                                <span class="metrics-label">Best Fitness:</span>
+                                <span class="metrics-value" id="bestFitness">0.000</span>
+                            </div>
+                            <div class="metrics-row">
+                                <span class="metrics-label">Improvements:</span>
+                                <span class="metrics-value" id="improvements">0</span>
+                            </div>
+                        </div>
+                        
+                        <div style="margin-top: 8px;">
+                            <div style="font-size: 8px; color: #888;">Learning Status: <span id="learningStatus">Exploring...</span></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Parameter Evolution -->
+                    <div>
+                        <div style="font-size: 10px; margin-bottom: 8px; color: #ffeb3b;"><strong>Parameter Evolution:</strong></div>
+                        <canvas id="evolutionCanvas" width="200" height="80" style="width: 100%; height: 80px;"></canvas>
+                        <div style="font-size: 8px; color: #888; text-align: center; margin-top: 4px;">
+                            Fitness evolution over generations
+                        </div>
+                        
+                        <div class="controls" style="margin-top: 8px;">
+                            <button id="toggleOptimization">🧠 Learning: ON</button>
+                            <button id="resetOptimization">🔄 Reset</button>
+                        </div>
+                    </div>
+                    
+                    <!-- System Insights -->
+                    <div>
+                        <div style="font-size: 10px; margin-bottom: 8px; color: #ffeb3b;"><strong>System Insights:</strong></div>
+                        <div class="output-area" id="insightsOutput" style="height: 60px;">
+                            Learning engine initializing...
+                        </div>
+                        
+                        <div style="margin-top: 8px; padding: 4px; background: rgba(0,0,0,0.3); border-radius: 4px; font-size: 8px;">
+                            <div><strong>Current Strategy:</strong> <span id="currentStrategy">Exploration</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-grid">
+            <!-- Wave Interference Substrate Panel -->
+            <div class="panel">
+                <h3>🌊 Wave Substrate</h3>
+                <canvas id="waveCanvas" width="200" height="80"></canvas>
+                
+                <div class="control-group">
+                    <label>ω₁:</label>
+                    <input type="range" id="freq1" min="0.3" max="5.0" step="0.001" value="1.0">
+                    <input type="number" id="freq1Input" min="0.3" max="5.0" step="0.001" value="1.0" style="width: 50px; font-size: 7px; padding: 1px;">
+                </div>
+                <div class="control-group">
+                    <label>ω₂:</label>
+                    <input type="range" id="freq2" min="0.3" max="5.0" step="0.001" value="1.5">
+                    <input type="number" id="freq2Input" min="0.3" max="5.0" step="0.001" value="1.5" style="width: 50px; font-size: 7px; padding: 1px;">
+                </div>
+                <div class="control-group">
+                    <label>ω₃:</label>
+                    <input type="range" id="freq3" min="0.3" max="5.0" step="0.001" value="2.0">
+                    <input type="number" id="freq3Input" min="0.3" max="5.0" step="0.001" value="2.0" style="width: 50px; font-size: 7px; padding: 1px;">
+                </div>
+                <div class="control-group">
+                    <label>ω₄:</label>
+                    <input type="range" id="freq4" min="0.3" max="5.0" step="0.001" value="2.5">
+                    <input type="number" id="freq4Input" min="0.3" max="5.0" step="0.001" value="2.5" style="width: 50px; font-size: 7px; padding: 1px;">
+                </div>
+                <div class="control-group">
+                    <label>ω₅:</label>
+                    <input type="range" id="freq5" min="0.3" max="5.0" step="0.001" value="3.0">
+                    <input type="number" id="freq5Input" min="0.3" max="5.0" step="0.001" value="3.0" style="width: 50px; font-size: 7px; padding: 1px;">
+                </div>
+                <div class="control-group">
+                    <label>ω₆:</label>
+                    <input type="range" id="freq6" min="0.3" max="5.0" step="0.001" value="3.5">
+                    <input type="number" id="freq6Input" min="0.3" max="5.0" step="0.001" value="3.5" style="width: 50px; font-size: 7px; padding: 1px;">
+                </div>
+                <div class="control-group">
+                    <label>Threshold:</label>
+                    <input type="range" id="threshold" min="0.1" max="0.9" step="0.001" value="0.5">
+                    <span class="value" id="thresholdVal">0.5</span>
+                </div>
+                
+                <div style="margin: 8px 0; padding: 4px; background: rgba(0,0,0,0.2); border-radius: 4px;">
+                    <div style="font-size: 8px; margin-bottom: 4px;"><strong>Ramanujan Presets:</strong></div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2px;">
+                        <button onclick="setRamanujanRatio('golden')" style="font-size: 7px; padding: 2px;">φ Golden</button>
+                        <button onclick="setRamanujanRatio('sqrt2')" style="font-size: 7px; padding: 2px;">√2 Ratio</button>
+                        <button onclick="setRamanujanRatio('sqrt3')" style="font-size: 7px; padding: 2px;">√3 Ratio</button>
+                        <button onclick="setRamanujanRatio('sqrt5')" style="font-size: 7px; padding: 2px;">√5 Ratio</button>
+                        <button onclick="setRamanujanRatio('ramanujan')" style="font-size: 7px; padding: 2px;">π² Series</button>
+                    </div>
+                </div>
+
+                <div style="margin: 8px 0; padding: 4px; background: rgba(0,0,0,0.2); border-radius: 4px;">
+                    <div style="font-size: 8px; margin-bottom: 4px;"><strong>Emergence Presets:</strong></div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2px;">
+                        <button onclick="setEmergencePreset('fibonacci')" style="font-size: 7px; padding: 2px;">🌀 Fibonacci</button>
+                        <button onclick="setEmergencePreset('prime')" style="font-size: 7px; padding: 2px;">🔢 Prime Seq</button>
+                        <button onclick="setEmergencePreset('chaos')" style="font-size: 7px; padding: 2px;">🌪️ Chaotic</button>
+                        <button onclick="setEmergencePreset('harmonic')" style="font-size: 7px; padding: 2px;">🎵 Harmonic</button>
+                        <button onclick="setEmergencePreset('resonance')" style="font-size: 7px; padding: 2px;">⚡ Resonance</button>
+                    </div>
+                </div>
+
+                <div class="controls">
+                    <button id="pauseBtn" class="pause-btn">⏸️ Pause</button>
+                    <button id="resetBtn" class="reset-btn">🔄 Reset</button>
+                </div>
+
+                <div class="metrics">
+                    <div class="metrics-row">
+                        <span class="metrics-label">Interference:</span>
+                        <span class="metrics-value" id="interferenceLevel">0.00</span>
+                    </div>
+                    <div class="metrics-row">
+                        <span class="metrics-label">Resonance:</span>
+                        <span class="metrics-value" id="resonanceEvents">0</span>
+                    </div>
+                    <div class="metrics-row">
+                        <span class="metrics-label">Time:</span>
+                        <span class="metrics-value" id="waveTime">0.0s</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Spatial Memory Grid Panel -->
+            <div class="panel">
+                <h3>🧠 Spatial Memory</h3>
+                <canvas id="spatialCanvas" width="200" height="80"></canvas>
+                
+                <div class="control-group">
+                    <label>Learn:</label>
+                    <input type="range" id="learnRate" min="0.1" max="1.0" step="0.1" value="0.5">
+                    <span class="value" id="learnRateVal">0.5</span>
+                </div>
+                <div class="control-group">
+                    <label>Decay:</label>
+                    <input type="range" id="memoryDecay" min="0.90" max="0.99" step="0.01" value="0.95">
+                    <span class="value" id="memoryDecayVal">0.95</span>
+                </div>
+
+                <div class="controls">
+                    <button id="clearMemory">🧹 Clear</button>
+                    <button id="toggleLearning">🧠 Learning</button>
+                </div>
+
+                <div class="metrics">
+                    <div class="metrics-row">
+                        <span class="metrics-label">Active:</span>
+                        <span class="metrics-value" id="activeCells">0</span>
+                    </div>
+                    <div class="metrics-row">
+                        <span class="metrics-label">Load:</span>
+                        <span class="metrics-value" id="memoryLoad">0%</span>
+                    </div>
+                    <div class="metrics-row">
+                        <span class="metrics-label">Entropy:</span>
+                        <span class="metrics-value" id="patternEntropy">0.00</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mathematical Expression Engine -->
+            <div class="panel">
+                <h3>🧮 Mathematical Expression Engine</h3>
+                
+                <div class="status-bar">
+                    Expression: <span id="currentSymbol" class="symbol">∅</span>
+                </div>
+                
+                <div class="output-area" id="symbolicOutput">
+                    System initializing...
+                </div>
+
+                <div class="controls">
+                    <button id="clearSymbols">🧹 Clear</button>
+                    <button id="analyzeSymbols">📊 Analyze</button>
+                </div>
+
+                <div class="metrics">
+                    <div class="metrics-row">
+                        <span class="metrics-label">Count:</span>
+                        <span class="metrics-value" id="symbolCount">0</span>
+                    </div>
+                    <div class="metrics-row">
+                        <span class="metrics-label">Complexity:</span>
+                        <span class="metrics-value" id="uniqueSymbols">0</span>
+                    </div>
+                    <div class="metrics-row">
+                        <span class="metrics-label">Rate:</span>
+                        <span class="metrics-value" id="symbolRate">0.0/s</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- System Analysis Panel -->
+            <div class="panel">
+                <h3>📊 Analysis</h3>
+                
+                <canvas id="analysisCanvas" width="200" height="80"></canvas>
+                
+                <div class="controls">
+                    <button id="runAnalysis">🔬 Analyze</button>
+                    <button id="exportData">💾 Export</button>
+                </div>
+
+                <div class="metrics">
+                    <div class="metrics-row">
+                        <span class="metrics-label">Complexity:</span>
+                        <span class="metrics-value" id="complexity">0.00</span>
+                    </div>
+                    <div class="metrics-row">
+                        <span class="metrics-label">Stability:</span>
+                        <span class="metrics-value" id="stability">0.00</span>
+                    </div>
+                    <div class="metrics-row">
+                        <span class="metrics-label">Info Flow:</span>
+                        <span class="metrics-value" id="infoFlow">0.00</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Spectral Analysis Observatory -->
+            <div class="panel">
+                <h3>🔍 Spectral Observatory</h3>
+                
+                <canvas id="spectralCanvas" width="200" height="80"></canvas>
+                
+                <div class="controls">
+                    <button id="toggleSpectral">📈 Monitor: ON</button>
+                    <button id="resetSpectral">🔄 Reset</button>
+                </div>
+
+                <div class="metrics">
+                    <div class="metrics-row">
+                        <span class="metrics-label">Peak Freq:</span>
+                        <span class="metrics-value" id="peakFrequency">0.00</span>
+                    </div>
+                    <div class="metrics-row">
+                        <span class="metrics-label">Spectral Energy:</span>
+                        <span class="metrics-value" id="spectralEnergy">0.00</span>
+                    </div>
+                    <div class="metrics-row">
+                        <span class="metrics-label">Bandwidth:</span>
+                        <span class="metrics-value" id="spectralBandwidth">0.00</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class SelfOptimizingWaveComputer {
+            constructor() {
+                console.log('🚀 Initializing Self-Optimizing Wave Computer...');
+                
+                this.time = 0;
+                this.isRunning = true;
+                this.learningEnabled = true;
+                
+                this.frequencies = [1.0, 1.5, 2.0, 2.5, 3.0, 3.5];
+                this.threshold = 0.5;
+                this.interferenceLevel = 0;
+                this.resonanceEvents = 0;
+                
+                this.initializeCanvases();
+                this.initializeSpatialMemory();
+                this.initializeMathematicalExpressions();
+                this.initializeAnalysisSystem();
+                this.initializeSpectralMonitoring();
+                this.initializeSelfOptimization();
+                this.setupUserControls();
+                this.startComputationalLoop();
+                
+                console.log('✅ Self-optimizing wave computer initialization complete');
+                this.addToOutput('🌊 Self-optimizing wave computer online - ready to learn and evolve');
+                this.addToInsights('🧠 Learning engine active - beginning autonomous optimization');
+            }
+            
+            initializeCanvases() {
+                this.waveCanvas = document.getElementById('waveCanvas');
+                this.waveCtx = this.waveCanvas.getContext('2d');
+                
+                this.spatialCanvas = document.getElementById('spatialCanvas');
+                this.spatialCtx = this.spatialCanvas.getContext('2d');
+                
+                this.analysisCanvas = document.getElementById('analysisCanvas');
+                this.analysisCtx = this.analysisCanvas.getContext('2d');
+                
+                this.spectralCanvas = document.getElementById('spectralCanvas');
+                this.spectralCtx = this.spectralCanvas.getContext('2d');
+                
+                this.evolutionCanvas = document.getElementById('evolutionCanvas');
+                this.evolutionCtx = this.evolutionCanvas.getContext('2d');
+                
+                console.log('📊 Canvas elements initialized for visualization');
+            }
+            
+            initializeSpatialMemory() {
+                this.gridWidth = 20;
+                this.gridHeight = 12;
+                this.learningRate = 0.5;
+                this.memoryDecay = 0.95;
+                
+                this.spatialMemory = [];
+                for (let y = 0; y < this.gridHeight; y++) {
+                    const row = [];
+                    for (let x = 0; x < this.gridWidth; x++) {
+                        row.push({
+                            state: [0, 0, 0],
+                            memory: [0, 0, 0],
+                            lastActive: 0
+                        });
+                    }
+                    this.spatialMemory.push(row);
+                }
+                
+                console.log(`🧠 Spatial memory grid created: ${this.gridWidth}x${this.gridHeight} cells`);
+            }
+            
+            initializeMathematicalExpressions() {
+                this.mathOperators = ['+', '-', '*', '/', '^', '√', 'sin', 'cos', 'log', 'exp'];
+                this.mathConstants = ['π', 'e', 'φ', '∞', '0', '1', '2', 'i'];
+                this.mathRelations = ['=', '>', '<', '≈', '∝', '→', '↔', '∈'];
+                this.mathTerms = ['x', 'y', 'z', 'f', 'g', 'h', 'α', 'β', 'γ'];
+                
+                this.currentSymbol = '∅';
+                this.symbolHistory = [];
+                this.symbolCount = 0;
+                this.expressionComplexity = new Set();
+                this.lastSymbolTime = 0;
+                this.symbolRate = 0;
+                
+                console.log('🧮 Mathematical expression generation system initialized');
+            }
+            
+            initializeAnalysisSystem() {
+                this.metricsHistory = [];
+                this.computationalComplexity = 0;
+                this.systemStability = 0;
+                this.informationFlow = 0;
+                
+                console.log('📈 Analysis system initialized for computational metrics');
+            }
+            
+            initializeSpectralMonitoring() {
+                this.spectralWindowSize = 64;
+                this.spectralMonitoringEnabled = true;
+                
+                this.symbolBuffer = [];
+                this.symbolToNumber = new Map();
+                this.createSymbolMapping();
+                
+                this.currentSpectrum = null;
+                this.peakFrequency = 0;
+                this.spectralEnergy = 0;
+                this.spectralBandwidth = 0;
+                
+                console.log('🔍 Spectral monitoring observatory initialized');
+            }
+            
+            createSymbolMapping() {
+                const symbols = ['x', 'y', 'z', 'f', 'g', 'h', 'α', 'β', 'γ', 'π', 'e', 'φ'];
+                for (let i = 0; i < symbols.length; i++) {
+                    this.symbolToNumber.set(symbols[i], i + 1);
+                }
+                this.symbolToNumber.set('∅', 0);
+            }
+            
+            initializeSelfOptimization() {
+                this.optimizationEnabled = true;
+                this.optimizationRate = 0.01;
+                this.generation = 0;
+                this.improvements = 0;
+                
+                this.objectives = {
+                    complexity: true,
+                    stability: false,
+                    novelty: true,
+                    expression: true
+                };
+                
+                this.currentFitness = 0;
+                this.bestFitness = 0;
+                this.fitnessHistory = [];
+                this.bestParameters = null;
+                this.learningStrategy = 'exploration';
+                this.lastOptimizationTime = 0;
+                
+                console.log('🧠 Self-optimization engine initialized - ready to evolve');
+            }
+            
+            setupUserControls() {
+                // Wave controls
+                for (let i = 1; i <= 6; i++) {
+                    document.getElementById(`freq${i}`).addEventListener('input', (e) => {
+                        this.frequencies[i-1] = parseFloat(e.target.value);
+                        document.getElementById(`freq${i}Input`).value = e.target.value;
+                    });
+                    
+                    document.getElementById(`freq${i}Input`).addEventListener('input', (e) => {
+                        this.frequencies[i-1] = parseFloat(e.target.value);
+                        document.getElementById(`freq${i}`).value = e.target.value;
+                    });
+                }
+                
+                document.getElementById('threshold').addEventListener('input', (e) => {
+                    this.threshold = parseFloat(e.target.value);
+                    document.getElementById('thresholdVal').textContent = e.target.value;
+                });
+                
+                document.getElementById('learnRate').addEventListener('input', (e) => {
+                    this.learningRate = parseFloat(e.target.value);
+                    document.getElementById('learnRateVal').textContent = e.target.value;
+                });
+                
+                document.getElementById('memoryDecay').addEventListener('input', (e) => {
+                    this.memoryDecay = parseFloat(e.target.value);
+                    document.getElementById('memoryDecayVal').textContent = e.target.value;
+                });
+                
+                // System controls
+                document.getElementById('pauseBtn').addEventListener('click', () => {
+                    this.isRunning = !this.isRunning;
+                    document.getElementById('pauseBtn').innerHTML = this.isRunning ? '⏸️ Pause' : '▶️ Play';
+                });
+                
+                document.getElementById('resetBtn').addEventListener('click', () => {
+                    this.resetSystem();
+                });
+                
+                document.getElementById('clearMemory').addEventListener('click', () => {
+                    this.clearSpatialMemory();
+                });
+                
+                document.getElementById('toggleLearning').addEventListener('click', () => {
+                    this.learningEnabled = !this.learningEnabled;
+                    document.getElementById('toggleLearning').innerHTML = 
+                        this.learningEnabled ? '🧠 Learning' : '🧠 Frozen';
+                });
+                
+                document.getElementById('clearSymbols').addEventListener('click', () => {
+                    this.clearSymbolicOutput();
+                });
+                
+                document.getElementById('analyzeSymbols').addEventListener('click', () => {
+                    this.analyzeSymbolicOutput();
+                });
+                
+                document.getElementById('runAnalysis').addEventListener('click', () => {
+                    this.runSystemAnalysis();
+                });
+                
+                document.getElementById('exportData').addEventListener('click', () => {
+                    this.exportSystemData();
+                });
+                
+                document.getElementById('toggleSpectral').addEventListener('click', () => {
+                    this.spectralMonitoringEnabled = !this.spectralMonitoringEnabled;
+                    document.getElementById('toggleSpectral').innerHTML = 
+                        `📈 Monitor: ${this.spectralMonitoringEnabled ? 'ON' : 'OFF'}`;
+                });
+                
+                document.getElementById('resetSpectral').addEventListener('click', () => {
+                    this.resetSpectralAnalysis();
+                });
+                
+                // Optimization controls
+                document.getElementById('optimizationRate').addEventListener('input', (e) => {
+                    this.optimizationRate = parseFloat(e.target.value);
+                    document.getElementById('optimizationRateVal').textContent = e.target.value;
+                });
+                
+                document.getElementById('optimizeComplexity').addEventListener('change', (e) => {
+                    this.objectives.complexity = e.target.checked;
+                });
+                
+                document.getElementById('optimizeStability').addEventListener('change', (e) => {
+                    this.objectives.stability = e.target.checked;
+                });
+                
+                document.getElementById('optimizeNovelty').addEventListener('change', (e) => {
+                    this.objectives.novelty = e.target.checked;
+                });
+                
+                document.getElementById('optimizeExpression').addEventListener('change', (e) => {
+                    this.objectives.expression = e.target.checked;
+                });
+                
+                document.getElementById('toggleOptimization').addEventListener('click', () => {
+                    this.optimizationEnabled = !this.optimizationEnabled;
+                    document.getElementById('toggleOptimization').innerHTML = 
+                        `🧠 Learning: ${this.optimizationEnabled ? 'ON' : 'OFF'}`;
+                });
+                
+                document.getElementById('resetOptimization').addEventListener('click', () => {
+                    this.resetOptimization();
+                });
+                
+                console.log('🎛️ User interface controls connected and active');
+            }
+            
+            startComputationalLoop() {
+                const computeFrame = () => {
+                    if (this.isRunning) {
+                        this.time += 0.05;
+                        
+                        this.updateWaveInterference();
+                        this.updateSpatialMemory();
+                        this.generateMathematicalExpression();
+                        this.renderAllVisualizations();
+                        this.updateSystemMetrics();
+                        
+                        if (this.spectralMonitoringEnabled) {
+                            this.updateSpectralAnalysis();
+                        }
+                        
+                        if (this.optimizationEnabled) {
+                            this.updateSelfOptimization();
+                        }
+                    }
+                    
+                    requestAnimationFrame(computeFrame);
+                };
+                
+                computeFrame();
+                console.log('🔄 Main computational loop started');
+            }
+            
+            updateWaveInterference() {
+                const wave1 = Math.sin(this.frequencies[0] * this.time);
+                const wave2 = Math.sin(this.frequencies[1] * this.time + Math.PI/6);
+                const wave3 = Math.sin(this.frequencies[2] * this.time + Math.PI/3);
+                const wave4 = Math.sin(this.frequencies[3] * this.time + Math.PI/2);
+                const wave5 = Math.sin(this.frequencies[4] * this.time + 2*Math.PI/3);
+                const wave6 = Math.sin(this.frequencies[5] * this.time + 5*Math.PI/6);
+                
+                this.interferenceLevel = (wave1 + wave2 + wave3 + wave4 + wave5 + wave6) / 6;
+                
+                if (Math.abs(this.interferenceLevel) > this.threshold) {
+                    this.resonanceEvents++;
+                }
+                
+                this.currentWaves = [wave1, wave2, wave3, wave4, wave5, wave6];
+            }
+            
+            updateSpatialMemory() {
+                if (!this.learningEnabled) return;
+                
+                for (let y = 0; y < this.gridHeight; y++) {
+                    for (let x = 0; x < this.gridWidth; x++) {
+                        const cell = this.spatialMemory[y][x];
+                        
+                        const spatialX = (x / this.gridWidth) * 2 * Math.PI;
+                        const spatialY = (y / this.gridHeight) * 2 * Math.PI;
+                        
+                        const influence1 = (Math.sin(spatialX + this.frequencies[0] * this.time) * this.currentWaves[0] + 
+                                         Math.sin(spatialY + this.frequencies[1] * this.time) * this.currentWaves[1]) / 2;
+                        const influence2 = (Math.sin(spatialX + this.frequencies[2] * this.time) * this.currentWaves[2] + 
+                                         Math.sin(spatialY + this.frequencies[3] * this.time) * this.currentWaves[3]) / 2;
+                        const influence3 = (Math.sin(spatialX + spatialY + this.frequencies[4] * this.time) * this.currentWaves[4] + 
+                                         Math.sin(spatialX - spatialY + this.frequencies[5] * this.time) * this.currentWaves[5]) / 2;
+                        
+                        const activation = [
+                            Math.max(0, influence1),
+                            Math.max(0, influence2), 
+                            Math.max(0, influence3)
+                        ];
+                        
+                        for (let i = 0; i < 3; i++) {
+                            cell.memory[i] = cell.memory[i] * this.memoryDecay + 
+                                           activation[i] * this.learningRate;
+                            cell.state[i] = activation[i];
+                        }
+                        
+                        if (activation.some(a => a > 0.1)) {
+                            cell.lastActive = this.time;
+                        }
+                    }
+                }
+            }
+            
+            generateMathematicalExpression() {
+                const pattern = this.extractSpatialPattern();
+                const expression = this.patternToMathExpression(pattern);
+                
+                if (expression !== this.currentSymbol && expression !== '∅') {
+                    this.currentSymbol = expression;
+                    this.symbolHistory.push({
+                        symbol: expression,
+                        time: this.time,
+                        pattern: pattern.slice()
+                    });
+                    this.symbolCount++;
+                    this.expressionComplexity.add(expression);
+                    this.lastSymbolTime = this.time;
+                    
+                    this.addToOutput(`${expression}`);
+                }
+                
+                if (this.time > 3) {
+                    this.symbolRate = this.symbolCount / this.time;
+                }
+            }
+            
+            extractSpatialPattern() {
+                const pattern = [];
+                const samplePoints = [
+                    [5, 3], [10, 3], [15, 3],
+                    [5, 6], [10, 6], [15, 6],
+                    [5, 9], [10, 9], [15, 9]
+                ];
+                
+                for (const [x, y] of samplePoints) {
+                    const cell = this.spatialMemory[y][x];
+                    const maxIndex = cell.memory.indexOf(Math.max(...cell.memory));
+                    const maxValue = cell.memory[maxIndex];
+                    
+                    if (maxValue > 0.1) {
+                        pattern.push(maxIndex);
+                    } else {
+                        pattern.push(-1);
+                    }
+                }
+                
+                return pattern;
+            }
+            
+            patternToMathExpression(pattern) {
+                if (pattern.every(p => p === -1)) return '∅';
+                
+                const signature = pattern.filter(p => p !== -1);
+                if (signature.length === 0) return '∅';
+                
+                const complexity = signature.length;
+                const diversity = new Set(signature).size;
+                const sum = signature.reduce((a, b) => a + b, 0);
+                const avg = (sum / signature.length).toFixed(1);
+                
+                const ops = this.mathOperators;
+                const terms = this.mathTerms;
+                const consts = this.mathConstants;
+                const rels = this.mathRelations;
+                
+                // Generate different types of mathematical expressions
+                const templates = [
+                    `f(x) = ${ops[sum % ops.length]}(${avg})`,
+                    `${terms[complexity % terms.length]} ${rels[diversity % rels.length]} ${avg}`,
+                    `∫${ops[sum % ops.length]}(x)dx = ${avg}`,
+                    `lim_{x→${diversity}} ${ops[complexity % ops.length]}(x) = ${avg}`,
+                    `${terms[sum % terms.length]} ∈ [0, ${complexity}]`,
+                    `if x > ${diversity} then ${ops[sum % ops.length]}(x)`
+                ];
+                
+                return templates[sum % templates.length];
+            }
+            
+            updateSpectralAnalysis() {
+                if (this.currentSymbol !== '∅') {
+                    const symbolValue = this.getSymbolNumericValue(this.currentSymbol);
+                    this.symbolBuffer.push(symbolValue);
+                    
+                    if (this.symbolBuffer.length > this.spectralWindowSize * 2) {
+                        this.symbolBuffer = this.symbolBuffer.slice(-this.spectralWindowSize);
+                    }
+                    
+                    if (this.symbolBuffer.length >= this.spectralWindowSize) {
+                        this.performFFTAnalysis();
+                    }
+                }
+            }
+            
+            getSymbolNumericValue(symbol) {
+                // Simple hash function for mathematical expressions
+                let hash = 0;
+                for (let i = 0; i < symbol.length; i++) {
+                    hash = ((hash << 5) - hash + symbol.charCodeAt(i)) & 0xffffffff;
+                }
+                return Math.abs(hash) % 24; // Map to 0-23 range
+            }
+            
+            performFFTAnalysis() {
+                const N = Math.min(this.symbolBuffer.length, this.spectralWindowSize);
+                const data = this.symbolBuffer.slice(-N);
+                
+                const spectrum = this.computeDFT(data);
+                this.analyzeSpectrum(spectrum);
+                this.currentSpectrum = spectrum;
+            }
+            
+            computeDFT(data) {
+                const N = data.length;
+                const spectrum = [];
+                
+                for (let k = 0; k < N / 2; k++) {
+                    let realPart = 0;
+                    let imagPart = 0;
+                    
+                    for (let n = 0; n < N; n++) {
+                        const angle = -2 * Math.PI * k * n / N;
+                        realPart += data[n] * Math.cos(angle);
+                        imagPart += data[n] * Math.sin(angle);
+                    }
+                    
+                    const magnitude = Math.sqrt(realPart * realPart + imagPart * imagPart);
+                    spectrum[k] = magnitude;
+                }
+                
+                return spectrum;
+            }
+            
+            analyzeSpectrum(spectrum) {
+                if (!spectrum || spectrum.length === 0) return;
+                
+                let peakIndex = 0;
+                let peakValue = spectrum[0];
+                for (let i = 1; i < spectrum.length; i++) {
+                    if (spectrum[i] > peakValue) {
+                        peakValue = spectrum[i];
+                        peakIndex = i;
+                    }
+                }
+                
+                this.peakFrequency = peakIndex / (spectrum.length * 2);
+                this.spectralEnergy = spectrum.reduce((sum, val) => sum + val * val, 0) / spectrum.length;
+                this.spectralBandwidth = this.calculateSpectralBandwidth(spectrum);
+            }
+            
+            calculateSpectralBandwidth(spectrum) {
+                const totalEnergy = spectrum.reduce((sum, val) => sum + val * val, 0);
+                if (totalEnergy === 0) return 0;
+                
+                let centroid = 0;
+                for (let i = 0; i < spectrum.length; i++) {
+                    centroid += i * spectrum[i] * spectrum[i];
+                }
+                centroid /= totalEnergy;
+                
+                let spread = 0;
+                for (let i = 0; i < spectrum.length; i++) {
+                    const deviation = i - centroid;
+                    spread += deviation * deviation * spectrum[i] * spectrum[i];
+                }
+                spread = Math.sqrt(spread / totalEnergy);
+                
+                return spread / spectrum.length;
+            }
+            
+            updateSelfOptimization() {
+                if (this.time - this.lastOptimizationTime < 3.0) return;
+                
+                this.lastOptimizationTime = this.time;
+                this.generation++;
+                
+                this.currentFitness = this.calculateFitness();
+                
+                if (this.currentFitness > this.bestFitness) {
+                    this.bestFitness = this.currentFitness;
+                    this.improvements++;
+                    this.bestParameters = {
+                        frequencies: [...this.frequencies],
+                        threshold: this.threshold,
+                        learningRate: this.learningRate,
+                        memoryDecay: this.memoryDecay
+                    };
+                    this.learningStrategy = 'exploitation';
+                    this.addToInsights(`🎯 NEW BEST: Fitness ${this.currentFitness.toFixed(3)} - Gen ${this.generation}`);
+                } else {
+                    this.learningStrategy = 'exploration';
+                }
+                
+                this.evolveParameters();
+                
+                this.fitnessHistory.push({
+                    generation: this.generation,
+                    fitness: this.currentFitness,
+                    strategy: this.learningStrategy
+                });
+                
+                if (this.fitnessHistory.length > 100) {
+                    this.fitnessHistory = this.fitnessHistory.slice(-50);
+                }
+            }
+            
+            calculateFitness() {
+                let fitness = 0;
+                let components = 0;
+                
+                if (this.objectives.complexity) {
+                    fitness += this.computationalComplexity;
+                    components++;
+                }
+                
+                if (this.objectives.stability) {
+                    fitness += this.systemStability;
+                    components++;
+                }
+                
+                if (this.objectives.novelty) {
+                    const novelty = this.expressionComplexity.size / Math.max(1, this.symbolCount);
+                    fitness += novelty;
+                    components++;
+                }
+                
+                if (this.objectives.expression) {
+                    const expressionRichness = Math.min(1, this.symbolRate * 0.5);
+                    fitness += expressionRichness;
+                    components++;
+                }
+                
+                return components > 0 ? fitness / components : 0;
+            }
+            
+            evolveParameters() {
+                const mutationStrength = this.optimizationRate;
+                
+                if (this.learningStrategy === 'exploration') {
+                    for (let i = 0; i < this.frequencies.length; i++) {
+                        const mutation = (Math.random() - 0.5) * mutationStrength * 2;
+                        this.frequencies[i] = Math.max(0.3, Math.min(5.0, this.frequencies[i] + mutation));
+                    }
+                    
+                    if (Math.random() < 0.3) {
+                        const thresholdMutation = (Math.random() - 0.5) * mutationStrength;
+                        this.threshold = Math.max(0.1, Math.min(0.9, this.threshold + thresholdMutation));
+                    }
+                    
+                } else if (this.bestParameters) {
+                    for (let i = 0; i < this.frequencies.length; i++) {
+                        const direction = Math.random() - 0.5;
+                        const step = direction * mutationStrength * 0.5;
+                        this.frequencies[i] = Math.max(0.3, Math.min(5.0, this.bestParameters.frequencies[i] + step));
+                    }
+                }
+                
+                this.updateUIFromFrequencies();
+                document.getElementById('thresholdVal').textContent = this.threshold.toFixed(3);
+                document.getElementById('learnRateVal').textContent = this.learningRate.toFixed(1);
+            }
+            
+            renderAllVisualizations() {
+                this.renderWaveCanvas();
+                this.renderSpatialCanvas();
+                this.renderAnalysisCanvas();
+                
+                if (this.spectralMonitoringEnabled) {
+                    this.renderSpectralCanvas();
+                }
+                
+                if (this.optimizationEnabled) {
+                    this.renderEvolutionCanvas();
+                }
+            }
+            
+            renderWaveCanvas() {
+                const ctx = this.waveCtx;
+                const width = this.waveCanvas.width;
+                const height = this.waveCanvas.height;
+                
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+                ctx.fillRect(0, 0, width, height);
+                
+                ctx.lineWidth = 1;
+                const colors = ['#ff5722', '#ffeb3b', '#2196f3', '#4CAF50', '#9c27b0', '#ff9800'];
+                
+                for (let waveIndex = 0; waveIndex < 6; waveIndex++) {
+                    ctx.strokeStyle = colors[waveIndex];
+                    ctx.beginPath();
+                    for (let x = 0; x < width; x++) {
+                        const t = this.time - (width - x) * 0.02;
+                        const phase = waveIndex * Math.PI / 6;
+                        const y = height/2 + Math.sin(this.frequencies[waveIndex] * t + phase) * height/6;
+                        if (x === 0) ctx.moveTo(x, y);
+                        else ctx.lineTo(x, y);
+                    }
+                    ctx.stroke();
+                }
+                
+                ctx.strokeStyle = this.interferenceLevel > this.threshold ? '#4CAF50' : 'white';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                for (let x = 0; x < width; x++) {
+                    const t = this.time - (width - x) * 0.02;
+                    let interference = 0;
+                    for (let i = 0; i < 6; i++) {
+                        const phase = i * Math.PI / 6;
+                        interference += Math.sin(this.frequencies[i] * t + phase);
+                    }
+                    interference /= 6;
+                    const y = height/2 + interference * height/3;
+                    if (x === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.stroke();
+            }
+            
+            renderSpatialCanvas() {
+                const ctx = this.spatialCtx;
+                const width = this.spatialCanvas.width;
+                const height = this.spatialCanvas.height;
+                
+                ctx.clearRect(0, 0, width, height);
+                
+                const cellWidth = width / this.gridWidth;
+                const cellHeight = height / this.gridHeight;
+                
+                for (let y = 0; y < this.gridHeight; y++) {
+                    for (let x = 0; x < this.gridWidth; x++) {
+                        const cell = this.spatialMemory[y][x];
+                        const px = x * cellWidth;
+                        const py = y * cellHeight;
+                        
+                        const maxMemory = Math.max(...cell.memory);
+                        const maxIndex = cell.memory.indexOf(maxMemory);
+                        
+                        if (maxMemory > 0.05) {
+                            const alpha = Math.min(maxMemory, 1);
+                            
+                            if (maxIndex === 0) {
+                                ctx.fillStyle = `rgba(255, 87, 34, ${alpha})`;
+                            } else if (maxIndex === 1) {
+                                ctx.fillStyle = `rgba(255, 235, 59, ${alpha})`;
+                            } else {
+                                ctx.fillStyle = `rgba(33, 150, 243, ${alpha})`;
+                            }
+                            
+                            ctx.fillRect(px, py, cellWidth, cellHeight);
+                        }
+                        
+                        ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+                        ctx.lineWidth = 0.5;
+                        ctx.strokeRect(px, py, cellWidth, cellHeight);
+                    }
+                }
+            }
+            
+            renderAnalysisCanvas() {
+                const ctx = this.analysisCtx;
+                const width = this.analysisCanvas.width;
+                const height = this.analysisCanvas.height;
+                
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+                ctx.fillRect(0, 0, width, height);
+                
+                if (this.metricsHistory.length > 1) {
+                    const maxPoints = width;
+                    const start = Math.max(0, this.metricsHistory.length - maxPoints);
+                    
+                    ctx.strokeStyle = '#4CAF50';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    for (let i = start; i < this.metricsHistory.length; i++) {
+                        const x = ((i - start) / maxPoints) * width;
+                        const y = height - (this.metricsHistory[i].complexity * height);
+                        if (i === start) ctx.moveTo(x, y);
+                        else ctx.lineTo(x, y);
+                    }
+                    ctx.stroke();
+                    
+                    ctx.strokeStyle = '#ffeb3b';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    for (let i = start; i < this.metricsHistory.length; i++) {
+                        const x = ((i - start) / maxPoints) * width;
+                        const y = height - (this.metricsHistory[i].stability * height);
+                        if (i === start) ctx.moveTo(x, y);
+                        else ctx.lineTo(x, y);
+                    }
+                    ctx.stroke();
+                }
+            }
+            
+            renderSpectralCanvas() {
+                const ctx = this.spectralCtx;
+                const width = this.spectralCanvas.width;
+                const height = this.spectralCanvas.height;
+                
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+                ctx.fillRect(0, 0, width, height);
+                
+                if (!this.currentSpectrum || this.currentSpectrum.length === 0) {
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+                    ctx.font = '10px monospace';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('Collecting data...', width/2, height/2);
+                    return;
+                }
+                
+                const spectrum = this.currentSpectrum;
+                const barWidth = width / spectrum.length;
+                const maxMagnitude = Math.max(...spectrum) || 1;
+                
+                for (let i = 0; i < spectrum.length; i++) {
+                    const barHeight = (spectrum[i] / maxMagnitude) * height * 0.8;
+                    const x = i * barWidth;
+                    const y = height - barHeight;
+                    
+                    const intensity = spectrum[i] / maxMagnitude;
+                    if (intensity > 0.7) {
+                        ctx.fillStyle = '#ff5722';
+                    } else if (intensity > 0.4) {
+                        ctx.fillStyle = '#ffeb3b';
+                    } else {
+                        ctx.fillStyle = '#4CAF50';
+                    }
+                    
+                    ctx.fillRect(x, y, barWidth - 1, barHeight);
+                }
+            }
+            
+            renderEvolutionCanvas() {
+                const ctx = this.evolutionCtx;
+                const width = this.evolutionCanvas.width;
+                const height = this.evolutionCanvas.height;
+                
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+                ctx.fillRect(0, 0, width, height);
+                
+                if (this.fitnessHistory.length < 2) {
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+                    ctx.font = '10px monospace';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('Learning...', width/2, height/2);
+                    return;
+                }
+                
+                const maxFitness = Math.max(...this.fitnessHistory.map(h => h.fitness)) || 1;
+                const pointWidth = width / Math.max(1, this.fitnessHistory.length - 1);
+                
+                ctx.strokeStyle = '#4CAF50';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                
+                for (let i = 0; i < this.fitnessHistory.length; i++) {
+                    const x = i * pointWidth;
+                    const y = height - (this.fitnessHistory[i].fitness / maxFitness) * height * 0.8;
+                    
+                    if (i === 0) {
+                        ctx.moveTo(x, y);
+                    } else {
+                        ctx.lineTo(x, y);
+                    }
+                }
+                ctx.stroke();
+                
+                ctx.fillStyle = '#ffeb3b';
+                for (let i = 0; i < this.fitnessHistory.length; i++) {
+                    if (i === 0 || this.fitnessHistory[i].fitness > this.fitnessHistory[i-1].fitness) {
+                        const x = i * pointWidth;
+                        const y = height - (this.fitnessHistory[i].fitness / maxFitness) * height * 0.8;
+                        ctx.beginPath();
+                        ctx.arc(x, y, 2, 0, 2 * Math.PI);
+                        ctx.fill();
+                    }
+                }
+            }
+            
+            updateSystemMetrics() {
+                document.getElementById('interferenceLevel').textContent = this.interferenceLevel.toFixed(3);
+                document.getElementById('resonanceEvents').textContent = this.resonanceEvents;
+                document.getElementById('waveTime').textContent = this.time.toFixed(1) + 's';
+                
+                let activeCells = 0;
+                let totalMemory = 0;
+                for (let y = 0; y < this.gridHeight; y++) {
+                    for (let x = 0; x < this.gridWidth; x++) {
+                        const cell = this.spatialMemory[y][x];
+                        const maxMemory = Math.max(...cell.memory);
+                        if (maxMemory > 0.05) activeCells++;
+                        totalMemory += maxMemory;
+                    }
+                }
+                
+                document.getElementById('activeCells').textContent = activeCells;
+                document.getElementById('memoryLoad').textContent = 
+                    Math.round((totalMemory / (this.gridWidth * this.gridHeight)) * 100) + '%';
+                
+                const entropy = this.calculatePatternEntropy();
+                document.getElementById('patternEntropy').textContent = entropy.toFixed(3);
+                
+                document.getElementById('currentSymbol').textContent = this.currentSymbol;
+                document.getElementById('symbolCount').textContent = this.symbolCount;
+                document.getElementById('uniqueSymbols').textContent = this.expressionComplexity.size;
+                document.getElementById('symbolRate').textContent = this.symbolRate.toFixed(2) + '/s';
+                
+                if (this.spectralMonitoringEnabled) {
+                    document.getElementById('peakFrequency').textContent = this.peakFrequency.toFixed(3);
+                    document.getElementById('spectralEnergy').textContent = this.spectralEnergy.toFixed(2);
+                    document.getElementById('spectralBandwidth').textContent = this.spectralBandwidth.toFixed(3);
+                }
+                
+                if (this.optimizationEnabled) {
+                    document.getElementById('fitnessScore').textContent = this.currentFitness.toFixed(3);
+                    document.getElementById('generation').textContent = this.generation;
+                    document.getElementById('bestFitness').textContent = this.bestFitness.toFixed(3);
+                    document.getElementById('improvements').textContent = this.improvements;
+                    document.getElementById('learningStatus').textContent = this.learningStrategy;
+                    document.getElementById('currentStrategy').textContent = this.learningStrategy;
+                }
+                
+                this.computationalComplexity = this.calculateComplexity();
+                this.systemStability = this.calculateStability();
+                this.informationFlow = this.calculateInformationFlow();
+                
+                document.getElementById('complexity').textContent = this.computationalComplexity.toFixed(3);
+                document.getElementById('stability').textContent = this.systemStability.toFixed(3);
+                document.getElementById('infoFlow').textContent = this.informationFlow.toFixed(3);
+                
+                this.metricsHistory.push({
+                    time: this.time,
+                    complexity: this.computationalComplexity,
+                    stability: this.systemStability,
+                    infoFlow: this.informationFlow,
+                    activeCells: activeCells,
+                    symbolCount: this.symbolCount
+                });
+                
+                if (this.metricsHistory.length > 500) {
+                    this.metricsHistory = this.metricsHistory.slice(-250);
+                }
+            }
+            
+            calculatePatternEntropy() {
+                const stateCounts = [0, 0, 0];
+                let totalCells = 0;
+                
+                for (let y = 0; y < this.gridHeight; y++) {
+                    for (let x = 0; x < this.gridWidth; x++) {
+                        const cell = this.spatialMemory[y][x];
+                        const maxIndex = cell.memory.indexOf(Math.max(...cell.memory));
+                        if (Math.max(...cell.memory) > 0.05) {
+                            stateCounts[maxIndex]++;
+                            totalCells++;
+                        }
+                    }
+                }
+                
+                if (totalCells === 0) return 0;
+                
+                let entropy = 0;
+                for (const count of stateCounts) {
+                    if (count > 0) {
+                        const p = count / totalCells;
+                        entropy -= p * Math.log2(p);
+                    }
+                }
+                
+                return entropy;
+            }
+            
+            calculateComplexity() {
+                const patternEntropy = this.calculatePatternEntropy();
+                const expressionDiversity = this.expressionComplexity.size / Math.max(1, this.symbolCount);
+                return (patternEntropy + expressionDiversity) / 2;
+            }
+            
+            calculateStability() {
+                if (this.metricsHistory.length < 10) return 0;
+                
+                const recent = this.metricsHistory.slice(-10);
+                const avgComplexity = recent.reduce((sum, m) => sum + m.complexity, 0) / recent.length;
+                const variance = recent.reduce((sum, m) => sum + Math.pow(m.complexity - avgComplexity, 2), 0) / recent.length;
+                
+                return Math.max(0, 1 - variance);
+            }
+            
+            calculateInformationFlow() {
+                if (this.symbolCount === 0) return 0;
+                
+                const timeSinceLastSymbol = this.time - this.lastSymbolTime;
+                const flow = Math.exp(-timeSinceLastSymbol) * this.symbolRate;
+                
+                return Math.min(1, flow);
+            }
+            
+            addToOutput(text) {
+                const output = document.getElementById('symbolicOutput');
+                output.innerHTML += text + ' ';
+                output.scrollTop = output.scrollHeight;
+            }
+            
+            addToInsights(text) {
+                const output = document.getElementById('insightsOutput');
+                output.innerHTML += text + ' ';
+                output.scrollTop = output.scrollHeight;
+            }
+            
+            clearSpatialMemory() {
+                for (let y = 0; y < this.gridHeight; y++) {
+                    for (let x = 0; x < this.gridWidth; x++) {
+                        const cell = this.spatialMemory[y][x];
+                        cell.state = [0, 0, 0];
+                        cell.memory = [0, 0, 0];
+                        cell.lastActive = 0;
+                    }
+                }
+                this.addToOutput('🧹 Spatial memory cleared');
+            }
+            
+            clearSymbolicOutput() {
+                document.getElementById('symbolicOutput').innerHTML = 'Mathematical expressions cleared... ';
+                this.symbolHistory = [];
+                this.symbolCount = 0;
+                this.expressionComplexity.clear();
+                this.currentSymbol = '∅';
+            }
+            
+            resetSystem() {
+                this.time = 0;
+                this.resonanceEvents = 0;
+                this.clearSpatialMemory();
+                this.clearSymbolicOutput();
+                this.metricsHistory = [];
+                this.addToOutput('🔄 System reset complete');
+            }
+            
+            analyzeSymbolicOutput() {
+                const analysis = `=== MATHEMATICAL ANALYSIS ===
+Total expressions: ${this.symbolCount}
+Unique expressions: ${this.expressionComplexity.size}
+Diversity: ${(this.expressionComplexity.size / Math.max(1, this.symbolCount)).toFixed(3)}
+Rate: ${this.symbolRate.toFixed(3)} expressions/sec`;
+                
+                this.addToOutput(analysis.replace(/\n/g, ' | '));
+            }
+            
+            runSystemAnalysis() {
+                this.addToOutput('🔬 SYSTEM ANALYSIS: ');
+                this.addToOutput(`Complexity: ${this.computationalComplexity.toFixed(3)} | `);
+                this.addToOutput(`Stability: ${this.systemStability.toFixed(3)} | `);
+                this.addToOutput(`Info Flow: ${this.informationFlow.toFixed(3)}`);
+            }
+            
+            exportSystemData() {
+                const data = {
+                    timestamp: new Date().toISOString(),
+                    systemState: {
+                        time: this.time,
+                        frequencies: this.frequencies,
+                        threshold: this.threshold,
+                        learningRate: this.learningRate,
+                        memoryDecay: this.memoryDecay
+                    },
+                    optimization: {
+                        generation: this.generation,
+                        bestFitness: this.bestFitness,
+                        improvements: this.improvements,
+                        objectives: this.objectives
+                    },
+                    expressions: Array.from(this.expressionComplexity),
+                    fitnessHistory: this.fitnessHistory
+                };
+                
+                const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `wave-computer-data-${Date.now()}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+                
+                this.addToOutput('💾 System data exported');
+            }
+            
+            resetSpectralAnalysis() {
+                this.symbolBuffer = [];
+                this.currentSpectrum = null;
+                this.peakFrequency = 0;
+                this.spectralEnergy = 0;
+                this.spectralBandwidth = 0;
+                
+                this.addToOutput('🔍 Spectral analysis reset');
+            }
+            
+            resetOptimization() {
+                this.generation = 0;
+                this.improvements = 0;
+                this.currentFitness = 0;
+                this.bestFitness = 0;
+                this.fitnessHistory = [];
+                this.bestParameters = null;
+                this.learningStrategy = 'exploration';
+                this.lastOptimizationTime = 0;
+                
+                document.getElementById('insightsOutput').innerHTML = 'Learning engine reset... ';
+                
+                this.addToOutput('🧠 Self-optimization system reset');
+                this.addToInsights('🔄 Learning parameters reset - beginning new optimization cycle');
+            }
+            
+            updateUIFromFrequencies() {
+                for (let i = 1; i <= 6; i++) {
+                    document.getElementById(`freq${i}`).value = this.frequencies[i-1];
+                    document.getElementById(`freq${i}Input`).value = this.frequencies[i-1].toFixed(3);
+                }
+            }
+        }
+        
+        function setRamanujanRatio(preset) {
+            const system = window.waveSystem;
+            if (!system) return;
+            
+            switch(preset) {
+                case 'golden':
+                    system.frequencies = [1.0, 1.618, 2.618, 4.236, 6.854, 11.090];
+                    system.addToOutput('🌟 Golden ratio cascade applied');
+                    break;
+                    
+                case 'sqrt2':
+                    system.frequencies = [1.0, 1.414, 2.0, 2.828, 4.0, 5.657];
+                    system.addToOutput('📐 √2 harmonic series applied');
+                    break;
+                    
+                case 'sqrt3':
+                    system.frequencies = [1.0, 1.732, 3.0, 5.196, 9.0, 15.588];
+                    system.addToOutput('△ √3 harmonic series applied');
+                    break;
+                    
+                case 'sqrt5':
+                    system.frequencies = [1.0, 2.236, 5.0, 11.180, 25.0, 55.902];
+                    system.addToOutput('⭐ √5 harmonic series applied');
+                    break;
+                    
+                case 'ramanujan':
+                    system.frequencies = [1.0, 1.571, 2.467, 3.873, 6.083, 9.549];
+                    system.addToOutput('🧮 Ramanujan π² series applied');
+                    break;
+            }
+            
+            system.updateUIFromFrequencies();
+        }
+        
+        function setEmergencePreset(preset) {
+            const system = window.waveSystem;
+            if (!system) return;
+            
+            switch(preset) {
+                case 'fibonacci':
+                    system.frequencies = [1.0, 1.618, 2.618, 4.236, 6.854, 11.090];
+                    system.addToOutput('🌀 Fibonacci emergence cascade');
+                    break;
+                    
+                case 'prime':
+                    system.frequencies = [2.0, 3.0, 5.0, 7.0, 11.0, 13.0];
+                    system.addToOutput('🔢 Prime sequence - max diversity');
+                    break;
+                    
+                case 'chaos':
+                    system.frequencies = [1.0, 1.4, 3.2, 4.7, 6.1, 8.9];
+                    system.addToOutput('🌪️ Chaotic ratios - enhanced emergence');
+                    break;
+                    
+                case 'harmonic':
+                    system.frequencies = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0];
+                    system.addToOutput('🎵 Perfect harmonics - stable patterns');
+                    break;
+                    
+                case 'resonance':
+                    system.frequencies = [1.0, 1.333, 1.777, 2.369, 3.159, 4.212];
+                    system.addToOutput('⚡ Resonance optimization - max efficiency');
+                    break;
+            }
+            
+            system.updateUIFromFrequencies();
+        }
+        
+        window.addEventListener('load', () => {
+            console.log('🎯 Page loaded - starting system initialization...');
+            window.waveSystem = new SelfOptimizingWaveComputer();
+        });
+    </script>
+</body>
+</html>
