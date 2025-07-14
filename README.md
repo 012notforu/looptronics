@@ -3,35 +3,19 @@ symbolic loops.
 
 Wave-Based Symbolic Computation System
 
-This project explores symbolic computation through wave interference and ternary spatial memory. Instead of using binary logic or neural networks, it generates output by sampling patterns formed through continuous wave interactions and converting them into discrete symbolic states.
+This project explores how symbolic patterns can emerge from wave interactions.
 
-What It Does
+- **3-Wave System**: Minimal engine using three symbolic waveforms to evolve a symbolic grid.
+- **6-Wave System**: Expanded version with richer interference and symbolic complexity.
 
-Simulates 3-wave interference across a 2D spatial grid
+Tracks symbolic state, entropy, and expression dynamics over time.  
+Not a finalized system — just an open experiment in wave-guided symbolic logic.
 
-Stores activation patterns in ternary memory (states 0, 1, 2)
+Dual-licensed for open research and protected use.
 
-Samples grid patterns and converts them into symbolic output
-
-Uses the Greek alphabet as a placeholder symbol set to demonstrate output capability
-
-Tracks entropy, information flow, symbol diversity, and complexity over time
-
-Allows input tuning with preset harmonic ratios (e.g., φ, √2, √5)
+By Matthew Gautier, 2025.
 
 
-Why It Matters
-
-This system provides a minimal, testable model for how symbolic structure can emerge from continuous, mathematically tuned dynamics. It may be relevant to research in:
-
-Symbolic AI and pre-neural symbolic computation
-
-Emergence and entropy in nonlinear physical systems
-
-Experimental or analog computing substrates
-
-
-The symbolic output mechanism is modular; while Greek characters are used for demonstration, the system can produce arbitrary symbols based on grid state transitions.
 
 Author Note
 
