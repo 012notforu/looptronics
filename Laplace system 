@@ -1,0 +1,1618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Self-Optimizing Wave Computer with Laplace Analysis</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: white;
+            margin: 0;
+            padding: 8px;
+            min-height: 100vh;
+            overflow-x: auto;
+        }
+        
+        .container {
+            min-width: 900px;
+            margin: 0 auto;
+            zoom: 0.65;
+            transform-origin: top left;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                zoom: 0.45;
+                min-width: 1200px;
+            }
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 15px;
+            background: rgba(255,255,255,0.1);
+            padding: 10px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .header h1 {
+            margin: 5px 0;
+            font-size: 24px;
+        }
+        
+        .header p {
+            margin: 5px 0;
+            font-size: 12px;
+        }
+        
+        .explanation {
+            background: rgba(255,255,255,0.15);
+            padding: 8px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-size: 10px;
+            line-height: 1.4;
+        }
+        
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .panel {
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+            padding: 8px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        .panel h3 {
+            margin: 0 0 8px 0;
+            color: #ffeb3b;
+            font-size: 12px;
+            border-bottom: 1px solid rgba(255,235,59,0.3);
+            padding-bottom: 4px;
+        }
+        
+        canvas {
+            width: 100%;
+            background: rgba(0,0,0,0.3);
+            border-radius: 4px;
+            border: 1px solid rgba(255,255,255,0.2);
+            height: 80px;
+        }
+        
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4px;
+            margin: 8px 0;
+        }
+        
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            margin: 3px 0;
+            font-size: 9px;
+        }
+        
+        .control-group label {
+            min-width: 35px;
+            font-size: 8px;
+            font-weight: bold;
+        }
+        
+        .control-group input[type="range"] {
+            flex: 1;
+            height: 15px;
+        }
+        
+        .control-group .value {
+            min-width: 25px;
+            text-align: right;
+            font-family: monospace;
+            background: rgba(0,0,0,0.3);
+            padding: 1px 3px;
+            border-radius: 2px;
+            font-size: 8px;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+            border: none;
+            padding: 4px 6px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+            font-size: 9px;
+        }
+        
+        button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .pause-btn {
+            background: linear-gradient(135deg, #ff9800, #f57c00);
+        }
+        
+        .reset-btn {
+            background: linear-gradient(135deg, #f44336, #d32f2f);
+        }
+        
+        .metrics {
+            background: rgba(0,0,0,0.4);
+            padding: 4px;
+            border-radius: 4px;
+            margin: 4px 0;
+            font-family: monospace;
+            font-size: 8px;
+            line-height: 1.2;
+        }
+        
+        .metrics-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 1px 0;
+        }
+        
+        .metrics-label {
+            color: #ffeb3b;
+        }
+        
+        .metrics-value {
+            color: #4CAF50;
+            font-weight: bold;
+        }
+        
+        .output-area {
+            background: rgba(0,0,0,0.4);
+            padding: 4px;
+            border-radius: 4px;
+            height: 60px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 8px;
+            line-height: 1.2;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .symbol {
+            color: #4CAF50;
+            font-weight: bold;
+        }
+        
+        .status-bar {
+            background: rgba(0,0,0,0.3);
+            padding: 3px 6px;
+            border-radius: 4px;
+            margin: 4px 0;
+            text-align: center;
+            font-weight: bold;
+            color: #4CAF50;
+            font-size: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧠 Self-Optimizing Wave Computer + Laplace Analysis</h1>
+            <p>Autonomous machine learning with s-domain mathematical insights</p>
+        </div>
+
+        <div class="explanation">
+            <strong>Enhanced Wave Computer:</strong> Now includes Laplace transform analysis to reveal the complete mathematical structure 
+            of wave interference patterns. While FFT shows frequencies, Laplace reveals decay rates, growth dynamics, poles, zeros, 
+            and system stability - giving you the full s-domain picture of your mathematical expressions.
+        </div>
+
+        <div class="main-grid">
+            <!-- Wave Interference Substrate Panel -->
+            <div class="panel">
+                <h3>🌊 Wave Substrate</h3>
+                <canvas id="waveCanvas" width="200" height="80"></canvas>
+                
+                <div class="control-group">
+                    <label>ω₁:</label>
+                    <input type="range" id="freq1" min="0.3" max="5.0" step="0.001" value="1.0">
+                    <span class="value" id="freq1Val">1.0</span>
+                </div>
+                <div class="control-group">
+                    <label>ω₂:</label>
+                    <input type="range" id="freq2" min="0.3" max="5.0" step="0.001" value="1.5">
+                    <span class="value" id="freq2Val">1.5</span>
+                </div>
+                <div class="control-group">
+                    <label>ω₃:</label>
+                    <input type="range" id="freq3" min="0.3" max="5.0" step="0.001" value="2.0">
+                    <span class="value" id="freq3Val">2.0</span>
+                </div>
+                <div class="control-group">
+                    <label>Threshold:</label>
+                    <input type="range" id="threshold" min="0.1" max="0.9" step="0.001" value="0.5">
+                    <span class="value" id="thresholdVal">0.5</span>
+                </div>
+
+                <div class="controls">
+                    <button id="pauseBtn" class="pause-btn">⏸️ Pause</button>
+                    <button id="resetBtn" class="reset-btn">🔄 Reset</button>
+                </div>
+
+                <div class="metrics">
+                    <div class="metrics-row">
+                        <span class="metrics-label">Interference:</span>
+                        <span class="metrics-value" id="interferenceLevel">0.00</span>
+                    </div>
+                    <div class="metrics-row">
+                        <span class="metrics-label">Resonance:</span>
+                        <span class="metrics-value" id="resonanceEvents">0</span>
+                    </div>
+                    <div class="metrics-row">
+                        <span class="metrics-label">Time:</span>
+                        <span class="metrics-value" id="waveTime">0.0s</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Spatial Memory Grid Panel -->
+            <div class="panel">
+                <h3>🧠 Spatial Memory</h3>
+                <canvas id="spatialCanvas" width="200" height="80"></canvas>
+                
+                <div class="control-group">
+                    <label>Learn:</label>
+                    <input type="range" id="learnRate" min="0.1" max="1.0" step="0.1" value="0.5">
+                    <span class="value" id="learnRateVal">0.5</span>
+                </div>
+                <div class="control-group">
+                    <label>Decay:</label>
+                    <input type="range" id="memoryDecay" min="0.90" max="0.99" step="0.01" value="0.95">
+                    <span class="value" id="memoryDecayVal">0.95</span>
+                </div>
+
+                <div class="controls">
+                    <button id="clearMemory">🧹 Clear</button>
+                    <button id="toggleLearning">🧠 Learning</button>
+                </div>
+
+                <div class="metrics">
+                    <div class="metrics-row">
+                        <span class="metrics-label">Active:</span>
+                        <span class="metrics-value" id="activeCells">0</span>
+                    </div>
+                    <div class="metrics-row">
+                        <span class="metrics-label">Load:</span>
+                        <span class="metrics-value" id="memoryLoad">0%</span>
+                    </div>
+                    <div class="metrics-row">
+                        <span class="metrics-label">Entropy:</span>
+                        <span class="metrics-value" id="patternEntropy">0.00</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mathematical Expression Engine -->
+            <div class="panel">
+                <h3>🧮 Expression Engine</h3>
+                
+                <div class="status-bar">
+                    Expression: <span id="currentSymbol" class="symbol">∅</span>
+                </div>
+                
+                <div class="output-area" id="symbolicOutput">
+                    System initializing...
+                </div>
+
+                <div class="controls">
+                    <button id="clearSymbols">🧹 Clear</button>
+                    <button id="analyzeSymbols">📊 Analyze</button>
+                </div>
+
+                <div class="metrics">
+                    <div class="metrics-row">
+                        <span class="metrics-label">Count:</span>
+                        <span class="metrics-value" id="symbolCount">0</span>
+                    </div>
+                    <div class="metrics-row">
+                        <span class="metrics-label">Complexity:</span>
+                        <span class="metrics-value" id="uniqueSymbols">0</span>
+                    </div>
+                    <div class="metrics-row">
+                        <span class="metrics-label">Rate:</span>
+                        <span class="metrics-value" id="symbolRate">0.0/s</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FFT Spectral Analysis -->
+            <div class="panel">
+                <h3>📈 FFT Spectrum</h3>
+                
+                <canvas id="spectralCanvas" width="200" height="80"></canvas>
+                
+                <div class="controls">
+                    <button id="toggleSpectral">📈 Monitor: ON</button>
+                    <button id="resetSpectral">🔄 Reset</button>
+                </div>
+
+                <div class="metrics">
+                    <div class="metrics-row">
+                        <span class="metrics-label">Peak Freq:</span>
+                        <span class="metrics-value" id="peakFrequency">0.00</span>
+                    </div>
+                    <div class="metrics-row">
+                        <span class="metrics-label">Energy:</span>
+                        <span class="metrics-value" id="spectralEnergy">0.00</span>
+                    </div>
+                    <div class="metrics-row">
+                        <span class="metrics-label">Bandwidth:</span>
+                        <span class="metrics-value" id="spectralBandwidth">0.00</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Laplace Domain Analysis -->
+            <div class="panel">
+                <h3>🌀 Laplace S-Domain</h3>
+                
+                <canvas id="laplaceCanvas" width="200" height="80"></canvas>
+                
+                <div class="controls">
+                    <button id="toggleLaplace">⚡ S-Domain: ON</button>
+                    <button id="findPoles">🎯 Find Poles</button>
+                </div>
+
+                <div class="metrics">
+                    <div class="metrics-row">
+                        <span class="metrics-label">Dom. Pole:</span>
+                        <span class="metrics-value" id="dominantPole">0+0i</span>
+                    </div>
+                    <div class="metrics-row">
+                        <span class="metrics-label">Stability:</span>
+                        <span class="metrics-value" id="systemStabilityLaplace">Unknown</span>
+                    </div>
+                    <div class="metrics-row">
+                        <span class="metrics-label">Decay Rate:</span>
+                        <span class="metrics-value" id="decayRate">0.00</span>
+                    </div>
+                </div>
+
+                <div style="margin: 4px 0; padding: 4px; background: rgba(0,0,0,0.3); border-radius: 4px; font-size: 8px;">
+                    <div><strong>H(s):</strong> <span id="transferFunction">Computing...</span></div>
+                </div>
+            </div>
+
+            <!-- System Analysis Panel -->
+            <div class="panel">
+                <h3>📊 System Analysis</h3>
+                
+                <canvas id="analysisCanvas" width="200" height="80"></canvas>
+                
+                <div class="controls">
+                    <button id="runAnalysis">🔬 Analyze</button>
+                    <button id="exportData">💾 Export</button>
+                </div>
+
+                <div class="metrics">
+                    <div class="metrics-row">
+                        <span class="metrics-label">Complexity:</span>
+                        <span class="metrics-value" id="complexity">0.00</span>
+                    </div>
+                    <div class="metrics-row">
+                        <span class="metrics-label">Stability:</span>
+                        <span class="metrics-value" id="stability">0.00</span>
+                    </div>
+                    <div class="metrics-row">
+                        <span class="metrics-label">Info Flow:</span>
+                        <span class="metrics-value" id="infoFlow">0.00</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class SelfOptimizingWaveComputerWithLaplace {
+            constructor() {
+                console.log('🚀 Initializing Enhanced Wave Computer with Laplace Analysis...');
+                
+                this.time = 0;
+                this.isRunning = true;
+                this.learningEnabled = true;
+                
+                this.frequencies = [1.0, 1.5, 2.0];
+                this.threshold = 0.5;
+                this.interferenceLevel = 0;
+                this.resonanceEvents = 0;
+                
+                this.initializeCanvases();
+                this.initializeSpatialMemory();
+                this.initializeMathematicalExpressions();
+                this.initializeSpectralMonitoring();
+                this.initializeLaplaceAnalysis();
+                this.initializeAnalysisSystem();
+                this.setupUserControls();
+                this.startComputationalLoop();
+                
+                console.log('✅ Enhanced wave computer with Laplace analysis ready');
+                this.addToOutput('🌊 Enhanced wave computer online with s-domain analysis');
+            }
+            
+            initializeCanvases() {
+                this.waveCanvas = document.getElementById('waveCanvas');
+                this.waveCtx = this.waveCanvas.getContext('2d');
+                
+                this.spatialCanvas = document.getElementById('spatialCanvas');
+                this.spatialCtx = this.spatialCanvas.getContext('2d');
+                
+                this.spectralCanvas = document.getElementById('spectralCanvas');
+                this.spectralCtx = this.spectralCanvas.getContext('2d');
+                
+                this.laplaceCanvas = document.getElementById('laplaceCanvas');
+                this.laplaceCtx = this.laplaceCanvas.getContext('2d');
+                
+                this.analysisCanvas = document.getElementById('analysisCanvas');
+                this.analysisCtx = this.analysisCanvas.getContext('2d');
+                
+                console.log('📊 All canvas elements initialized');
+            }
+            
+            initializeSpatialMemory() {
+                this.gridWidth = 20;
+                this.gridHeight = 12;
+                this.learningRate = 0.5;
+                this.memoryDecay = 0.95;
+                
+                this.spatialMemory = [];
+                for (let y = 0; y < this.gridHeight; y++) {
+                    const row = [];
+                    for (let x = 0; x < this.gridWidth; x++) {
+                        row.push({
+                            state: [0, 0, 0],
+                            memory: [0, 0, 0],
+                            lastActive: 0
+                        });
+                    }
+                    this.spatialMemory.push(row);
+                }
+                
+                console.log(`🧠 Spatial memory: ${this.gridWidth}x${this.gridHeight} cells`);
+            }
+            
+            initializeMathematicalExpressions() {
+                this.mathOperators = ['+', '-', '*', '/', '^', '√', 'sin', 'cos', 'log', 'exp'];
+                this.mathConstants = ['π', 'e', 'φ', '∞', '0', '1', '2', 'i'];
+                this.mathRelations = ['=', '>', '<', '≈', '∝', '→', '↔', '∈'];
+                this.mathTerms = ['x', 'y', 'z', 'f', 'g', 'h', 'α', 'β', 'γ'];
+                
+                this.currentSymbol = '∅';
+                this.symbolHistory = [];
+                this.symbolCount = 0;
+                this.expressionComplexity = new Set();
+                this.lastSymbolTime = 0;
+                this.symbolRate = 0;
+                
+                console.log('🧮 Mathematical expression engine initialized');
+            }
+            
+            initializeSpectralMonitoring() {
+                this.spectralWindowSize = 64;
+                this.spectralMonitoringEnabled = true;
+                
+                this.interferenceBuffer = [];
+                this.currentSpectrum = null;
+                this.peakFrequency = 0;
+                this.spectralEnergy = 0;
+                this.spectralBandwidth = 0;
+                
+                console.log('📈 FFT spectral monitoring initialized');
+            }
+            
+            initializeLaplaceAnalysis() {
+                this.laplaceEnabled = true;
+                this.laplaceWindowSize = 64;
+                this.sampleRate = 20; // 20 Hz
+                
+                // Complex number class for Laplace calculations
+                this.Complex = class Complex {
+                    constructor(real, imag = 0) {
+                        this.real = real;
+                        this.imag = imag;
+                    }
+                    
+                    add(other) {
+                        return new Complex(this.real + other.real, this.imag + other.imag);
+                    }
+                    
+                    multiply(scalar) {
+                        if (typeof scalar === 'number') {
+                            return new Complex(this.real * scalar, this.imag * scalar);
+                        } else {
+                            return new Complex(
+                                this.real * scalar.real - this.imag * scalar.imag,
+                                this.real * scalar.imag + this.imag * scalar.real
+                            );
+                        }
+                    }
+                    
+                    exp() {
+                        const expReal = Math.exp(this.real);
+                        return new Complex(
+                            expReal * Math.cos(this.imag),
+                            expReal * Math.sin(this.imag)
+                        );
+                    }
+                    
+                    magnitude() {
+                        return Math.sqrt(this.real * this.real + this.imag * this.imag);
+                    }
+                    
+                    toString() {
+                        const sign = this.imag >= 0 ? '+' : '';
+                        return `${this.real.toFixed(2)}${sign}${this.imag.toFixed(2)}i`;
+                    }
+                };
+                
+                // Laplace analysis state
+                this.laplaceData = [];
+                this.poles = [];
+                this.zeros = [];
+                this.dominantPole = new this.Complex(0, 0);
+                this.decayRate = 0;
+                this.systemStabilityLaplace = 'Unknown';
+                this.transferFunction = 'Computing...';
+                
+                // S-domain grid
+                this.sGrid = {
+                    sigmaMin: -3,
+                    sigmaMax: 1,
+                    omegaMin: -8,
+                    omegaMax: 8,
+                    resolution: 16
+                };
+                
+                console.log('🌀 Laplace transform analysis initialized');
+            }
+            
+            initializeAnalysisSystem() {
+                this.metricsHistory = [];
+                this.computationalComplexity = 0;
+                this.systemStability = 0;
+                this.informationFlow = 0;
+                
+                console.log('📊 Analysis system initialized');
+            }
+            
+            setupUserControls() {
+                // Wave controls
+                for (let i = 1; i <= 3; i++) {
+                    document.getElementById(`freq${i}`).addEventListener('input', (e) => {
+                        this.frequencies[i-1] = parseFloat(e.target.value);
+                        document.getElementById(`freq${i}Val`).textContent = e.target.value;
+                    });
+                }
+                
+                document.getElementById('threshold').addEventListener('input', (e) => {
+                    this.threshold = parseFloat(e.target.value);
+                    document.getElementById('thresholdVal').textContent = e.target.value;
+                });
+                
+                document.getElementById('learnRate').addEventListener('input', (e) => {
+                    this.learningRate = parseFloat(e.target.value);
+                    document.getElementById('learnRateVal').textContent = e.target.value;
+                });
+                
+                document.getElementById('memoryDecay').addEventListener('input', (e) => {
+                    this.memoryDecay = parseFloat(e.target.value);
+                    document.getElementById('memoryDecayVal').textContent = e.target.value;
+                });
+                
+                // System controls
+                document.getElementById('pauseBtn').addEventListener('click', () => {
+                    this.isRunning = !this.isRunning;
+                    document.getElementById('pauseBtn').innerHTML = this.isRunning ? '⏸️ Pause' : '▶️ Play';
+                });
+                
+                document.getElementById('resetBtn').addEventListener('click', () => {
+                    this.resetSystem();
+                });
+                
+                document.getElementById('clearMemory').addEventListener('click', () => {
+                    this.clearSpatialMemory();
+                });
+                
+                document.getElementById('toggleLearning').addEventListener('click', () => {
+                    this.learningEnabled = !this.learningEnabled;
+                    document.getElementById('toggleLearning').innerHTML = 
+                        this.learningEnabled ? '🧠 Learning' : '🧠 Frozen';
+                });
+                
+                document.getElementById('clearSymbols').addEventListener('click', () => {
+                    this.clearSymbolicOutput();
+                });
+                
+                document.getElementById('analyzeSymbols').addEventListener('click', () => {
+                    this.analyzeSymbolicOutput();
+                });
+                
+                document.getElementById('toggleSpectral').addEventListener('click', () => {
+                    this.spectralMonitoringEnabled = !this.spectralMonitoringEnabled;
+                    document.getElementById('toggleSpectral').innerHTML = 
+                        `📈 Monitor: ${this.spectralMonitoringEnabled ? 'ON' : 'OFF'}`;
+                });
+                
+                document.getElementById('resetSpectral').addEventListener('click', () => {
+                    this.resetSpectralAnalysis();
+                });
+                
+                document.getElementById('toggleLaplace').addEventListener('click', () => {
+                    this.laplaceEnabled = !this.laplaceEnabled;
+                    document.getElementById('toggleLaplace').innerHTML = 
+                        `⚡ S-Domain: ${this.laplaceEnabled ? 'ON' : 'OFF'}`;
+                });
+                
+                document.getElementById('findPoles').addEventListener('click', () => {
+                    this.performLaplaceAnalysis();
+                });
+                
+                document.getElementById('runAnalysis').addEventListener('click', () => {
+                    this.runSystemAnalysis();
+                });
+                
+                document.getElementById('exportData').addEventListener('click', () => {
+                    this.exportSystemData();
+                });
+                
+                console.log('🎛️ User controls connected');
+            }
+            
+            startComputationalLoop() {
+                const computeFrame = () => {
+                    if (this.isRunning) {
+                        this.time += 0.05;
+                        
+                        this.updateWaveInterference();
+                        this.updateSpatialMemory();
+                        this.generateMathematicalExpression();
+                        
+                        if (this.spectralMonitoringEnabled) {
+                            this.updateSpectralAnalysis();
+                        }
+                        
+                        if (this.laplaceEnabled) {
+                            this.updateLaplaceAnalysis();
+                        }
+                        
+                        this.renderAllVisualizations();
+                        this.updateSystemMetrics();
+                    }
+                    
+                    requestAnimationFrame(computeFrame);
+                };
+                
+                computeFrame();
+                console.log('🔄 Main computational loop started');
+            }
+            
+            updateWaveInterference() {
+                const wave1 = Math.sin(this.frequencies[0] * this.time);
+                const wave2 = Math.sin(this.frequencies[1] * this.time + Math.PI/4);
+                const wave3 = Math.sin(this.frequencies[2] * this.time + Math.PI/2);
+                
+                this.interferenceLevel = (wave1 + wave2 + wave3) / 3;
+                
+                if (Math.abs(this.interferenceLevel) > this.threshold) {
+                    this.resonanceEvents++;
+                }
+                
+                this.currentWaves = [wave1, wave2, wave3];
+            }
+            
+            updateSpatialMemory() {
+                if (!this.learningEnabled) return;
+                
+                for (let y = 0; y < this.gridHeight; y++) {
+                    for (let x = 0; x < this.gridWidth; x++) {
+                        const cell = this.spatialMemory[y][x];
+                        
+                        const spatialX = (x / this.gridWidth) * 2 * Math.PI;
+                        const spatialY = (y / this.gridHeight) * 2 * Math.PI;
+                        
+                        const influence1 = Math.sin(spatialX + this.frequencies[0] * this.time) * this.currentWaves[0];
+                        const influence2 = Math.sin(spatialY + this.frequencies[1] * this.time) * this.currentWaves[1];
+                        const influence3 = Math.sin(spatialX + spatialY + this.frequencies[2] * this.time) * this.currentWaves[2];
+                        
+                        const activation = [
+                            Math.max(0, influence1),
+                            Math.max(0, influence2), 
+                            Math.max(0, influence3)
+                        ];
+                        
+                        for (let i = 0; i < 3; i++) {
+                            cell.memory[i] = cell.memory[i] * this.memoryDecay + 
+                                           activation[i] * this.learningRate;
+                            cell.state[i] = activation[i];
+                        }
+                        
+                        if (activation.some(a => a > 0.1)) {
+                            cell.lastActive = this.time;
+                        }
+                    }
+                }
+            }
+            
+            generateMathematicalExpression() {
+                const pattern = this.extractSpatialPattern();
+                const expression = this.patternToMathExpression(pattern);
+                
+                if (expression !== this.currentSymbol && expression !== '∅') {
+                    this.currentSymbol = expression;
+                    this.symbolHistory.push({
+                        symbol: expression,
+                        time: this.time,
+                        pattern: pattern.slice()
+                    });
+                    this.symbolCount++;
+                    this.expressionComplexity.add(expression);
+                    this.lastSymbolTime = this.time;
+                    
+                    this.addToOutput(`${expression} `);
+                }
+                
+                if (this.time > 3) {
+                    this.symbolRate = this.symbolCount / this.time;
+                }
+            }
+            
+            extractSpatialPattern() {
+                const pattern = [];
+                const samplePoints = [
+                    [5, 3], [10, 3], [15, 3],
+                    [5, 6], [10, 6], [15, 6],
+                    [5, 9], [10, 9], [15, 9]
+                ];
+                
+                for (const [x, y] of samplePoints) {
+                    const cell = this.spatialMemory[y][x];
+                    const maxIndex = cell.memory.indexOf(Math.max(...cell.memory));
+                    const maxValue = cell.memory[maxIndex];
+                    
+                    if (maxValue > 0.1) {
+                        pattern.push(maxIndex);
+                    } else {
+                        pattern.push(-1);
+                    }
+                }
+                
+                return pattern;
+            }
+            
+            patternToMathExpression(pattern) {
+                if (pattern.every(p => p === -1)) return '∅';
+                
+                const signature = pattern.filter(p => p !== -1);
+                if (signature.length === 0) return '∅';
+                
+                const complexity = signature.length;
+                const diversity = new Set(signature).size;
+                const sum = signature.reduce((a, b) => a + b, 0);
+                const avg = (sum / signature.length).toFixed(1);
+                
+                const ops = this.mathOperators;
+                const terms = this.mathTerms;
+                const consts = this.mathConstants;
+                const rels = this.mathRelations;
+                
+                // Generate different types of mathematical expressions
+                const templates = [
+                    `f(x) = ${ops[sum % ops.length]}(${avg})`,
+                    `${terms[complexity % terms.length]} ${rels[diversity % rels.length]} ${avg}`,
+                    `∫${ops[sum % ops.length]}(x)dx = ${avg}`,
+                    `lim_{x→${diversity}} ${ops[complexity % ops.length]}(x) = ${avg}`,
+                    `${terms[sum % terms.length]} ∈ [0, ${complexity}]`,
+                    `if x > ${diversity} then ${ops[sum % ops.length]}(x)`
+                ];
+                
+                return templates[sum % templates.length];
+            }
+            
+            updateSpectralAnalysis() {
+                this.interferenceBuffer.push(this.interferenceLevel);
+                
+                if (this.interferenceBuffer.length > this.spectralWindowSize * 2) {
+                    this.interferenceBuffer = this.interferenceBuffer.slice(-this.spectralWindowSize);
+                }
+                
+                if (this.interferenceBuffer.length >= this.spectralWindowSize) {
+                    this.performFFTAnalysis();
+                }
+            }
+            
+            performFFTAnalysis() {
+                const N = Math.min(this.interferenceBuffer.length, this.spectralWindowSize);
+                const data = this.interferenceBuffer.slice(-N);
+                
+                const spectrum = this.computeDFT(data);
+                this.analyzeSpectrum(spectrum);
+                this.currentSpectrum = spectrum;
+            }
+            
+            computeDFT(data) {
+                const N = data.length;
+                const spectrum = [];
+                
+                for (let k = 0; k < N / 2; k++) {
+                    let realPart = 0;
+                    let imagPart = 0;
+                    
+                    for (let n = 0; n < N; n++) {
+                        const angle = -2 * Math.PI * k * n / N;
+                        realPart += data[n] * Math.cos(angle);
+                        imagPart += data[n] * Math.sin(angle);
+                    }
+                    
+                    const magnitude = Math.sqrt(realPart * realPart + imagPart * imagPart);
+                    spectrum[k] = magnitude;
+                }
+                
+                return spectrum;
+            }
+            
+            analyzeSpectrum(spectrum) {
+                if (!spectrum || spectrum.length === 0) return;
+                
+                let peakIndex = 0;
+                let peakValue = spectrum[0];
+                for (let i = 1; i < spectrum.length; i++) {
+                    if (spectrum[i] > peakValue) {
+                        peakValue = spectrum[i];
+                        peakIndex = i;
+                    }
+                }
+                
+                this.peakFrequency = peakIndex / (spectrum.length * 2);
+                this.spectralEnergy = spectrum.reduce((sum, val) => sum + val * val, 0) / spectrum.length;
+                this.spectralBandwidth = this.calculateSpectralBandwidth(spectrum);
+            }
+            
+            calculateSpectralBandwidth(spectrum) {
+                const totalEnergy = spectrum.reduce((sum, val) => sum + val * val, 0);
+                if (totalEnergy === 0) return 0;
+                
+                let centroid = 0;
+                for (let i = 0; i < spectrum.length; i++) {
+                    centroid += i * spectrum[i] * spectrum[i];
+                }
+                centroid /= totalEnergy;
+                
+                let spread = 0;
+                for (let i = 0; i < spectrum.length; i++) {
+                    const deviation = i - centroid;
+                    spread += deviation * deviation * spectrum[i] * spectrum[i];
+                }
+                spread = Math.sqrt(spread / totalEnergy);
+                
+                return spread / spectrum.length;
+            }
+            
+            updateLaplaceAnalysis() {
+                // Perform Laplace analysis every 3 seconds
+                if (this.interferenceBuffer.length >= this.laplaceWindowSize && 
+                    Math.floor(this.time * 3) % 9 === 0) {
+                    this.performLaplaceAnalysis();
+                }
+            }
+            
+            performLaplaceAnalysis() {
+                if (this.interferenceBuffer.length < this.laplaceWindowSize) {
+                    console.log('Not enough data for Laplace analysis');
+                    return;
+                }
+                
+                try {
+                    const signal = this.interferenceBuffer.slice(-this.laplaceWindowSize);
+                    this.analyzeLaplaceDomain(signal);
+                    this.addToOutput('🌀 S-domain analysis complete ');
+                } catch (error) {
+                    console.error('Laplace analysis error:', error);
+                    this.addToOutput('⚠️ Laplace analysis failed ');
+                }
+            }
+            
+            analyzeLaplaceDomain(signal) {
+                if (!signal || !Array.isArray(signal) || signal.length === 0) {
+                    console.error('Invalid signal data for Laplace analysis');
+                    return;
+                }
+                
+                // Compute Laplace transform at various s points
+                const laplaceResults = [];
+                const sPoints = [];
+                
+                try {
+                    // Create a grid in the s-domain (σ + jω)
+                    for (let i = 0; i < this.sGrid.resolution; i++) {
+                        for (let j = 0; j < this.sGrid.resolution; j++) {
+                            const sigma = this.sGrid.sigmaMin + (i / this.sGrid.resolution) * 
+                                        (this.sGrid.sigmaMax - this.sGrid.sigmaMin);
+                            const omega = this.sGrid.omegaMin + (j / this.sGrid.resolution) * 
+                                        (this.sGrid.omegaMax - this.sGrid.omegaMin);
+                            
+                            const s = new this.Complex(sigma, omega);
+                            const laplaceValue = this.computeLaplaceTransform(signal, s);
+                            
+                            sPoints.push(s);
+                            laplaceResults.push(laplaceValue);
+                        }
+                    }
+                    
+                    // Ensure we have valid arrays before storing
+                    if (Array.isArray(sPoints) && Array.isArray(laplaceResults) && 
+                        sPoints.length > 0 && laplaceResults.length > 0) {
+                        
+                        this.laplaceData = {
+                            sPoints: sPoints,
+                            values: laplaceResults
+                        };
+                        
+                        // Find poles and zeros
+                        this.findPolesAndZeros();
+                        
+                        // Analyze system stability
+                        this.analyzeSystemStability();
+                        
+                        // Generate transfer function
+                        this.generateTransferFunction();
+                    } else {
+                        console.error('Failed to generate valid Laplace data arrays');
+                    }
+                } catch (error) {
+                    console.error('Error in Laplace domain analysis:', error);
+                }
+            }
+            
+            computeLaplaceTransform(signal, s) {
+                try {
+                    // Numerical approximation of Laplace transform
+                    // L[f(t)] = ∫₀^∞ f(t)e^(-st) dt
+                    
+                    const dt = 1.0 / this.sampleRate;
+                    let result = new this.Complex(0, 0);
+                    
+                    for (let i = 0; i < signal.length; i++) {
+                        const t = i * dt;
+                        const sTimesT = new this.Complex(-s.real * t, -s.imag * t);
+                        const exponential = sTimesT.exp();
+                        const contribution = exponential.multiply(signal[i]);
+                        result = result.add(contribution.multiply(dt));
+                    }
+                    
+                    // Ensure result is a valid Complex number
+                    if (isNaN(result.real) || isNaN(result.imag)) {
+                        return new this.Complex(0, 0);
+                    }
+                    
+                    return result;
+                } catch (error) {
+                    console.error('Error computing Laplace transform:', error);
+                    return new this.Complex(0, 0);
+                }
+            }
+            
+            findPolesAndZeros() {
+                if (!this.laplaceData || !this.laplaceData.values || !Array.isArray(this.laplaceData.values)) return;
+                
+                const { sPoints, values } = this.laplaceData;
+                const magnitudes = values.map(v => v.magnitude());
+                
+                // Find local maxima (potential poles) and minima (potential zeros)
+                this.poles = [];
+                this.zeros = [];
+                
+                for (let i = 1; i < magnitudes.length - 1; i++) {
+                    const current = magnitudes[i];
+                    const prev = magnitudes[i - 1];
+                    const next = magnitudes[i + 1];
+                    
+                    // Look for significant peaks (poles)
+                    if (current > prev && current > next && current > 0.5) {
+                        this.poles.push({
+                            s: sPoints[i],
+                            magnitude: current
+                        });
+                    }
+                    
+                    // Look for significant valleys (zeros)
+                    if (current < prev && current < next && current < 0.1) {
+                        this.zeros.push({
+                            s: sPoints[i],
+                            magnitude: current
+                        });
+                    }
+                }
+                
+                // Sort poles by magnitude to find dominant pole
+                this.poles.sort((a, b) => b.magnitude - a.magnitude);
+                
+                if (this.poles.length > 0) {
+                    this.dominantPole = this.poles[0].s;
+                    this.decayRate = -this.dominantPole.real; // Real part determines decay/growth
+                }
+            }
+            
+            analyzeSystemStability() {
+                if (this.poles.length === 0) {
+                    this.systemStabilityLaplace = 'Unknown';
+                    return;
+                }
+                
+                // System is stable if all poles have negative real parts
+                const unstablePoles = this.poles.filter(pole => pole.s.real >= 0);
+                
+                if (unstablePoles.length === 0) {
+                    this.systemStabilityLaplace = 'Stable';
+                } else if (unstablePoles.some(pole => pole.s.real > 0)) {
+                    this.systemStabilityLaplace = 'Unstable';
+                } else {
+                    this.systemStabilityLaplace = 'Marginal';
+                }
+            }
+            
+            generateTransferFunction() {
+                if (this.poles.length === 0 && this.zeros.length === 0) {
+                    this.transferFunction = 'H(s) = K';
+                    return;
+                }
+                
+                // Generate a simple transfer function representation
+                let numerator = 'K';
+                let denominator = '1';
+                
+                if (this.poles.length > 0) {
+                    denominator = this.poles.slice(0, 2).map(pole => {
+                        const s = pole.s;
+                        if (Math.abs(s.imag) < 0.1) {
+                            return `(s${s.real >= 0 ? '+' : ''}${(-s.real).toFixed(1)})`;
+                        } else {
+                            return `(s²${(-2*s.real).toFixed(1)}s+${(s.real*s.real + s.imag*s.imag).toFixed(1)})`;
+                        }
+                    }).join('');
+                }
+                
+                this.transferFunction = `${numerator}/${denominator}`;
+            }
+            
+            renderAllVisualizations() {
+                this.renderWaveCanvas();
+                this.renderSpatialCanvas();
+                
+                if (this.spectralMonitoringEnabled) {
+                    this.renderSpectralCanvas();
+                }
+                
+                if (this.laplaceEnabled) {
+                    this.renderLaplaceCanvas();
+                }
+                
+                this.renderAnalysisCanvas();
+            }
+            
+            renderWaveCanvas() {
+                const ctx = this.waveCtx;
+                const width = this.waveCanvas.width;
+                const height = this.waveCanvas.height;
+                
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+                ctx.fillRect(0, 0, width, height);
+                
+                ctx.lineWidth = 1;
+                const colors = ['#ff5722', '#ffeb3b', '#2196f3'];
+                
+                // Draw individual waves
+                for (let waveIndex = 0; waveIndex < 3; waveIndex++) {
+                    ctx.strokeStyle = colors[waveIndex];
+                    ctx.beginPath();
+                    for (let x = 0; x < width; x++) {
+                        const t = this.time - (width - x) * 0.02;
+                        const phase = waveIndex * Math.PI / 3;
+                        const y = height/2 + Math.sin(this.frequencies[waveIndex] * t + phase) * height/6;
+                        if (x === 0) ctx.moveTo(x, y);
+                        else ctx.lineTo(x, y);
+                    }
+                    ctx.stroke();
+                }
+                
+                // Draw interference pattern
+                ctx.strokeStyle = this.interferenceLevel > this.threshold ? '#4CAF50' : 'white';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                for (let x = 0; x < width; x++) {
+                    const t = this.time - (width - x) * 0.02;
+                    let interference = 0;
+                    for (let i = 0; i < 3; i++) {
+                        const phase = i * Math.PI / 3;
+                        interference += Math.sin(this.frequencies[i] * t + phase);
+                    }
+                    interference /= 3;
+                    const y = height/2 + interference * height/3;
+                    if (x === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.stroke();
+            }
+            
+            renderSpatialCanvas() {
+                const ctx = this.spatialCtx;
+                const width = this.spatialCanvas.width;
+                const height = this.spatialCanvas.height;
+                
+                ctx.clearRect(0, 0, width, height);
+                
+                const cellWidth = width / this.gridWidth;
+                const cellHeight = height / this.gridHeight;
+                
+                for (let y = 0; y < this.gridHeight; y++) {
+                    for (let x = 0; x < this.gridWidth; x++) {
+                        const cell = this.spatialMemory[y][x];
+                        const px = x * cellWidth;
+                        const py = y * cellHeight;
+                        
+                        const maxMemory = Math.max(...cell.memory);
+                        const maxIndex = cell.memory.indexOf(maxMemory);
+                        
+                        if (maxMemory > 0.05) {
+                            const alpha = Math.min(maxMemory, 1);
+                            
+                            if (maxIndex === 0) {
+                                ctx.fillStyle = `rgba(255, 87, 34, ${alpha})`;
+                            } else if (maxIndex === 1) {
+                                ctx.fillStyle = `rgba(255, 235, 59, ${alpha})`;
+                            } else {
+                                ctx.fillStyle = `rgba(33, 150, 243, ${alpha})`;
+                            }
+                            
+                            ctx.fillRect(px, py, cellWidth, cellHeight);
+                        }
+                        
+                        ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+                        ctx.lineWidth = 0.5;
+                        ctx.strokeRect(px, py, cellWidth, cellHeight);
+                    }
+                }
+            }
+            
+            renderSpectralCanvas() {
+                const ctx = this.spectralCtx;
+                const width = this.spectralCanvas.width;
+                const height = this.spectralCanvas.height;
+                
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+                ctx.fillRect(0, 0, width, height);
+                
+                if (!this.currentSpectrum || this.currentSpectrum.length === 0) {
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+                    ctx.font = '10px monospace';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('Collecting data...', width/2, height/2);
+                    return;
+                }
+                
+                const spectrum = this.currentSpectrum;
+                const barWidth = width / spectrum.length;
+                const maxMagnitude = Math.max(...spectrum) || 1;
+                
+                for (let i = 0; i < spectrum.length; i++) {
+                    const barHeight = (spectrum[i] / maxMagnitude) * height * 0.8;
+                    const x = i * barWidth;
+                    const y = height - barHeight;
+                    
+                    const intensity = spectrum[i] / maxMagnitude;
+                    if (intensity > 0.7) {
+                        ctx.fillStyle = '#ff5722';
+                    } else if (intensity > 0.4) {
+                        ctx.fillStyle = '#ffeb3b';
+                    } else {
+                        ctx.fillStyle = '#4CAF50';
+                    }
+                    
+                    ctx.fillRect(x, y, barWidth - 1, barHeight);
+                }
+            }
+            
+            renderLaplaceCanvas() {
+                const ctx = this.laplaceCtx;
+                const width = this.laplaceCanvas.width;
+                const height = this.laplaceCanvas.height;
+                
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+                ctx.fillRect(0, 0, width, height);
+                
+                if (!this.laplaceData || !this.laplaceData.values || !Array.isArray(this.laplaceData.values)) {
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+                    ctx.font = '10px monospace';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('Computing s-domain...', width/2, height/2);
+                    return;
+                }
+                
+                // Draw s-domain magnitude plot (simplified 2D projection)
+                const { sPoints, values } = this.laplaceData;
+                const magnitudes = values.map(v => v.magnitude());
+                const maxMagnitude = Math.max(...magnitudes) || 1;
+                
+                // Draw magnitude as a heatmap-style visualization
+                const blockSize = Math.max(2, Math.floor(width / this.sGrid.resolution));
+                
+                for (let i = 0; i < sPoints.length; i++) {
+                    const s = sPoints[i];
+                    const magnitude = magnitudes[i];
+                    
+                    // Map s-domain coordinates to canvas
+                    const x = Math.floor(((s.real - this.sGrid.sigmaMin) / 
+                                       (this.sGrid.sigmaMax - this.sGrid.sigmaMin)) * width);
+                    const y = Math.floor(((s.imag - this.sGrid.omegaMin) / 
+                                       (this.sGrid.omegaMax - this.sGrid.omegaMin)) * height);
+                    
+                    if (x >= 0 && x < width && y >= 0 && y < height) {
+                        const intensity = Math.min(magnitude / maxMagnitude, 1);
+                        
+                        if (intensity > 0.8) {
+                            ctx.fillStyle = '#ff5722'; // High magnitude (near poles)
+                        } else if (intensity > 0.5) {
+                            ctx.fillStyle = '#ffeb3b';
+                        } else if (intensity > 0.2) {
+                            ctx.fillStyle = '#4CAF50';
+                        } else {
+                            ctx.fillStyle = '#2196f3'; // Low magnitude (near zeros)
+                        }
+                        
+                        ctx.globalAlpha = intensity * 0.8 + 0.2;
+                        ctx.fillRect(x, y, blockSize, blockSize);
+                    }
+                }
+                
+                ctx.globalAlpha = 1.0;
+                
+                // Draw poles as red circles
+                ctx.fillStyle = '#ff1744';
+                for (const pole of this.poles.slice(0, 5)) {
+                    const x = ((pole.s.real - this.sGrid.sigmaMin) / 
+                              (this.sGrid.sigmaMax - this.sGrid.sigmaMin)) * width;
+                    const y = ((pole.s.imag - this.sGrid.omegaMin) / 
+                              (this.sGrid.omegaMax - this.sGrid.omegaMin)) * height;
+                    
+                    if (x >= 0 && x < width && y >= 0 && y < height) {
+                        ctx.beginPath();
+                        ctx.arc(x, y, 3, 0, 2 * Math.PI);
+                        ctx.fill();
+                    }
+                }
+                
+                // Draw zeros as blue X marks
+                ctx.strokeStyle = '#2196f3';
+                ctx.lineWidth = 2;
+                for (const zero of this.zeros.slice(0, 5)) {
+                    const x = ((zero.s.real - this.sGrid.sigmaMin) / 
+                              (this.sGrid.sigmaMax - this.sGrid.sigmaMin)) * width;
+                    const y = ((zero.s.imag - this.sGrid.omegaMin) / 
+                              (this.sGrid.omegaMax - this.sGrid.omegaMin)) * height;
+                    
+                    if (x >= 0 && x < width && y >= 0 && y < height) {
+                        ctx.beginPath();
+                        ctx.moveTo(x - 3, y - 3);
+                        ctx.lineTo(x + 3, y + 3);
+                        ctx.moveTo(x + 3, y - 3);
+                        ctx.lineTo(x - 3, y + 3);
+                        ctx.stroke();
+                    }
+                }
+                
+                // Draw stability boundary (imaginary axis)
+                const stabilityX = ((-this.sGrid.sigmaMin) / 
+                                  (this.sGrid.sigmaMax - this.sGrid.sigmaMin)) * width;
+                if (stabilityX >= 0 && stabilityX < width) {
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+                    ctx.lineWidth = 1;
+                    ctx.setLineDash([2, 2]);
+                    ctx.beginPath();
+                    ctx.moveTo(stabilityX, 0);
+                    ctx.lineTo(stabilityX, height);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                }
+            }
+            
+            renderAnalysisCanvas() {
+                const ctx = this.analysisCtx;
+                const width = this.analysisCanvas.width;
+                const height = this.analysisCanvas.height;
+                
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+                ctx.fillRect(0, 0, width, height);
+                
+                if (this.metricsHistory.length > 1) {
+                    const maxPoints = width;
+                    const start = Math.max(0, this.metricsHistory.length - maxPoints);
+                    
+                    // Draw complexity
+                    ctx.strokeStyle = '#4CAF50';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    for (let i = start; i < this.metricsHistory.length; i++) {
+                        const x = ((i - start) / maxPoints) * width;
+                        const y = height - (this.metricsHistory[i].complexity * height);
+                        if (i === start) ctx.moveTo(x, y);
+                        else ctx.lineTo(x, y);
+                    }
+                    ctx.stroke();
+                    
+                    // Draw stability
+                    ctx.strokeStyle = '#ffeb3b';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    for (let i = start; i < this.metricsHistory.length; i++) {
+                        const x = ((i - start) / maxPoints) * width;
+                        const y = height - (this.metricsHistory[i].stability * height);
+                        if (i === start) ctx.moveTo(x, y);
+                        else ctx.lineTo(x, y);
+                    }
+                    ctx.stroke();
+                    
+                    // Draw info flow
+                    ctx.strokeStyle = '#ff5722';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    for (let i = start; i < this.metricsHistory.length; i++) {
+                        const x = ((i - start) / maxPoints) * width;
+                        const y = height - (this.metricsHistory[i].infoFlow * height);
+                        if (i === start) ctx.moveTo(x, y);
+                        else ctx.lineTo(x, y);
+                    }
+                    ctx.stroke();
+                }
+            }
+            
+            updateSystemMetrics() {
+                // Update wave metrics
+                document.getElementById('interferenceLevel').textContent = this.interferenceLevel.toFixed(3);
+                document.getElementById('resonanceEvents').textContent = this.resonanceEvents;
+                document.getElementById('waveTime').textContent = this.time.toFixed(1) + 's';
+                
+                // Update spatial memory metrics
+                let activeCells = 0;
+                let totalMemory = 0;
+                for (let y = 0; y < this.gridHeight; y++) {
+                    for (let x = 0; x < this.gridWidth; x++) {
+                        const cell = this.spatialMemory[y][x];
+                        const maxMemory = Math.max(...cell.memory);
+                        if (maxMemory > 0.05) activeCells++;
+                        totalMemory += maxMemory;
+                    }
+                }
+                
+                document.getElementById('activeCells').textContent = activeCells;
+                document.getElementById('memoryLoad').textContent = 
+                    Math.round((totalMemory / (this.gridWidth * this.gridHeight)) * 100) + '%';
+                
+                const entropy = this.calculatePatternEntropy();
+                document.getElementById('patternEntropy').textContent = entropy.toFixed(3);
+                
+                // Update expression metrics
+                document.getElementById('currentSymbol').textContent = this.currentSymbol;
+                document.getElementById('symbolCount').textContent = this.symbolCount;
+                document.getElementById('uniqueSymbols').textContent = this.expressionComplexity.size;
+                document.getElementById('symbolRate').textContent = this.symbolRate.toFixed(2) + '/s';
+                
+                // Update FFT spectral metrics
+                if (this.spectralMonitoringEnabled) {
+                    document.getElementById('peakFrequency').textContent = this.peakFrequency.toFixed(3);
+                    document.getElementById('spectralEnergy').textContent = this.spectralEnergy.toFixed(2);
+                    document.getElementById('spectralBandwidth').textContent = this.spectralBandwidth.toFixed(3);
+                }
+                
+                // Update Laplace metrics
+                if (this.laplaceEnabled) {
+                    document.getElementById('dominantPole').textContent = this.dominantPole.toString();
+                    document.getElementById('systemStabilityLaplace').textContent = this.systemStabilityLaplace;
+                    document.getElementById('decayRate').textContent = this.decayRate.toFixed(3);
+                    document.getElementById('transferFunction').textContent = this.transferFunction;
+                }
+                
+                // Calculate system analysis metrics
+                this.computationalComplexity = this.calculateComplexity();
+                this.systemStability = this.calculateStability();
+                this.informationFlow = this.calculateInformationFlow();
+                
+                document.getElementById('complexity').textContent = this.computationalComplexity.toFixed(3);
+                document.getElementById('stability').textContent = this.systemStability.toFixed(3);
+                document.getElementById('infoFlow').textContent = this.informationFlow.toFixed(3);
+                
+                // Store metrics history
+                this.metricsHistory.push({
+                    time: this.time,
+                    complexity: this.computationalComplexity,
+                    stability: this.systemStability,
+                    infoFlow: this.informationFlow,
+                    activeCells: activeCells,
+                    symbolCount: this.symbolCount
+                });
+                
+                if (this.metricsHistory.length > 500) {
+                    this.metricsHistory = this.metricsHistory.slice(-250);
+                }
+            }
+            
+            calculatePatternEntropy() {
+                const stateCounts = [0, 0, 0];
+                let totalCells = 0;
+                
+                for (let y = 0; y < this.gridHeight; y++) {
+                    for (let x = 0; x < this.gridWidth; x++) {
+                        const cell = this.spatialMemory[y][x];
+                        const maxIndex = cell.memory.indexOf(Math.max(...cell.memory));
+                        if (Math.max(...cell.memory) > 0.05) {
+                            stateCounts[maxIndex]++;
+                            totalCells++;
+                        }
+                    }
+                }
+                
+                if (totalCells === 0) return 0;
+                
+                let entropy = 0;
+                for (const count of stateCounts) {
+                    if (count > 0) {
+                        const p = count / totalCells;
+                        entropy -= p * Math.log2(p);
+                    }
+                }
+                
+                return entropy;
+            }
+            
+            calculateComplexity() {
+                const patternEntropy = this.calculatePatternEntropy();
+                const expressionDiversity = this.expressionComplexity.size / Math.max(1, this.symbolCount);
+                return (patternEntropy + expressionDiversity) / 2;
+            }
+            
+            calculateStability() {
+                if (this.metricsHistory.length < 10) return 0;
+                
+                const recent = this.metricsHistory.slice(-10);
+                const avgComplexity = recent.reduce((sum, m) => sum + m.complexity, 0) / recent.length;
+                const variance = recent.reduce((sum, m) => sum + Math.pow(m.complexity - avgComplexity, 2), 0) / recent.length;
+                
+                return Math.max(0, 1 - variance);
+            }
+            
+            calculateInformationFlow() {
+                if (this.symbolCount === 0) return 0;
+                
+                const timeSinceLastSymbol = this.time - this.lastSymbolTime;
+                const flow = Math.exp(-timeSinceLastSymbol) * this.symbolRate;
+                
+                return Math.min(1, flow);
+            }
+            
+            addToOutput(text) {
+                const output = document.getElementById('symbolicOutput');
+                output.innerHTML += text;
+                output.scrollTop = output.scrollHeight;
+            }
+            
+            clearSpatialMemory() {
+                for (let y = 0; y < this.gridHeight; y++) {
+                    for (let x = 0; x < this.gridWidth; x++) {
+                        const cell = this.spatialMemory[y][x];
+                        cell.state = [0, 0, 0];
+                        cell.memory = [0, 0, 0];
+                        cell.lastActive = 0;
+                    }
+                }
+                this.addToOutput('🧹 Memory cleared ');
+            }
+            
+            clearSymbolicOutput() {
+                document.getElementById('symbolicOutput').innerHTML = 'Expressions cleared... ';
+                this.symbolHistory = [];
+                this.symbolCount = 0;
+                this.expressionComplexity.clear();
+                this.currentSymbol = '∅';
+            }
+            
+            resetSystem() {
+                this.time = 0;
+                this.resonanceEvents = 0;
+                this.clearSpatialMemory();
+                this.clearSymbolicOutput();
+                this.resetSpectralAnalysis();
+                this.resetLaplaceAnalysis();
+                this.metricsHistory = [];
+                this.addToOutput('🔄 System reset ');
+            }
+            
+            analyzeSymbolicOutput() {
+                const analysis = `=== ANALYSIS === Expressions: ${this.symbolCount} | Unique: ${this.expressionComplexity.size} | Diversity: ${(this.expressionComplexity.size / Math.max(1, this.symbolCount)).toFixed(3)} | Rate: ${this.symbolRate.toFixed(3)}/s `;
+                this.addToOutput(analysis);
+            }
+            
+            runSystemAnalysis() {
+                this.addToOutput(`🔬 ANALYSIS: Complexity: ${this.computationalComplexity.toFixed(3)} | Stability: ${this.systemStability.toFixed(3)} | Info Flow: ${this.informationFlow.toFixed(3)} `);
+            }
+            
+            exportSystemData() {
+                const data = {
+                    timestamp: new Date().toISOString(),
+                    systemState: {
+                        time: this.time,
+                        frequencies: this.frequencies,
+                        threshold: this.threshold,
+                        learningRate: this.learningRate,
+                        memoryDecay: this.memoryDecay
+                    },
+                    expressions: Array.from(this.expressionComplexity),
+                    laplaceAnalysis: {
+                        poles: this.poles,
+                        zeros: this.zeros,
+                        dominantPole: this.dominantPole,
+                        stability: this.systemStabilityLaplace,
+                        transferFunction: this.transferFunction
+                    },
+                    metricsHistory: this.metricsHistory
+                };
+                
+                const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `wave-computer-laplace-data-${Date.now()}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+                
+                this.addToOutput('💾 Data exported ');
+            }
+            
+            resetSpectralAnalysis() {
+                this.interferenceBuffer = [];
+                this.currentSpectrum = null;
+                this.peakFrequency = 0;
+                this.spectralEnergy = 0;
+                this.spectralBandwidth = 0;
+                this.addToOutput('📈 FFT reset ');
+            }
+            
+            resetLaplaceAnalysis() {
+                this.laplaceData = null;
+                this.poles = [];
+                this.zeros = [];
+                this.dominantPole = new this.Complex(0, 0);
+                this.decayRate = 0;
+                this.systemStabilityLaplace = 'Unknown';
+                this.transferFunction = 'Computing...';
+                this.addToOutput('🌀 Laplace reset ');
+            }
+        }
+        
+        // Initialize when page loads
+        window.addEventListener('load', () => {
+            console.log('🎯 Initializing Enhanced Wave Computer...');
+            window.waveSystem = new SelfOptimizingWaveComputerWithLaplace();
+        });
+    </script>
+</body>
+</html>
