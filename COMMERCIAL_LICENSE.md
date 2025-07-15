@@ -6,7 +6,7 @@ This project is licensed under the Creative Commons Attribution-NonCommercial 4.
 
 If you intend to use this project or any substantial portion of it in a commercial product, proprietary system, or monetized service, you must obtain a commercial license.
 
-Contact: [your email]  
+Contact: 012notforu@pm.me 
 Subject: Commercial Use Request - Looptronics Engine
 
 Pricing and terms are negotiable depending on scope, use case, and distribution model.
