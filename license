@@ -1,14 +1,35 @@
-Creative Commons Attribution-NonCommercial 4.0 International Public License (CC BY-NC 4.0)
+Looptronics Wave-Based Computation Framework — Dual License
+============================================================
 
-You are free to:
-- Share — copy and redistribute the material in any medium or format
-- Adapt — remix, transform, and build upon the material
+This framework — a dynamic substrate enabling wave-based computation, 
+resonance evolution, and phase-amplitude coupling — is distributed under a **dual license model**.
 
-Under the following terms:
-- Attribution — You must give appropriate credit, provide a link to the license, and indicate if changes were made.
-- NonCommercial — You may not use the material for commercial purposes.
+────────────────────────────────────────────────────────────
 
-No additional restrictions — You may not apply legal terms or technological measures that legally restrict others from doing anything the license permits.
+🧪 ACADEMIC / NON-COMMERCIAL LICENSE (default)
+──────────────────────────────────────────────
+For research, educational, and experimental uses only.
 
-Full License Text: https://creativecommons.org/licenses/by-nc/4.0/legalcode
-Human-Readable Summary: https://creativecommons.org/licenses/by-nc/4.0/
+- Permitted for academic study, personal exploration, and non-profit work.
+- Source code and core algorithms may be analyzed, modified, and extended for **non-commercial purposes**.
+- Attribution to the original author is required in all derivative works.
+
+→ Full license terms in: `licenses/open-research-license.txt`
+
+────────────────────────────────────────────────────────────
+
+💼 COMMERCIAL LICENSE (required for proprietary use)
+────────────────────────────────────────────────────
+A separate license is required for:
+
+- Integration into commercial products, SaaS, or internal enterprise tools
+- Use in research that supports a for-profit product or IP
+- Embedding into proprietary hardware/software systems
+
+→ Terms in: `licenses/commercial-license.txt`  
+→ To obtain a license, contact: [012notforu@pm.me]
+
+────────────────────────────────────────────────────────────
+
+© 2025 [Matthew Gautier] — All rights reserved.  
+This framework is a foundational technology and protected accordingly.
