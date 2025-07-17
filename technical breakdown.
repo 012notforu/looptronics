@@ -1,62 +1,62 @@
 
-# ðŸ“˜ Technical Overview: Looptronics Wave-Based Computation Framework
+# Technical Overview: Looptronics Wave-Based Computation Framework
 
 This document outlines the scientific and computational principles behind the Looptronics framework â€” a dynamic, interactive grid-based system for exploring wave-based computation, frequency feedback, and emergent pattern formation.
 
 ---
 
-## ðŸ”§ Grid Structure and Core Mechanics
+## Grid Structure and Core Mechanics
 
-Looptronics is based on a 2D spatial grid (`N x N`), where each cell evolves over time using numerical approximations of wave physics. The core variables per grid cell are:
+Looptronics is based on a 2D spatial grid (N x N), where each cell evolves over time using numerical approximations of wave physics. The core variables per grid cell are:
 
-- `u[i]`: Displacement (amplitude) at cell `i`
-- `v[i]`: Velocity at cell `i`
+- u[i]: Displacement (amplitude) at cell i
+- v[i]: Velocity at cell i
 
 The grid evolves over time using the discrete wave equation:
 
-```text
+```
 u[i] += v[i] * dt
-v[i] += (cÂ² * âˆ‡Â²u[i] + damping + feedback + mutation) * dt
+v[i] += (c^2 * Laplacian(u[i]) + damping + feedback + mutation) * dt
 ```
 
 Where:
-- `âˆ‡Â²u[i]` is the 2D Laplacian (difference with neighbors)
-- `damping` is local friction/resistance
-- `feedback` is signal injected based on frequency history
-- `mutation` is random perturbation under certain conditions
+- Laplacian(u[i]) is the 2D discrete Laplacian (difference with neighbors)
+- damping is local friction/resistance
+- feedback is a signal injected based on frequency history
+- mutation is random perturbation under certain conditions
 
 ---
 
-## ðŸ“¡ Wave Sources
+## Wave Sources
 
 There are 3 configurable wave sources that inject periodic energy into the grid. Each source includes:
 
-- A `(x, y)` position
-- Frequency (`Hz`)
+- A (x, y) position
+- Frequency (Hz)
 - Amplitude
 - Active toggle
 
 Their signal is added to their respective grid point as a sinusoidal driver:
 
-```text
-source[i] = amplitude * sin(2Ï€ * frequency * time + phase)
+```
+source[i] = amplitude * sin(2 * pi * frequency * time + phase)
 ```
 
 ---
 
-## ðŸŒ Neighbor Coupling and Laplacian Operator
+## Neighbor Coupling and Laplacian Operator
 
-The discrete Laplacian âˆ‡Â² is calculated with toroidal (wrapping) boundary conditions:
+The discrete Laplacian is calculated with toroidal (wrapping) boundary conditions:
 
-```text
-âˆ‡Â²u[i] = (u[left] + u[right] + u[up] + u[down] - 4*u[i]) / dxÂ²
+```
+Laplacian(u[i]) = (u[left] + u[right] + u[up] + u[down] - 4 * u[i]) / dx^2
 ```
 
 This drives wave propagation through energy transfer between neighboring cells.
 
 ---
 
-## ðŸŒ€ Feedback via Laplace-Like Analysis
+## Feedback via Laplace-Like Analysis
 
 A frequency-domain feedback system continuously analyzes the amplitude history of the central grid region.
 
@@ -66,16 +66,16 @@ Steps:
 3. Construct a feedback signal composed of these components.
 4. Inject this signal globally into the grid.
 
-The transform is *not a true Laplace*, but serves as a lightweight frequency estimator to inform dynamic feedback.
+The transform is not a true Laplace, but serves as a lightweight frequency estimator to inform dynamic feedback.
 
 ---
 
-## ðŸ” Mutation System
+## Mutation System
 
 Local mutations are triggered probabilistically when amplitude variation across neighbors exceeds a threshold:
 
-```text
-if mean(|u[i] - u[neighbors]|) > threshold:
+```
+if average(|u[i] - u[neighbors]|) > threshold:
     u[i] += random(-0.5, 0.5) * mutationStrength
 ```
 
@@ -83,27 +83,27 @@ This introduces disorder and potential complexity into an otherwise deterministi
 
 ---
 
-## ðŸ“ˆ Real-Time Metrics and Pattern Analysis
+## Real-Time Metrics and Pattern Analysis
 
 Several real-time metrics are computed:
 
-- **Coupling Flux**: Measures average Laplacian magnitude across grid
-- **Friction Loss**: Damping contribution from velocity differences
-- **Mutation Count**: Number of triggered local mutations
-- **Coherence**: Degree of global phase alignment
-- **Pattern Count**: Estimates of symmetry/correlation in local patches
-- **Laplace Feedback Intensity**: Amplitude of injected frequency feedback
+- Coupling Flux: Measures average Laplacian magnitude across grid
+- Friction Loss: Damping contribution from velocity differences
+- Mutation Count: Number of triggered local mutations
+- Coherence: Degree of global phase alignment
+- Pattern Count: Estimates of symmetry/correlation in local patches
+- Laplace Feedback Intensity: Amplitude of injected frequency feedback
 
 ---
 
-## â± Timing Constants
+## Timing Constants
 
-- `dt = 0.015`: Time step for updates
-- `dx = 1.0`: Grid cell spacing
+- dt = 0.015: Time step for updates
+- dx = 1.0: Grid cell spacing
 
 ---
 
-## âš ï¸ Limitations
+## Limitations
 
 - This is not a formal PDE solver or physical simulation.
 - The "Laplace transform" is a real-time approximation for feedback only.
@@ -111,14 +111,12 @@ Several real-time metrics are computed:
 
 ---
 
-## ðŸ§ª Intended Use
+## Intended Use
 
 Looptronics is a tool for:
 
-- Studying emergent behavior from wave interaction + mutation
+- Studying emergent behavior from wave interaction and mutation
 - Visualizing the impact of frequency feedback on spatial dynamics
 - Exploring non-standard computing paradigms and symbolic evolution
-
----
 
 This system is meant to invite curiosity, critique, and extension â€” not to assert finality. Further experimentation and mathematical validation are encouraged.
