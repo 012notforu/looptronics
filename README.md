@@ -23,7 +23,7 @@ I'm not a formal researcher by training—this project is the result of independ
 
 
 
-# Symbolic Coherence Field Theory: GitHub-Ready Technical Writeup
+# Symbolic Coherence Field Theory: Technical Writeup
 
 
 ---
