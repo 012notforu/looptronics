@@ -1,0 +1,619 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { Play, Pause, RefreshCw, Settings, Brain, Zap, Eye } from 'lucide-react';
+
+const CoherenceFieldSimulator = () => {
+  const canvasRef = useRef(null);
+  const energyCanvasRef = useRef(null);
+  const animationRef = useRef(null);
+  const [isRunning, setIsRunning] = useState(false);
+  const [viewMode, setViewMode] = useState('phase'); // 'phase', 'coherence', 'energy'
+  const [params, setParams] = useState({
+    alpha: 1.2,     // Coherence potential strength
+    beta: 0.8,      // Inertial resistance/damping
+    gamma: 0.4,     // Spatial coupling strength
+    epsilon: 0.05,  // Regularization parameter
+    dt: 0.01,       // Time step
+    dx: 0.2         // Spatial resolution
+  });
+  
+  const gridWidth = 100;
+  const gridHeight = 80;
+  
+  // Enhanced field state tracking
+  const fieldRef = useRef({
+    theta: new Array(gridHeight).fill(null).map(() => new Array(gridWidth).fill(0)),
+    theta_dot: new Array(gridHeight).fill(null).map(() => new Array(gridWidth).fill(0)),
+    theta_ddot: new Array(gridHeight).fill(null).map(() => new Array(gridWidth).fill(0)),
+    gradX: new Array(gridHeight).fill(null).map(() => new Array(gridWidth).fill(0)),
+    gradY: new Array(gridHeight).fill(null).map(() => new Array(gridWidth).fill(0)),
+    gradMag: new Array(gridHeight).fill(null).map(() => new Array(gridWidth).fill(0)),
+    coherencePotential: new Array(gridHeight).fill(null).map(() => new Array(gridWidth).fill(0)),
+    localEnergy: new Array(gridHeight).fill(null).map(() => new Array(gridWidth).fill(0)),
+    totalEnergy: 0,
+    totalCoherence: 0,
+    maxCoherence: 0,
+    energyHistory: []
+  });
+
+  // Symbolic potential V(θ) - adjustable preference landscape
+  const symbolicPotential = (theta) => {
+    return 0.1 * (1 - Math.cos(2 * theta)) + 0.05 * theta * theta;
+  };
+
+  const symbolicPotentialDerivative = (theta) => {
+    return 0.2 * Math.sin(2 * theta) + 0.1 * theta;
+  };
+
+  // Initialize field with various patterns
+  const initializeField = (pattern = 'coherent_domains') => {
+    const field = fieldRef.current;
+    
+    for (let i = 0; i < gridHeight; i++) {
+      for (let j = 0; j < gridWidth; j++) {
+        const x = (j - gridWidth/2) * params.dx;
+        const y = (i - gridHeight/2) * params.dx;
+        
+        switch(pattern) {
+          case 'coherent_domains':
+            // Create multiple coherent regions (like cortical columns)
+            const d1 = Math.sqrt((x-2)*(x-2) + (y-1)*(y-1));
+            const d2 = Math.sqrt((x+1.5)*(x+1.5) + (y+1.2)*(y+1.2));
+            const d3 = Math.sqrt((x-1)*(x-1) + (y-2)*(y-2));
+            field.theta[i][j] = 1.5*Math.exp(-d1*d1/0.5) - 1.2*Math.exp(-d2*d2/0.3) + 0.8*Math.exp(-d3*d3/0.7);
+            break;
+            
+          case 'traveling_wave':
+            // Neural traveling wave initialization
+            field.theta[i][j] = 0.8 * Math.sin(0.5 * x) * Math.exp(-0.1 * y * y);
+            field.theta_dot[i][j] = 0.3 * Math.cos(0.5 * x) * Math.exp(-0.1 * y * y);
+            break;
+            
+          case 'memory_formation':
+            // Simulate memory encoding with multiple competing patterns
+            const memory1 = Math.exp(-((x-1.5)*(x-1.5) + y*y)/0.8);
+            const memory2 = Math.exp(-((x+1.5)*(x+1.5) + y*y)/0.6);
+            const noise = 0.1 * (Math.random() - 0.5);
+            field.theta[i][j] = memory1 - 0.7*memory2 + noise;
+            break;
+            
+          case 'attention_focus':
+            // Single strong coherent region (attention spotlight)
+            const attention_d = Math.sqrt(x*x + y*y);
+            field.theta[i][j] = 2.0 * Math.exp(-attention_d*attention_d/0.4);
+            break;
+            
+          case 'random_noise':
+            field.theta[i][j] = 0.3 * (Math.random() - 0.5);
+            break;
+            
+          default:
+            field.theta[i][j] = 0;
+        }
+        
+        if (pattern !== 'traveling_wave') {
+          field.theta_dot[i][j] = 0;
+        }
+        field.theta_ddot[i][j] = 0;
+      }
+    }
+    
+    field.energyHistory = [];
+  };
+
+  // Compute spatial gradients with improved accuracy
+  const computeGradients = () => {
+    const field = fieldRef.current;
+    
+    for (let i = 0; i < gridHeight; i++) {
+      for (let j = 0; j < gridWidth; j++) {
+        // Central difference with periodic boundaries
+        const ip = (i + 1) % gridHeight;
+        const im = (i - 1 + gridHeight) % gridHeight;
+        const jp = (j + 1) % gridWidth;
+        const jm = (j - 1 + gridWidth) % gridWidth;
+        
+        field.gradX[i][j] = (field.theta[i][jp] - field.theta[i][jm]) / (2 * params.dx);
+        field.gradY[i][j] = (field.theta[ip][j] - field.theta[im][j]) / (2 * params.dx);
+        field.gradMag[i][j] = Math.sqrt(
+          field.gradX[i][j] * field.gradX[i][j] + 
+          field.gradY[i][j] * field.gradY[i][j]
+        );
+        
+        // Coherence potential: α/√(|∇θ|² + ε²)
+        const denominator = Math.sqrt(
+          field.gradMag[i][j] * field.gradMag[i][j] + 
+          params.epsilon * params.epsilon
+        );
+        field.coherencePotential[i][j] = params.alpha / denominator;
+      }
+    }
+  };
+
+  // Compute divergence of the coherence field
+  const computeCoherenceDivergence = (i, j) => {
+    const field = fieldRef.current;
+    const ip = (i + 1) % gridHeight;
+    const im = (i - 1 + gridHeight) % gridHeight;
+    const jp = (j + 1) % gridWidth;
+    const jm = (j - 1 + gridWidth) % gridWidth;
+    
+    // Coherence field components: γ∇θ - α∇θ/(|∇θ|²+ε²)^(3/2)
+    const computeCoherenceField = (gi, gj) => {
+      const gradMagSq = field.gradMag[gi][gj] * field.gradMag[gi][gj] + params.epsilon * params.epsilon;
+      const coherenceFactor = params.alpha / Math.pow(gradMagSq, 1.5);
+      
+      return {
+        x: params.gamma * field.gradX[gi][gj] - coherenceFactor * field.gradX[gi][gj],
+        y: params.gamma * field.gradY[gi][gj] - coherenceFactor * field.gradY[gi][gj]
+      };
+    };
+    
+    const fieldCenter = computeCoherenceField(i, j);
+    const fieldRight = computeCoherenceField(i, jp);
+    const fieldLeft = computeCoherenceField(i, jm);
+    const fieldUp = computeCoherenceField(ip, j);
+    const fieldDown = computeCoherenceField(im, j);
+    
+    const divX = (fieldRight.x - fieldLeft.x) / (2 * params.dx);
+    const divY = (fieldUp.y - fieldDown.y) / (2 * params.dx);
+    
+    return divX + divY;
+  };
+
+  // Main evolution step using exact CFT equations
+  const evolveField = () => {
+    const field = fieldRef.current;
+    
+    // First compute all gradients
+    computeGradients();
+    
+    // Compute accelerations using the full CFT equation
+    for (let i = 0; i < gridHeight; i++) {
+      for (let j = 0; j < gridWidth; j++) {
+        // ∂²θ/∂t² = (1/β)[∇·(γ∇θ - α∇θ/(|∇θ|²+ε²)^(3/2)) + V'(θ)]
+        const coherenceDivergence = computeCoherenceDivergence(i, j);
+        const potentialForce = -symbolicPotentialDerivative(field.theta[i][j]);
+        
+        field.theta_ddot[i][j] = (coherenceDivergence + potentialForce) / params.beta;
+      }
+    }
+    
+    // Update velocities and positions (Verlet integration)
+    for (let i = 0; i < gridHeight; i++) {
+      for (let j = 0; j < gridWidth; j++) {
+        field.theta_dot[i][j] += params.dt * field.theta_ddot[i][j];
+        field.theta[i][j] += params.dt * field.theta_dot[i][j];
+      }
+    }
+    
+    // Compute total energy and coherence metrics
+    computeEnergyAndCoherence();
+  };
+
+  // Compute energy according to CFT energy functional
+  const computeEnergyAndCoherence = () => {
+    const field = fieldRef.current;
+    let totalEnergy = 0;
+    let totalCoherence = 0;
+    let maxCoherence = 0;
+    
+    for (let i = 0; i < gridHeight; i++) {
+      for (let j = 0; j < gridWidth; j++) {
+        // E = (β/2)(∂θ/∂t)² + α/√(|∇θ|²+ε²) + (γ/2)|∇θ|² + V(θ)
+        const kineticEnergy = 0.5 * params.beta * field.theta_dot[i][j] * field.theta_dot[i][j];
+        const coherenceEnergy = field.coherencePotential[i][j];
+        const gradientEnergy = 0.5 * params.gamma * field.gradMag[i][j] * field.gradMag[i][j];
+        const potentialEnergy = symbolicPotential(field.theta[i][j]);
+        
+        const localEnergy = kineticEnergy + coherenceEnergy + gradientEnergy + potentialEnergy;
+        field.localEnergy[i][j] = localEnergy;
+        totalEnergy += localEnergy;
+        
+        // Coherence measure: high when gradients are small
+        const coherence = 1.0 / (1.0 + field.gradMag[i][j] * 10);
+        totalCoherence += coherence;
+        maxCoherence = Math.max(maxCoherence, coherence);
+      }
+    }
+    
+    field.totalEnergy = totalEnergy;
+    field.totalCoherence = totalCoherence / (gridWidth * gridHeight);
+    field.maxCoherence = maxCoherence;
+    
+    // Track energy history for conservation verification
+    field.energyHistory.push(totalEnergy);
+    if (field.energyHistory.length > 200) {
+      field.energyHistory.shift();
+    }
+  };
+
+  // Render field based on view mode
+  const renderField = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    const imageData = ctx.createImageData(gridWidth, gridHeight);
+    const data = imageData.data;
+    
+    const field = fieldRef.current;
+    
+    // Determine what to visualize
+    let values, minVal = Infinity, maxVal = -Infinity;
+    
+    switch(viewMode) {
+      case 'phase':
+        values = field.theta;
+        break;
+      case 'coherence':
+        values = field.coherencePotential;
+        break;
+      case 'energy':
+        values = field.localEnergy;
+        break;
+      default:
+        values = field.theta;
+    }
+    
+    // Find min/max for normalization
+    for (let i = 0; i < gridHeight; i++) {
+      for (let j = 0; j < gridWidth; j++) {
+        minVal = Math.min(minVal, values[i][j]);
+        maxVal = Math.max(maxVal, values[i][j]);
+      }
+    }
+    
+    const range = maxVal - minVal || 1;
+    
+    for (let i = 0; i < gridHeight; i++) {
+      for (let j = 0; j < gridWidth; j++) {
+        const pixelIndex = (i * gridWidth + j) * 4;
+        const normalizedVal = (values[i][j] - minVal) / range;
+        
+        if (viewMode === 'phase') {
+          // Phase view: blue-white-red with coherence overlay
+          const coherenceLevel = Math.min(1, field.coherencePotential[i][j] / (2 * params.alpha));
+          
+          if (normalizedVal > 0.5) {
+            data[pixelIndex] = Math.floor(255 * normalizedVal);     // Red
+            data[pixelIndex + 1] = Math.floor(128 * coherenceLevel); // Green for coherence
+            data[pixelIndex + 2] = Math.floor(100 * (1 - normalizedVal));
+          } else {
+            data[pixelIndex] = Math.floor(100 * normalizedVal);
+            data[pixelIndex + 1] = Math.floor(128 * coherenceLevel);
+            data[pixelIndex + 2] = Math.floor(255 * (1 - normalizedVal)); // Blue
+          }
+        } else if (viewMode === 'coherence') {
+          // Pure coherence view: green scale
+          const intensity = Math.floor(255 * normalizedVal);
+          data[pixelIndex] = intensity * 0.2;
+          data[pixelIndex + 1] = intensity;
+          data[pixelIndex + 2] = intensity * 0.2;
+        } else {
+          // Energy view: thermal colormap
+          const intensity = normalizedVal;
+          if (intensity < 0.33) {
+            data[pixelIndex] = 0;
+            data[pixelIndex + 1] = Math.floor(255 * intensity * 3);
+            data[pixelIndex + 2] = 255;
+          } else if (intensity < 0.66) {
+            data[pixelIndex] = Math.floor(255 * (intensity - 0.33) * 3);
+            data[pixelIndex + 1] = 255;
+            data[pixelIndex + 2] = Math.floor(255 * (0.66 - intensity) * 3);
+          } else {
+            data[pixelIndex] = 255;
+            data[pixelIndex + 1] = Math.floor(255 * (1 - intensity) * 3);
+            data[pixelIndex + 2] = 0;
+          }
+        }
+        data[pixelIndex + 3] = 255; // Alpha
+      }
+    }
+    
+    ctx.putImageData(imageData, 0, 0);
+    
+    // Scale up for visibility
+    ctx.save();
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(canvas, 0, 0, gridWidth, gridHeight, 0, 0, canvas.width, canvas.height);
+    ctx.restore();
+  };
+
+  // Render energy history graph
+  const renderEnergyHistory = () => {
+    const canvas = energyCanvasRef.current;
+    if (!canvas || !fieldRef.current.energyHistory.length) return;
+    
+    const ctx = canvas.getContext('2d');
+    const width = canvas.width;
+    const height = canvas.height;
+    
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(0, 0, width, height);
+    
+    const history = fieldRef.current.energyHistory;
+    const minE = Math.min(...history);
+    const maxE = Math.max(...history);
+    const range = maxE - minE || 1;
+    
+    ctx.strokeStyle = '#00ff88';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    
+    for (let i = 0; i < history.length; i++) {
+      const x = (i / history.length) * width;
+      const y = height - ((history[i] - minE) / range) * height;
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+    
+    // Add labels
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '12px monospace';
+    ctx.fillText(`E: ${fieldRef.current.totalEnergy.toFixed(2)}`, 10, 20);
+    ctx.fillText(`ΔE: ${range.toFixed(4)}`, 10, 35);
+  };
+
+  // Animation loop
+  const animate = () => {
+    if (isRunning) {
+      for (let step = 0; step < 3; step++) {
+        evolveField();
+      }
+      renderField();
+      renderEnergyHistory();
+      animationRef.current = requestAnimationFrame(animate);
+    }
+  };
+
+  useEffect(() => {
+    if (isRunning) {
+      animate();
+    } else {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    }
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    };
+  }, [isRunning]);
+
+  useEffect(() => {
+    initializeField('coherent_domains');
+    renderField();
+    renderEnergyHistory();
+  }, [viewMode]);
+
+  const handleStart = () => setIsRunning(!isRunning);
+  const handleReset = (pattern) => {
+    setIsRunning(false);
+    initializeField(pattern);
+    renderField();
+    renderEnergyHistory();
+  };
+
+  const field = fieldRef.current;
+
+  return (
+    <div className="w-full max-w-7xl mx-auto p-6 bg-gray-900 text-white rounded-lg">
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold mb-2 flex items-center gap-3">
+          <Brain className="text-blue-400" />
+          Coherence Field Theory (CFT) Neural Simulator
+        </h1>
+        <p className="text-gray-300">
+          Exact implementation of the symbolic coherence field equation with energy conservation.
+          <strong> Red/Blue:</strong> θ field, <strong>Green overlay:</strong> coherence wells, <strong>Real-time energy tracking</strong>
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+        <div className="xl:col-span-3">
+          <div className="bg-black rounded-lg p-4 mb-4">
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="text-lg font-semibold">Neural Phase Field θ(x,t)</h3>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setViewMode('phase')}
+                  className={`px-3 py-1 rounded text-sm ${viewMode === 'phase' ? 'bg-blue-600' : 'bg-gray-600'}`}
+                >
+                  Phase
+                </button>
+                <button
+                  onClick={() => setViewMode('coherence')}
+                  className={`px-3 py-1 rounded text-sm ${viewMode === 'coherence' ? 'bg-green-600' : 'bg-gray-600'}`}
+                >
+                  Coherence
+                </button>
+                <button
+                  onClick={() => setViewMode('energy')}
+                  className={`px-3 py-1 rounded text-sm ${viewMode === 'energy' ? 'bg-red-600' : 'bg-gray-600'}`}
+                >
+                  Energy
+                </button>
+              </div>
+            </div>
+            <canvas
+              ref={canvasRef}
+              width={gridWidth * 5}
+              height={gridHeight * 5}
+              className="w-full border border-gray-600 rounded"
+              style={{ imageRendering: 'pixelated' }}
+            />
+          </div>
+          
+          <div className="bg-black rounded-lg p-4">
+            <h3 className="text-lg font-semibold mb-3">Energy Conservation Tracking</h3>
+            <canvas
+              ref={energyCanvasRef}
+              width={600}
+              height={150}
+              className="w-full border border-gray-600 rounded bg-gray-800"
+            />
+          </div>
+          
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button
+              onClick={handleStart}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+            >
+              {isRunning ? <Pause size={20} /> : <Play size={20} />}
+              {isRunning ? 'Pause CFT' : 'Run CFT'}
+            </button>
+            <button
+              onClick={() => handleReset('coherent_domains')}
+              className="flex items-center gap-2 px-3 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors text-sm"
+            >
+              <Eye size={16} />
+              Attention Domains
+            </button>
+            <button
+              onClick={() => handleReset('traveling_wave')}
+              className="flex items-center gap-2 px-3 py-2 bg-green-600 hover:bg-green-700 rounded-lg transition-colors text-sm"
+            >
+              <Zap size={16} />
+              Neural Wave
+            </button>
+            <button
+              onClick={() => handleReset('memory_formation')}
+              className="flex items-center gap-2 px-3 py-2 bg-orange-600 hover:bg-orange-700 rounded-lg transition-colors text-sm"
+            >
+              <Brain size={16} />
+              Memory Formation
+            </button>
+            <button
+              onClick={() => handleReset('attention_focus')}
+              className="flex items-center gap-2 px-3 py-2 bg-yellow-600 hover:bg-yellow-700 rounded-lg transition-colors text-sm"
+            >
+              <Eye size={16} />
+              Attention Focus
+            </button>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <div className="bg-gray-800 rounded-lg p-4">
+            <h3 className="text-lg font-bold mb-3 flex items-center gap-2">
+              <Settings size={20} />
+              CFT Parameters
+            </h3>
+            
+            <div className="space-y-3 text-sm">
+              <div>
+                <label className="block font-medium mb-1">
+                  Coherence Strength (α): {params.alpha.toFixed(2)}
+                </label>
+                <input
+                  type="range"
+                  min="0.1"
+                  max="3.0"
+                  step="0.1"
+                  value={params.alpha}
+                  onChange={(e) => setParams(p => ({...p, alpha: parseFloat(e.target.value)}))}
+                  className="w-full"
+                />
+              </div>
+              
+              <div>
+                <label className="block font-medium mb-1">
+                  Inertial Resistance (β): {params.beta.toFixed(2)}
+                </label>
+                <input
+                  type="range"
+                  min="0.1"
+                  max="2.0"
+                  step="0.1"
+                  value={params.beta}
+                  onChange={(e) => setParams(p => ({...p, beta: parseFloat(e.target.value)}))}
+                  className="w-full"
+                />
+              </div>
+              
+              <div>
+                <label className="block font-medium mb-1">
+                  Spatial Coupling (γ): {params.gamma.toFixed(2)}
+                </label>
+                <input
+                  type="range"
+                  min="0.1"
+                  max="1.0"
+                  step="0.1"
+                  value={params.gamma}
+                  onChange={(e) => setParams(p => ({...p, gamma: parseFloat(e.target.value)}))}
+                  className="w-full"
+                />
+              </div>
+              
+              <div>
+                <label className="block font-medium mb-1">
+                  Regularization (ε): {params.epsilon.toFixed(3)}
+                </label>
+                <input
+                  type="range"
+                  min="0.01"
+                  max="0.2"
+                  step="0.01"
+                  value={params.epsilon}
+                  onChange={(e) => setParams(p => ({...p, epsilon: parseFloat(e.target.value)}))}
+                  className="w-full"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-gray-800 rounded-lg p-4">
+            <h3 className="text-lg font-bold mb-3">Live CFT Metrics</h3>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span>Total Energy E:</span>
+                <span className="font-mono">{field.totalEnergy.toFixed(3)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Avg Coherence:</span>
+                <span className="font-mono">{field.totalCoherence.toFixed(4)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Max Coherence:</span>
+                <span className="font-mono">{field.maxCoherence.toFixed(4)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Energy Variation:</span>
+                <span className="font-mono">
+                  {field.energyHistory.length > 1 ? 
+                    (Math.max(...field.energyHistory.slice(-20)) - Math.min(...field.energyHistory.slice(-20))).toFixed(5) : 
+                    '0.00000'
+                  }
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-gray-800 rounded-lg p-4">
+            <h3 className="text-lg font-bold mb-3">CFT Equation</h3>
+            <div className="text-xs space-y-2 font-mono">
+              <div className="text-yellow-300">∂²θ/∂t² = (1/β)[∇·F + V'(θ)]</div>
+              <div className="text-blue-300">F = γ∇θ - α∇θ/(|∇θ|²+ε²)^(3/2)</div>
+              <div className="text-green-300">E = (β/2)(∂θ/∂t)² + α/√(|∇θ|²+ε²) + (γ/2)|∇θ|² + V(θ)</div>
+            </div>
+          </div>
+
+          <div className="bg-gray-800 rounded-lg p-4">
+            <h3 className="text-lg font-bold mb-3">Neural Interpretation</h3>
+            <div className="text-sm space-y-2">
+              <p><strong>θ(x,t):</strong> Neural phase/membrane potential field</p>
+              <p><strong>Coherence wells:</strong> Stable attractor states (memory, attention)</p>
+              <p><strong>Energy conservation:</strong> Metabolic constraint validation</p>
+              <p><strong>Wave propagation:</strong> Information transmission dynamics</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default CoherenceFieldSimulator;
