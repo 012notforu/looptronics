@@ -1,122 +1,25 @@
+# Technical Overview: Coherence Field Theory (CFT) Neural Dynamics
 
-# Technical Overview: Looptronics Wave-Based Computation Framework
+## Core Mathematical Framework
+CFT models neural phase fields θ(x,t) using a second-order PDE with coherence dynamics:
 
-This document outlines the scientific and computational principles behind the Looptronics framework â€” a dynamic, interactive grid-based system for exploring wave-based computation, frequency feedback, and emergent pattern formation.
+∂²θ/∂t² = (1/β)[∇·F + V'(θ)]
 
----
+Where the coherence field F is:
+F = γ∇θ - α∇θ/(|∇θ|²+ε²)^(3/2)
 
-## Grid Structure and Core Mechanics
+## Energy Conservation
+System conserves energy according to:
+E = (β/2)(∂θ/∂t)² + α/√(|∇θ|²+ε²) + (γ/2)|∇θ|² + V(θ)
 
-Looptronics is based on a 2D spatial grid (N x N), where each cell evolves over time using numerical approximations of wave physics. The core variables per grid cell are:
+## Key Parameters
+- α: Coherence potential strength (well formation)
+- β: Inertial resistance (temporal dynamics) 
+- γ: Spatial coupling (diffusive interactions)
+- ε: Regularization (prevents singularities)
 
-- u[i]: Displacement (amplitude) at cell i
-- v[i]: Velocity at cell i
-
-The grid evolves over time using the discrete wave equation:
-
-```
-u[i] += v[i] * dt
-v[i] += (c^2 * Laplacian(u[i]) + damping + feedback + mutation) * dt
-```
-
-Where:
-- Laplacian(u[i]) is the 2D discrete Laplacian (difference with neighbors)
-- damping is local friction/resistance
-- feedback is a signal injected based on frequency history
-- mutation is random perturbation under certain conditions
-
----
-
-## Wave Sources
-
-There are 3 configurable wave sources that inject periodic energy into the grid. Each source includes:
-
-- A (x, y) position
-- Frequency (Hz)
-- Amplitude
-- Active toggle
-
-Their signal is added to their respective grid point as a sinusoidal driver:
-
-```
-source[i] = amplitude * sin(2 * pi * frequency * time + phase)
-```
-
----
-
-## Neighbor Coupling and Laplacian Operator
-
-The discrete Laplacian is calculated with toroidal (wrapping) boundary conditions:
-
-```
-Laplacian(u[i]) = (u[left] + u[right] + u[up] + u[down] - 4 * u[i]) / dx^2
-```
-
-This drives wave propagation through energy transfer between neighboring cells.
-
----
-
-## Feedback via Laplace-Like Analysis
-
-A frequency-domain feedback system continuously analyzes the amplitude history of the central grid region.
-
-Steps:
-1. Aggregate historical average amplitudes over a sliding time window.
-2. Apply a simplified transform to extract dominant frequency components.
-3. Construct a feedback signal composed of these components.
-4. Inject this signal globally into the grid.
-
-The transform is not a true Laplace, but serves as a lightweight frequency estimator to inform dynamic feedback.
-
----
-
-## Mutation System
-
-Local mutations are triggered probabilistically when amplitude variation across neighbors exceeds a threshold:
-
-```
-if average(|u[i] - u[neighbors]|) > threshold:
-    u[i] += random(-0.5, 0.5) * mutationStrength
-```
-
-This introduces disorder and potential complexity into an otherwise deterministic system.
-
----
-
-## Real-Time Metrics and Pattern Analysis
-
-Several real-time metrics are computed:
-
-- Coupling Flux: Measures average Laplacian magnitude across grid
-- Friction Loss: Damping contribution from velocity differences
-- Mutation Count: Number of triggered local mutations
-- Coherence: Degree of global phase alignment
-- Pattern Count: Estimates of symmetry/correlation in local patches
-- Laplace Feedback Intensity: Amplitude of injected frequency feedback
-
----
-
-## Timing Constants
-
-- dt = 0.015: Time step for updates
-- dx = 1.0: Grid cell spacing
-
----
-
-## Limitations
-
-- This is not a formal PDE solver or physical simulation.
-- The "Laplace transform" is a real-time approximation for feedback only.
-- Mutation is a heuristic device to introduce variation.
-
----
-
-## Intended Use
-
-Looptronics is a tool for:
-
-- Studying emergent behavior from wave interaction and mutation
-- Visualizing the impact of frequency feedback on spatial dynamics
-- Exploring non-standard computing paradigms and symbolic evolution
-
-This system is meant to invite curiosity, critique, and extension â€” not to assert finality. Further experimentation and mathematical validation are encouraged.
+## Neural Phenomena Modeled
+- Coherence wells (attention/memory attractors)
+- Traveling waves (information propagation)
+- Memory competition and consolidation
+- Phase transitions and critical points
