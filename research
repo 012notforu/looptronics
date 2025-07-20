@@ -1,1255 +1,1137 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wave-Based Symbolic Computation System</title>
-    <style>
-        /* Clean, educational CSS that's easy to understand and modify */
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #1e3c72, #2a5298);
-            color: white;
-            margin: 0;
-            padding: 8px;
-            min-height: 100vh;
-            overflow-x: auto;
-        }
-        
-        .container {
-            min-width: 800px;
-            margin: 0 auto;
-            zoom: 0.7;
-            transform-origin: top left;
-        }
-        
-        /* Responsive design for different screen sizes */
-        @media (max-width: 768px) {
-            .container {
-                zoom: 0.5;
-                min-width: 1000px;
-            }
-        }
-        
-        @media (max-width: 480px) {
-            .container {
-                zoom: 0.4;
-                min-width: 1200px;
-            }
-        }
-        
-        /* Header styling for clear visual hierarchy */
-        .header {
-            text-align: center;
-            margin-bottom: 15px;
-            background: rgba(255,255,255,0.1);
-            padding: 10px;
-            border-radius: 10px;
-            backdrop-filter: blur(10px);
-        }
-        
-        .header h1 {
-            margin: 5px 0;
-            font-size: 24px;
-        }
-        
-        .header p {
-            margin: 5px 0;
-            font-size: 12px;
-        }
-        
-        /* Educational explanation box */
-        .explanation {
-            background: rgba(255,255,255,0.15);
-            padding: 8px;
-            border-radius: 8px;
-            margin-bottom: 15px;
-            font-size: 10px;
-            line-height: 1.4;
-        }
-        
-        /* Four-panel grid layout for comprehensive view */
-        .main-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr 1fr;
-            gap: 10px;
-            margin-bottom: 15px;
-        }
-        
-        /* Panel styling with clear visual boundaries */
-        .panel {
-            background: rgba(255,255,255,0.1);
-            border-radius: 8px;
-            padding: 8px;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255,255,255,0.2);
-        }
-        
-        .panel h3 {
-            margin: 0 0 8px 0;
-            color: #ffeb3b;
-            font-size: 12px;
-            border-bottom: 1px solid rgba(255,235,59,0.3);
-            padding-bottom: 4px;
-        }
-        
-        /* Canvas styling for wave and pattern visualization */
-        canvas {
-            width: 100%;
-            background: rgba(0,0,0,0.3);
-            border-radius: 4px;
-            border: 1px solid rgba(255,255,255,0.2);
-            height: 80px;
-        }
-        
-        /* Control styling for user interaction */
-        .controls {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 4px;
-            margin: 8px 0;
-        }
-        
-        .control-group {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            margin: 3px 0;
-            font-size: 9px;
-        }
-        
-        .control-group label {
-            min-width: 35px;
-            font-size: 8px;
-            font-weight: bold;
-        }
-        
-        .control-group input[type="range"] {
-            flex: 1;
-            height: 15px;
-        }
-        
-        .control-group .value {
-            min-width: 25px;
-            text-align: right;
-            font-family: monospace;
-            background: rgba(0,0,0,0.3);
-            padding: 1px 3px;
-            border-radius: 2px;
-            font-size: 8px;
-        }
-        
-        /* Button styling with clear interaction feedback */
-        button {
-            background: linear-gradient(135deg, #4CAF50, #45a049);
-            color: white;
-            border: none;
-            padding: 4px 6px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: bold;
-            transition: all 0.3s;
-            font-size: 9px;
-        }
-        
-        button:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-        }
-        
-        button:active {
-            transform: translateY(0);
-        }
-        
-        .pause-btn {
-            background: linear-gradient(135deg, #ff9800, #f57c00);
-        }
-        
-        .reset-btn {
-            background: linear-gradient(135deg, #f44336, #d32f2f);
-        }
-        
-        /* Metrics display for system status monitoring */
-        .metrics {
-            background: rgba(0,0,0,0.4);
-            padding: 4px;
-            border-radius: 4px;
-            margin: 4px 0;
-            font-family: monospace;
-            font-size: 8px;
-            line-height: 1.2;
-        }
-        
-        .metrics-row {
-            display: flex;
-            justify-content: space-between;
-            margin: 1px 0;
-        }
-        
-        .metrics-label {
-            color: #ffeb3b;
-        }
-        
-        .metrics-value {
-            color: #4CAF50;
-            font-weight: bold;
-        }
-        
-        /* Output area for symbolic generation display */
-        .output-area {
-            background: rgba(0,0,0,0.4);
-            padding: 4px;
-            border-radius: 4px;
-            height: 60px;
-            overflow-y: auto;
-            font-family: monospace;
-            font-size: 8px;
-            line-height: 1.2;
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-        
-        .symbol {
-            color: #4CAF50;
-            font-weight: bold;
-        }
-        
-        /* Color coding for ternary states */
-        .ternary-0 { color: #ff5722; }
-        .ternary-1 { color: #ffeb3b; }
-        .ternary-2 { color: #2196f3; }
-        
-        .status-bar {
-            background: rgba(0,0,0,0.3);
-            padding: 3px 6px;
-            border-radius: 4px;
-            margin: 4px 0;
-            text-align: center;
-            font-weight: bold;
-            color: #4CAF50;
-            font-size: 10px;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>🌊 Wave-Based Symbolic Computation System</h1>
-            <p>Exploring how continuous wave interference can generate discrete symbolic computation</p>
-        </div>
+"""
+Coherence Field Theory (CFT) Neural Simulator - Python Implementation
+=====================================================================
 
-        <div class="explanation">
-            <strong>Educational Demonstration:</strong> This system shows how three interfering sine waves create complex patterns that 
-            get stored in a spatial memory grid using ternary logic (states 0, 1, 2). These spatial patterns then generate symbolic 
-            representations, demonstrating how continuous physical processes might give rise to discrete symbolic thinking.
-        </div>
+Exact implementation of the symbolic coherence field equation:
+∂²θ/∂t² = (1/β)[∇·(γ∇θ - α∇θ/(|∇θ|²+ε²)^(3/2)) + V'(θ)]
 
-        <div class="main-grid">
-            <!-- Wave Interference Substrate Panel -->
-            <div class="panel">
-                <h3>🌊 Wave Substrate</h3>
-                <canvas id="waveCanvas" width="200" height="80"></canvas>
-                
-                <div class="control-group">
-                    <label>ω₁:</label>
-                    <input type="range" id="freq1" min="0.3" max="5.0" step="0.001" value="1.0">
-                    <input type="number" id="freq1Input" min="0.3" max="5.0" step="0.001" value="1.0" style="width: 50px; font-size: 7px; padding: 1px;">
-                </div>
-                <div class="control-group">
-                    <label>ω₂:</label>
-                    <input type="range" id="freq2" min="0.3" max="5.0" step="0.001" value="1.5">
-                    <input type="number" id="freq2Input" min="0.3" max="5.0" step="0.001" value="1.5" style="width: 50px; font-size: 7px; padding: 1px;">
-                </div>
-                <div class="control-group">
-                    <label>ω₃:</label>
-                    <input type="range" id="freq3" min="0.3" max="5.0" step="0.001" value="2.0">
-                    <input type="number" id="freq3Input" min="0.3" max="5.0" step="0.001" value="2.0" style="width: 50px; font-size: 7px; padding: 1px;">
-                </div>
-                <div class="control-group">
-                    <label>Threshold:</label>
-                    <input type="range" id="threshold" min="0.1" max="0.9" step="0.001" value="0.5">
-                    <span class="value" id="thresholdVal">0.5</span>
-                </div>
-                
-                <div style="margin: 8px 0; padding: 4px; background: rgba(0,0,0,0.2); border-radius: 4px;">
-                    <div style="font-size: 8px; margin-bottom: 4px;"><strong>Ramanujan Presets:</strong></div>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2px;">
-                        <button onclick="setRamanujanRatio('golden')" style="font-size: 7px; padding: 2px;">φ Golden</button>
-                        <button onclick="setRamanujanRatio('sqrt2')" style="font-size: 7px; padding: 2px;">√2 Ratio</button>
-                        <button onclick="setRamanujanRatio('sqrt3')" style="font-size: 7px; padding: 2px;">√3 Ratio</button>
-                        <button onclick="setRamanujanRatio('sqrt5')" style="font-size: 7px; padding: 2px;">√5 Ratio</button>
-                    </div>
-                </div>
+Energy functional:
+E = (β/2)(∂θ/∂t)² + α/√(|∇θ|²+ε²) + (γ/2)|∇θ|² + V(θ)
 
-                <div class="controls">
-                    <button id="pauseBtn" class="pause-btn">⏸️ Pause</button>
-                    <button id="resetBtn" class="reset-btn">🔄 Reset</button>
-                </div>
+Run each cell sequentially in Jupyter notebook for interactive CFT simulation.
+"""
 
-                <div class="metrics">
-                    <div class="metrics-row">
-                        <span class="metrics-label">Interference:</span>
-                        <span class="metrics-value" id="interferenceLevel">0.00</span>
-                    </div>
-                    <div class="metrics-row">
-                        <span class="metrics-label">Resonance:</span>
-                        <span class="metrics-value" id="resonanceEvents">0</span>
-                    </div>
-                    <div class="metrics-row">
-                        <span class="metrics-label">Time:</span>
-                        <span class="metrics-value" id="waveTime">0.0s</span>
-                    </div>
-                </div>
-            </div>
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.animation as animation
+from matplotlib.widgets import Slider, Button
+from IPython.display import HTML
+import time
 
-            <!-- Spatial Memory Grid Panel -->
-            <div class="panel">
-                <h3>🧠 Spatial Memory</h3>
-                <canvas id="spatialCanvas" width="200" height="80"></canvas>
-                
-                <div class="control-group">
-                    <label>Learn:</label>
-                    <input type="range" id="learnRate" min="0.1" max="1.0" step="0.1" value="0.5">
-                    <span class="value" id="learnRateVal">0.5</span>
-                </div>
-                <div class="control-group">
-                    <label>Decay:</label>
-                    <input type="range" id="memoryDecay" min="0.90" max="0.99" step="0.01" value="0.95">
-                    <span class="value" id="memoryDecayVal">0.95</span>
-                </div>
-
-                <div class="controls">
-                    <button id="clearMemory">🧹 Clear</button>
-                    <button id="toggleLearning">🧠 Learning</button>
-                </div>
-
-                <div class="metrics">
-                    <div class="metrics-row">
-                        <span class="metrics-label">Active:</span>
-                        <span class="metrics-value" id="activeCells">0</span>
-                    </div>
-                    <div class="metrics-row">
-                        <span class="metrics-label">Load:</span>
-                        <span class="metrics-value" id="memoryLoad">0%</span>
-                    </div>
-                    <div class="metrics-row">
-                        <span class="metrics-label">Entropy:</span>
-                        <span class="metrics-value" id="patternEntropy">0.00</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Symbolic Generation Panel -->
-            <div class="panel">
-                <h3>🔢 Symbolic Generation</h3>
-                
-                <div class="status-bar">
-                    Symbol: <span id="currentSymbol" class="symbol">∅</span>
-                </div>
-                
-                <div class="output-area" id="symbolicOutput">
-                    System initializing...
-                </div>
-
-                <div class="controls">
-                    <button id="clearSymbols">🧹 Clear</button>
-                    <button id="analyzeSymbols">📊 Analyze</button>
-                </div>
-
-                <div class="metrics">
-                    <div class="metrics-row">
-                        <span class="metrics-label">Count:</span>
-                        <span class="metrics-value" id="symbolCount">0</span>
-                    </div>
-                    <div class="metrics-row">
-                        <span class="metrics-label">Unique:</span>
-                        <span class="metrics-value" id="uniqueSymbols">0</span>
-                    </div>
-                    <div class="metrics-row">
-                        <span class="metrics-label">Rate:</span>
-                        <span class="metrics-value" id="symbolRate">0.0/s</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- System Analysis Panel -->
-            <div class="panel">
-                <h3>📊 Analysis</h3>
-                
-                <canvas id="analysisCanvas" width="200" height="80"></canvas>
-                
-                <div class="controls">
-                    <button id="runAnalysis">🔬 Analyze</button>
-                    <button id="exportData">💾 Export</button>
-                </div>
-
-                <div class="metrics">
-                    <div class="metrics-row">
-                        <span class="metrics-label">Complexity:</span>
-                        <span class="metrics-value" id="complexity">0.00</span>
-                    </div>
-                    <div class="metrics-row">
-                        <span class="metrics-label">Stability:</span>
-                        <span class="metrics-value" id="stability">0.00</span>
-                    </div>
-                    <div class="metrics-row">
-                        <span class="metrics-label">Info Flow:</span>
-                        <span class="metrics-value" id="infoFlow">0.00</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        /**
-         * Wave-Based Symbolic Computation System
-         * Educational Implementation - Built Step by Step for Learning
-         * 
-         * This system demonstrates how continuous wave interference can generate
-         * discrete symbolic computation through ternary spatial memory
-         */
+class CoherenceFieldSimulator:
+    """
+    Coherence Field Theory simulator implementing exact CFT equations
+    for neural phase field dynamics with energy conservation.
+    """
+    
+    def __init__(self, width=100, height=80, dx=0.2, dt=0.01):
+        """
+        Initialize CFT simulator with grid dimensions and parameters.
         
-        class WaveSymbolicSystem {
-            constructor() {
-                // Step 1: Initialize core system components with clear documentation
-                console.log('🚀 Initializing Wave-Based Symbolic Computation System...');
-                
-                // Core system state variables
-                this.time = 0;
-                this.isRunning = true;
-                this.learningEnabled = true;
-                
-                // Wave parameters that drive the entire system
-                this.frequencies = [1.0, 1.5, 2.0];  // The three interfering wave frequencies
-                this.threshold = 0.5;                // Threshold for detecting resonance events
-                this.interferenceLevel = 0;          // Current interference amplitude
-                this.resonanceEvents = 0;            // Counter for significant interference events
-                
-                // Step 2: Initialize the canvas elements for visualization
-                this.initializeCanvases();
-                
-                // Step 3: Create the spatial memory grid (this is where magic happens)
-                this.initializeSpatialMemory();
-                
-                // Step 4: Set up symbolic generation system
-                this.initializeSymbolicGeneration();
-                
-                // Step 5: Initialize analysis and metrics tracking
-                this.initializeAnalysisSystem();
-                
-                // Step 6: Connect all the user interface controls
-                this.setupUserControls();
-                
-                // Step 7: Start the main computational loop
-                this.startComputationalLoop();
-                
-                console.log('✅ System initialization complete - wave computation active');
-                this.addToOutput('🌊 Wave-based symbolic computation system online');
-            }
+        Parameters:
+        -----------
+        width, height : int
+            Grid dimensions
+        dx : float
+            Spatial resolution
+        dt : float
+            Time step
+        """
+        self.width = width
+        self.height = height
+        self.dx = dx
+        self.dt = dt
+        
+        # CFT Parameters
+        self.alpha = 1.2    # Coherence potential strength
+        self.beta = 0.8     # Inertial resistance/damping
+        self.gamma = 0.4    # Spatial coupling strength
+        self.epsilon = 0.05 # Regularization parameter
+        
+        # Initialize field arrays
+        self.theta = np.zeros((height, width))
+        self.theta_dot = np.zeros((height, width))
+        self.theta_ddot = np.zeros((height, width))
+        
+        # Derived field quantities
+        self.grad_x = np.zeros((height, width))
+        self.grad_y = np.zeros((height, width))
+        self.grad_mag = np.zeros((height, width))
+        self.coherence_potential = np.zeros((height, width))
+        self.local_energy = np.zeros((height, width))
+        
+        # System metrics
+        self.total_energy = 0.0
+        self.total_coherence = 0.0
+        self.max_coherence = 0.0
+        self.energy_history = []
+        
+        # Coordinate grids
+        self.x_coords = np.linspace(-self.width*dx/2, self.width*dx/2, width)
+        self.y_coords = np.linspace(-self.height*dx/2, self.height*dx/2, height)
+        self.X, self.Y = np.meshgrid(self.x_coords, self.y_coords)
+    
+    def symbolic_potential(self, theta):
+        """Symbolic potential V(θ) - adjustable preference landscape"""
+        return 0.1 * (1 - np.cos(2 * theta)) + 0.05 * theta**2
+    
+    def symbolic_potential_derivative(self, theta):
+        """Derivative of symbolic potential V'(θ)"""
+        return 0.2 * np.sin(2 * theta) + 0.1 * theta
+    
+    def initialize_field(self, pattern='coherent_domains'):
+        """
+        Initialize field with various patterns representing different neural states.
+        
+        Parameters:
+        -----------
+        pattern : str
+            Pattern type: 'coherent_domains', 'traveling_wave', 'memory_formation', 
+                         'attention_focus', 'random_noise'
+        """
+        if pattern == 'coherent_domains':
+            # Multiple coherent regions (like cortical columns)
+            d1 = np.sqrt((self.X - 2)**2 + (self.Y - 1)**2)
+            d2 = np.sqrt((self.X + 1.5)**2 + (self.Y + 1.2)**2)
+            d3 = np.sqrt((self.X - 1)**2 + (self.Y - 2)**2)
+            self.theta = 1.5*np.exp(-d1**2/0.5) - 1.2*np.exp(-d2**2/0.3) + 0.8*np.exp(-d3**2/0.7)
+            self.theta_dot.fill(0)
             
-            /**
-             * Step 2: Initialize all canvas elements for system visualization
-             * Each canvas shows a different aspect of the computation
-             */
-            initializeCanvases() {
-                // Wave interference visualization canvas
-                this.waveCanvas = document.getElementById('waveCanvas');
-                this.waveCtx = this.waveCanvas.getContext('2d');
-                
-                // Spatial memory grid visualization canvas
-                this.spatialCanvas = document.getElementById('spatialCanvas');
-                this.spatialCtx = this.spatialCanvas.getContext('2d');
-                
-                // Analysis and metrics visualization canvas
-                this.analysisCanvas = document.getElementById('analysisCanvas');
-                this.analysisCtx = this.analysisCanvas.getContext('2d');
-                
-                console.log('📊 Canvas elements initialized for visualization');
-            }
+        elif pattern == 'traveling_wave':
+            # Neural traveling wave initialization
+            self.theta = 0.8 * np.sin(0.5 * self.X) * np.exp(-0.1 * self.Y**2)
+            self.theta_dot = 0.3 * np.cos(0.5 * self.X) * np.exp(-0.1 * self.Y**2)
             
-            /**
-             * Step 3: Create the spatial memory grid - the heart of the system
-             * This is where wave patterns get converted into discrete ternary states
-             */
-            initializeSpatialMemory() {
-                // Grid dimensions - optimized for both computation and visualization
-                this.gridWidth = 20;
-                this.gridHeight = 12;
-                
-                // Learning parameters that control how patterns form and persist
-                this.learningRate = 0.5;    // How quickly new patterns are learned
-                this.memoryDecay = 0.95;    // How quickly old patterns fade
-                
-                // Create the grid of memory cells
-                this.spatialMemory = [];
-                for (let y = 0; y < this.gridHeight; y++) {
-                    const row = [];
-                    for (let x = 0; x < this.gridWidth; x++) {
-                        row.push({
-                            // Each cell has three ternary state components [0, 1, 2]
-                            state: [0, 0, 0],
-                            // Persistent memory that decays over time
-                            memory: [0, 0, 0],
-                            // Metadata for analysis
-                            lastActive: 0
-                        });
-                    }
-                    this.spatialMemory.push(row);
-                }
-                
-                console.log(`🧠 Spatial memory grid created: ${this.gridWidth}x${this.gridHeight} cells`);
-            }
+        elif pattern == 'memory_formation':
+            # Simulate memory encoding with competing patterns
+            memory1 = np.exp(-((self.X - 1.5)**2 + self.Y**2)/0.8)
+            memory2 = np.exp(-((self.X + 1.5)**2 + self.Y**2)/0.6)
+            noise = 0.1 * (np.random.random((self.height, self.width)) - 0.5)
+            self.theta = memory1 - 0.7*memory2 + noise
+            self.theta_dot.fill(0)
             
-            /**
-             * Step 4: Initialize symbolic generation system
-             * This converts spatial patterns into discrete symbols
-             */
-            initializeSymbolicGeneration() {
-                // Greek alphabet for symbolic representation
-                this.symbols = ['α', 'β', 'γ', 'δ', 'ε', 'ζ', 'η', 'θ', 'ι', 'κ', 'λ', 'μ', 'ν', 'ξ', 'ο', 'π', 'ρ', 'σ', 'τ', 'υ', 'φ', 'χ', 'ψ', 'ω'];
-                
-                // Current system state
-                this.currentSymbol = '∅';
-                this.symbolHistory = [];
-                this.symbolCount = 0;
-                this.uniqueSymbols = new Set();
-                
-                // Metrics for analysis
-                this.lastSymbolTime = 0;
-                this.symbolRate = 0;
-                
-                console.log('🔢 Symbolic generation system initialized with Greek alphabet');
-            }
+        elif pattern == 'attention_focus':
+            # Single strong coherent region (attention spotlight)
+            attention_d = np.sqrt(self.X**2 + self.Y**2)
+            self.theta = 2.0 * np.exp(-attention_d**2/0.4)
+            self.theta_dot.fill(0)
             
-            /**
-             * Step 5: Initialize analysis and metrics tracking
-             * This helps us understand the computational behavior
-             */
-            initializeAnalysisSystem() {
-                // History tracking for pattern analysis
-                this.metricsHistory = [];
-                
-                // Current computational metrics
-                this.computationalComplexity = 0;
-                this.systemStability = 0;
-                this.informationFlow = 0;
-                
-                console.log('📈 Analysis system initialized for computational metrics');
-            }
+        elif pattern == 'random_noise':
+            self.theta = 0.3 * (np.random.random((self.height, self.width)) - 0.5)
+            self.theta_dot.fill(0)
+        
+        else:
+            self.theta.fill(0)
+            self.theta_dot.fill(0)
+        
+        self.theta_ddot.fill(0)
+        self.energy_history = []
+    
+    def compute_gradients(self):
+        """Compute spatial gradients using central differences with periodic boundaries"""
+        # Periodic boundary conditions using numpy roll
+        # Roll shifts the array: -1 means shift left (to get right neighbor)
+        theta_right = np.roll(self.theta, -1, axis=1)  # Shift columns left
+        theta_left = np.roll(self.theta, 1, axis=1)    # Shift columns right  
+        theta_up = np.roll(self.theta, -1, axis=0)     # Shift rows up
+        theta_down = np.roll(self.theta, 1, axis=0)    # Shift rows down
+        
+        # Central difference gradients
+        self.grad_x = (theta_right - theta_left) / (2.0 * self.dx)
+        self.grad_y = (theta_up - theta_down) / (2.0 * self.dx)
+        self.grad_mag = np.sqrt(self.grad_x**2 + self.grad_y**2)
+        
+        # Coherence potential: α/√(|∇θ|² + ε²)
+        denominator = np.sqrt(self.grad_mag**2 + self.epsilon**2)
+        self.coherence_potential = self.alpha / denominator
+    
+    def compute_coherence_divergence(self):
+        """
+        Compute divergence of the coherence field:
+        ∇·(γ∇θ - α∇θ/(|∇θ|²+ε²)^(3/2))
+        """
+        # Coherence field components
+        grad_mag_sq_reg = self.grad_mag**2 + self.epsilon**2
+        coherence_factor = self.alpha / (grad_mag_sq_reg**(1.5))
+        
+        field_x = self.gamma * self.grad_x - coherence_factor * self.grad_x
+        field_y = self.gamma * self.grad_y - coherence_factor * self.grad_y
+        
+        # Compute divergence using central differences with periodic boundaries
+        field_x_right = np.roll(field_x, -1, axis=1)
+        field_x_left = np.roll(field_x, 1, axis=1)
+        field_y_up = np.roll(field_y, -1, axis=0)
+        field_y_down = np.roll(field_y, 1, axis=0)
+        
+        div_x = (field_x_right - field_x_left) / (2.0 * self.dx)
+        div_y = (field_y_up - field_y_down) / (2.0 * self.dx)
+        
+        return div_x + div_y
+    
+    def evolve_field(self):
+        """
+        Main evolution step using exact CFT equations:
+        ∂²θ/∂t² = (1/β)[∇·(γ∇θ - α∇θ/(|∇θ|²+ε²)^(3/2)) + V'(θ)]
+        """
+        # Compute all gradients
+        self.compute_gradients()
+        
+        # Compute accelerations using the full CFT equation
+        coherence_divergence = self.compute_coherence_divergence()
+        potential_force = -self.symbolic_potential_derivative(self.theta)
+        
+        self.theta_ddot = (coherence_divergence + potential_force) / self.beta
+        
+        # Update velocities and positions (Verlet integration)
+        self.theta_dot += self.dt * self.theta_ddot
+        self.theta += self.dt * self.theta_dot
+        
+        # Compute energy and coherence metrics
+        self.compute_energy_and_coherence()
+    
+    def compute_energy_and_coherence(self):
+        """
+        Compute total energy according to CFT energy functional:
+        E = (β/2)(∂θ/∂t)² + α/√(|∇θ|²+ε²) + (γ/2)|∇θ|² + V(θ)
+        """
+        kinetic_energy = 0.5 * self.beta * self.theta_dot**2
+        coherence_energy = self.coherence_potential
+        gradient_energy = 0.5 * self.gamma * self.grad_mag**2
+        potential_energy = self.symbolic_potential(self.theta)
+        
+        self.local_energy = kinetic_energy + coherence_energy + gradient_energy + potential_energy
+        self.total_energy = np.sum(self.local_energy)
+        
+        # Coherence measure: high when gradients are small
+        coherence = 1.0 / (1.0 + self.grad_mag * 10)
+        self.total_coherence = np.mean(coherence)
+        self.max_coherence = np.max(coherence)
+        
+        # Track energy history for conservation verification
+        self.energy_history.append(self.total_energy)
+        if len(self.energy_history) > 500:
+            self.energy_history.pop(0)
+    
+    def simulate_steps(self, n_steps):
+        """Run simulation for n steps"""
+        for _ in range(n_steps):
+            self.evolve_field()
+
+# ===================================================================
+# VISUALIZATION AND INTERACTIVE COMPONENTS
+# ===================================================================
+
+def create_cft_visualization(sim):
+    """Create comprehensive CFT visualization with multiple views"""
+    
+    fig = plt.figure(figsize=(16, 12))
+    
+    # Main phase field plot
+    ax1 = plt.subplot(2, 3, (1, 2))
+    im1 = ax1.imshow(sim.theta, extent=[sim.x_coords[0], sim.x_coords[-1], 
+                                       sim.y_coords[0], sim.y_coords[-1]], 
+                     cmap='RdBu_r', origin='lower', interpolation='bilinear')
+    ax1.set_title('Neural Phase Field θ(x,t)', fontsize=14, fontweight='bold')
+    ax1.set_xlabel('x')
+    ax1.set_ylabel('y')
+    plt.colorbar(im1, ax=ax1, fraction=0.046, pad=0.04)
+    
+    # Coherence potential plot
+    ax2 = plt.subplot(2, 3, 3)
+    im2 = ax2.imshow(sim.coherence_potential, extent=[sim.x_coords[0], sim.x_coords[-1], 
+                                                     sim.y_coords[0], sim.y_coords[-1]], 
+                     cmap='Greens', origin='lower', interpolation='bilinear')
+    ax2.set_title('Coherence Wells', fontsize=12, fontweight='bold')
+    ax2.set_xlabel('x')
+    ax2.set_ylabel('y')
+    plt.colorbar(im2, ax=ax2, fraction=0.046, pad=0.04)
+    
+    # Energy density plot
+    ax3 = plt.subplot(2, 3, 4)
+    im3 = ax3.imshow(sim.local_energy, extent=[sim.x_coords[0], sim.x_coords[-1], 
+                                              sim.y_coords[0], sim.y_coords[-1]], 
+                     cmap='plasma', origin='lower', interpolation='bilinear')
+    ax3.set_title('Local Energy Density', fontsize=12, fontweight='bold')
+    ax3.set_xlabel('x')
+    ax3.set_ylabel('y')
+    plt.colorbar(im3, ax=ax3, fraction=0.046, pad=0.04)
+    
+    # Energy conservation tracking
+    ax4 = plt.subplot(2, 3, 5)
+    if len(sim.energy_history) > 1:
+        ax4.plot(sim.energy_history, 'g-', linewidth=2)
+        ax4.set_title('Energy Conservation', fontsize=12, fontweight='bold')
+        ax4.set_xlabel('Time Steps')
+        ax4.set_ylabel('Total Energy E')
+        ax4.grid(True, alpha=0.3)
+    
+    # Metrics display
+    ax5 = plt.subplot(2, 3, 6)
+    ax5.axis('off')
+    metrics_text = f"""
+CFT System Metrics
+
+Total Energy: {sim.total_energy:.3f}
+Avg Coherence: {sim.total_coherence:.4f}
+Max Coherence: {sim.max_coherence:.4f}
+
+Parameters:
+α (coherence): {sim.alpha:.2f}
+β (inertia): {sim.beta:.2f}
+γ (coupling): {sim.gamma:.2f}
+ε (regularization): {sim.epsilon:.3f}
+
+CFT Equation:
+∂²θ/∂t² = (1/β)[∇·F + V'(θ)]
+F = γ∇θ - α∇θ/(|∇θ|²+ε²)^(3/2)
+"""
+    ax5.text(0.05, 0.95, metrics_text, transform=ax5.transAxes, fontsize=10,
+             verticalalignment='top', fontfamily='monospace',
+             bbox=dict(boxstyle='round', facecolor='lightgray', alpha=0.8))
+    
+    plt.tight_layout()
+    return fig, (ax1, ax2, ax3, ax4, ax5), (im1, im2, im3)
+
+def create_interactive_cft_demo():
+    """Create interactive CFT demonstration with parameter controls"""
+    
+    # Initialize simulator
+    sim = CoherenceFieldSimulator(width=80, height=60)
+    sim.initialize_field('coherent_domains')
+    sim.compute_gradients()
+    sim.compute_energy_and_coherence()
+    
+    # Create figure with parameter controls
+    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+    plt.subplots_adjust(bottom=0.25)
+    
+    # Phase field
+    ax_phase = axes[0, 0]
+    im_phase = ax_phase.imshow(sim.theta, cmap='RdBu_r', origin='lower', interpolation='bilinear')
+    ax_phase.set_title('Neural Phase Field θ(x,t)')
+    
+    # Coherence field
+    ax_coherence = axes[0, 1]
+    im_coherence = ax_coherence.imshow(sim.coherence_potential, cmap='Greens', origin='lower', interpolation='bilinear')
+    ax_coherence.set_title('Coherence Wells')
+    
+    # Energy tracking
+    ax_energy = axes[1, 0]
+    line_energy, = ax_energy.plot([], [], 'g-', linewidth=2)
+    ax_energy.set_title('Energy Conservation')
+    ax_energy.set_xlabel('Time Steps')
+    ax_energy.set_ylabel('Total Energy')
+    ax_energy.grid(True, alpha=0.3)
+    
+    # Gradient magnitude
+    ax_grad = axes[1, 1]
+    im_grad = ax_grad.imshow(sim.grad_mag, cmap='viridis', origin='lower', interpolation='bilinear')
+    ax_grad.set_title('Gradient Magnitude |∇θ|')
+    
+    # Parameter sliders
+    ax_alpha = plt.axes([0.1, 0.15, 0.3, 0.03])
+    ax_beta = plt.axes([0.1, 0.11, 0.3, 0.03])
+    ax_gamma = plt.axes([0.1, 0.07, 0.3, 0.03])
+    ax_epsilon = plt.axes([0.1, 0.03, 0.3, 0.03])
+    
+    slider_alpha = Slider(ax_alpha, 'α (coherence)', 0.1, 3.0, valinit=sim.alpha)
+    slider_beta = Slider(ax_beta, 'β (inertia)', 0.1, 2.0, valinit=sim.beta)
+    slider_gamma = Slider(ax_gamma, 'γ (coupling)', 0.1, 1.0, valinit=sim.gamma)
+    slider_epsilon = Slider(ax_epsilon, 'ε (regularization)', 0.01, 0.2, valinit=sim.epsilon)
+    
+    # Pattern buttons
+    ax_btn1 = plt.axes([0.5, 0.15, 0.12, 0.04])
+    ax_btn2 = plt.axes([0.5, 0.10, 0.12, 0.04])
+    ax_btn3 = plt.axes([0.5, 0.05, 0.12, 0.04])
+    ax_btn4 = plt.axes([0.65, 0.15, 0.12, 0.04])
+    ax_btn5 = plt.axes([0.65, 0.10, 0.12, 0.04])
+    ax_btn_run = plt.axes([0.8, 0.15, 0.08, 0.04])
+    
+    btn_domains = Button(ax_btn1, 'Domains')
+    btn_wave = Button(ax_btn2, 'Wave')
+    btn_memory = Button(ax_btn3, 'Memory')
+    btn_attention = Button(ax_btn4, 'Attention')
+    btn_noise = Button(ax_btn5, 'Noise')
+    btn_run = Button(ax_btn_run, 'Run CFT')
+    
+    def update_parameters(val):
+        sim.alpha = slider_alpha.val
+        sim.beta = slider_beta.val
+        sim.gamma = slider_gamma.val
+        sim.epsilon = slider_epsilon.val
+        
+        # Recompute with new parameters
+        sim.compute_gradients()
+        sim.compute_energy_and_coherence()
+        update_display()
+    
+    def update_display():
+        # Update images
+        im_phase.set_array(sim.theta)
+        im_phase.set_clim(vmin=sim.theta.min(), vmax=sim.theta.max())
+        
+        im_coherence.set_array(sim.coherence_potential)
+        im_coherence.set_clim(vmin=sim.coherence_potential.min(), vmax=sim.coherence_potential.max())
+        
+        im_grad.set_array(sim.grad_mag)
+        im_grad.set_clim(vmin=sim.grad_mag.min(), vmax=sim.grad_mag.max())
+        
+        # Update energy plot
+        if len(sim.energy_history) > 1:
+            line_energy.set_data(range(len(sim.energy_history)), sim.energy_history)
+            ax_energy.set_xlim(0, len(sim.energy_history))
+            ax_energy.set_ylim(min(sim.energy_history), max(sim.energy_history))
+        
+        fig.canvas.draw_idle()
+    
+    def init_pattern(pattern_name):
+        def init_func(event):
+            sim.initialize_field(pattern_name)
+            sim.compute_gradients()
+            sim.compute_energy_and_coherence()
+            update_display()
+        return init_func
+    
+    def run_simulation(event):
+        for _ in range(50):  # Run 50 steps
+            sim.evolve_field()
+        update_display()
+    
+    # Connect callbacks
+    slider_alpha.on_changed(update_parameters)
+    slider_beta.on_changed(update_parameters)
+    slider_gamma.on_changed(update_parameters)
+    slider_epsilon.on_changed(update_parameters)
+    
+    btn_domains.on_clicked(init_pattern('coherent_domains'))
+    btn_wave.on_clicked(init_pattern('traveling_wave'))
+    btn_memory.on_clicked(init_pattern('memory_formation'))
+    btn_attention.on_clicked(init_pattern('attention_focus'))
+    btn_noise.on_clicked(init_pattern('random_noise'))
+    btn_run.on_clicked(run_simulation)
+    
+    # Initial display
+    update_display()
+    
+    return sim, fig
+
+# ===================================================================
+# USAGE EXAMPLES AND DEMONSTRATIONS
+# ===================================================================
+
+def demonstrate_cft_features():
+    """Demonstrate key CFT features with different scenarios"""
+    
+    scenarios = [
+        ('coherent_domains', 'Cortical Attention Domains'),
+        ('traveling_wave', 'Neural Information Propagation'),
+        ('memory_formation', 'Memory Encoding Competition'),
+        ('attention_focus', 'Focused Attention State')
+    ]
+    
+    fig, axes = plt.subplots(2, 4, figsize=(20, 10))
+    
+    for i, (pattern, title) in enumerate(scenarios):
+        sim = CoherenceFieldSimulator(width=60, height=50)
+        sim.initialize_field(pattern)
+        
+        # Run simulation
+        for _ in range(100):
+            sim.evolve_field()
+        
+        # Plot initial and final states
+        row = i // 2
+        col = (i % 2) * 2
+        
+        # Initial state (reset and show)
+        sim.initialize_field(pattern)
+        sim.compute_gradients()
+        sim.compute_energy_and_coherence()
+        
+        axes[row, col].imshow(sim.theta, cmap='RdBu_r', origin='lower')
+        axes[row, col].set_title(f'{title} - Initial')
+        axes[row, col].axis('off')
+        
+        # Final state after evolution
+        for _ in range(100):
+            sim.evolve_field()
             
-            /**
-             * Step 6: Connect all user interface controls to system functions
-             * This creates the interactive layer for experimentation
-             */
-            setupUserControls() {
-                // Wave parameter controls with enhanced precision
-                document.getElementById('freq1').addEventListener('input', (e) => {
-                    this.frequencies[0] = parseFloat(e.target.value);
-                    document.getElementById('freq1Input').value = e.target.value;
-                });
-                
-                document.getElementById('freq1Input').addEventListener('input', (e) => {
-                    this.frequencies[0] = parseFloat(e.target.value);
-                    document.getElementById('freq1').value = e.target.value;
-                });
-                
-                document.getElementById('freq2').addEventListener('input', (e) => {
-                    this.frequencies[1] = parseFloat(e.target.value);
-                    document.getElementById('freq2Input').value = e.target.value;
-                });
-                
-                document.getElementById('freq2Input').addEventListener('input', (e) => {
-                    this.frequencies[1] = parseFloat(e.target.value);
-                    document.getElementById('freq2').value = e.target.value;
-                });
-                
-                document.getElementById('freq3').addEventListener('input', (e) => {
-                    this.frequencies[2] = parseFloat(e.target.value);
-                    document.getElementById('freq3Input').value = e.target.value;
-                });
-                
-                document.getElementById('freq3Input').addEventListener('input', (e) => {
-                    this.frequencies[2] = parseFloat(e.target.value);
-                    document.getElementById('freq3').value = e.target.value;
-                });
-                
-                document.getElementById('threshold').addEventListener('input', (e) => {
-                    this.threshold = parseFloat(e.target.value);
-                    document.getElementById('thresholdVal').textContent = e.target.value;
-                });
-                
-                // Memory parameter controls
-                document.getElementById('learnRate').addEventListener('input', (e) => {
-                    this.learningRate = parseFloat(e.target.value);
-                    document.getElementById('learnRateVal').textContent = e.target.value;
-                });
-                
-                document.getElementById('memoryDecay').addEventListener('input', (e) => {
-                    this.memoryDecay = parseFloat(e.target.value);
-                    document.getElementById('memoryDecayVal').textContent = e.target.value;
-                });
-                
-                // System control buttons
-                document.getElementById('pauseBtn').addEventListener('click', () => {
-                    this.isRunning = !this.isRunning;
-                    document.getElementById('pauseBtn').innerHTML = this.isRunning ? '⏸️ Pause' : '▶️ Play';
-                });
-                
-                document.getElementById('resetBtn').addEventListener('click', () => {
-                    this.resetSystem();
-                });
-                
-                document.getElementById('clearMemory').addEventListener('click', () => {
-                    this.clearSpatialMemory();
-                });
-                
-                document.getElementById('toggleLearning').addEventListener('click', () => {
-                    this.learningEnabled = !this.learningEnabled;
-                    document.getElementById('toggleLearning').innerHTML = 
-                        this.learningEnabled ? '🧠 Learning' : '🧠 Frozen';
-                });
-                
-                document.getElementById('clearSymbols').addEventListener('click', () => {
-                    this.clearSymbolicOutput();
-                });
-                
-                document.getElementById('analyzeSymbols').addEventListener('click', () => {
-                    this.analyzeSymbolicOutput();
-                });
-                
-                document.getElementById('runAnalysis').addEventListener('click', () => {
-                    this.runSystemAnalysis();
-                });
-                
-                document.getElementById('exportData').addEventListener('click', () => {
-                    this.exportSystemData();
-                });
-                
-                console.log('🎛️ User interface controls connected and active');
-            }
+        axes[row, col+1].imshow(sim.theta, cmap='RdBu_r', origin='lower')
+        axes[row, col+1].set_title(f'{title} - After 100 Steps')
+        axes[row, col+1].axis('off')
+    
+    plt.tight_layout()
+    plt.suptitle('CFT Neural Dynamics: Before vs After Evolution', fontsize=16, y=1.02)
+    return fig
+
+# ===================================================================
+# ANALYSIS TOOLS
+# ===================================================================
+
+def analyze_energy_conservation(sim, n_steps=1000):
+    """Analyze energy conservation properties of the CFT system"""
+    
+    initial_energy = sim.total_energy
+    energies = []
+    
+    for step in range(n_steps):
+        sim.evolve_field()
+        energies.append(sim.total_energy)
+        
+        if step % 100 == 0:
+            print(f"Step {step}: Energy = {sim.total_energy:.6f}, "
+                  f"ΔE = {sim.total_energy - initial_energy:.8f}")
+    
+    energies = np.array(energies)
+    energy_drift = np.abs(energies - initial_energy)
+    
+    plt.figure(figsize=(12, 8))
+    
+    plt.subplot(2, 2, 1)
+    plt.plot(energies)
+    plt.title('Total Energy Evolution')
+    plt.xlabel('Time Steps')
+    plt.ylabel('Energy')
+    plt.grid(True, alpha=0.3)
+    
+    plt.subplot(2, 2, 2)
+    plt.semilogy(energy_drift)
+    plt.title('Energy Conservation (Log Scale)')
+    plt.xlabel('Time Steps')
+    plt.ylabel('|ΔE|')
+    plt.grid(True, alpha=0.3)
+    
+    plt.subplot(2, 2, 3)
+    plt.imshow(sim.theta, cmap='RdBu_r', origin='lower')
+    plt.title('Final θ Field')
+    plt.colorbar()
+    
+    plt.subplot(2, 2, 4)
+    plt.imshow(sim.coherence_potential, cmap='Greens', origin='lower')
+    plt.title('Final Coherence Wells')
+    plt.colorbar()
+    
+    plt.tight_layout()
+    
+    print(f"\nEnergy Conservation Analysis:")
+    print(f"Initial Energy: {initial_energy:.6f}")
+    print(f"Final Energy: {energies[-1]:.6f}")
+    print(f"Total Drift: {energies[-1] - initial_energy:.8f}")
+    print(f"Relative Drift: {abs(energies[-1] - initial_energy)/initial_energy:.2e}")
+    print(f"Max Fluctuation: {np.max(energy_drift):.8f}")
+
+# ===================================================================
+# SIMPLE TEST TO VERIFY INSTALLATION
+# ===================================================================
+
+def test_cft_basic():
+    """Simple test to verify CFT simulator works correctly"""
+    print("Testing CFT simulator...")
+    
+    try:
+        # Create simulator
+        sim = CoherenceFieldSimulator(width=20, height=20)
+        print("✓ Simulator created successfully")
+        
+        # Initialize field
+        sim.initialize_field('attention_focus')
+        print("✓ Field initialized successfully")
+        
+        # Test gradient computation
+        sim.compute_gradients()
+        print("✓ Gradients computed successfully")
+        print(f"  Grad range: {sim.grad_mag.min():.4f} to {sim.grad_mag.max():.4f}")
+        
+        # Test evolution
+        sim.evolve_field()
+        print("✓ Field evolution successful")
+        print(f"  Energy: {sim.total_energy:.4f}")
+        print(f"  Coherence: {sim.total_coherence:.4f}")
+        
+        # Test multiple steps
+        for i in range(5):
+            sim.evolve_field()
+        print("✓ Multiple evolution steps successful")
+        print(f"  Final energy: {sim.total_energy:.4f}")
+        
+        return sim
+        
+    except Exception as e:
+        print(f"✗ Error: {e}")
+        import traceback
+        traceback.print_exc()
+        return None
+
+# ===================================================================
+# MAIN EXECUTION
+# ===================================================================
+
+if __name__ == "__main__":
+    print("🧠 Coherence Field Theory (CFT) Neural Simulator")
+    print("=" * 55)
+    print()
+    
+    # Run basic test first
+    sim = test_cft_basic()
+    
+    if sim is not None:
+        print("\n" + "="*55)
+        print("Available functions:")
+        print("1. create_interactive_cft_demo() - Interactive parameter exploration")
+        print("2. demonstrate_cft_features() - Show different neural scenarios")
+        print("3. analyze_energy_conservation(sim) - Test energy conservation")
+        print()
+        print("Quick start:")
+        print("sim = CoherenceFieldSimulator()")
+        print("sim.initialize_field('coherent_domains')")
+        print("fig, axes, ims = create_cft_visualization(sim)")
+        print("plt.show()")
+        print()
+        print("For interactive demo:")
+        print("sim, fig = create_interactive_cft_demo()")
+        print("plt.show()")
+
+# ===================================================================
+# ADVANCED CFT ANALYSIS AND NEUROSCIENCE TESTS
+# ===================================================================
+
+def advanced_cft_phase_transition_analysis():
+    """
+    Analyze phase transitions in CFT parameter space.
+    This reveals critical points where coherence wells form/collapse.
+    """
+    print("🔬 Advanced Analysis: CFT Phase Transitions")
+    print("=" * 50)
+    
+    # Parameter sweeps
+    alpha_range = np.linspace(0.1, 3.0, 15)
+    beta_range = np.linspace(0.2, 2.0, 10)
+    
+    # Metrics to track
+    coherence_map = np.zeros((len(beta_range), len(alpha_range)))
+    stability_map = np.zeros((len(beta_range), len(alpha_range)))
+    energy_variance_map = np.zeros((len(beta_range), len(alpha_range)))
+    
+    print("Running parameter sweep...")
+    
+    for i, beta in enumerate(beta_range):
+        for j, alpha in enumerate(alpha_range):
+            # Create simulator with specific parameters
+            sim = CoherenceFieldSimulator(width=40, height=40)
+            sim.alpha = alpha
+            sim.beta = beta
+            sim.gamma = 0.4
+            sim.epsilon = 0.05
             
-            /**
-             * Step 7: Start the main computational loop
-             * This is where the wave-to-symbol transformation happens continuously
-             */
-            startComputationalLoop() {
-                const computeFrame = () => {
-                    if (this.isRunning) {
-                        // Advance system time
-                        this.time += 0.05;
-                        
-                        // Core computational pipeline:
-                        // 1. Calculate wave interference patterns
-                        this.updateWaveInterference();
-                        
-                        // 2. Update spatial memory based on wave patterns
-                        this.updateSpatialMemory();
-                        
-                        // 3. Generate symbolic output from spatial patterns
-                        this.generateSymbolicOutput();
-                        
-                        // 4. Update all visualizations
-                        this.renderAllVisualizations();
-                        
-                        // 5. Update metrics and analysis
-                        this.updateSystemMetrics();
-                    }
-                    
-                    // Continue the loop
-                    requestAnimationFrame(computeFrame);
-                };
-                
-                // Start the computational loop
-                computeFrame();
-                console.log('🔄 Main computational loop started');
-            }
+            # Initialize with coherent domains
+            sim.initialize_field('coherent_domains')
             
-            /**
-             * Core computation: Calculate three-wave interference pattern
-             * This creates the foundational "computational substrate"
-             */
-            updateWaveInterference() {
-                // Calculate each wave at the current time
-                const wave1 = Math.sin(this.frequencies[0] * this.time);
-                const wave2 = Math.sin(this.frequencies[1] * this.time + Math.PI/3);
-                const wave3 = Math.sin(this.frequencies[2] * this.time + 2*Math.PI/3);
-                
-                // Calculate interference pattern (sum of all waves)
-                this.interferenceLevel = (wave1 + wave2 + wave3) / 3;
-                
-                // Detect resonance events (high interference)
-                if (Math.abs(this.interferenceLevel) > this.threshold) {
-                    this.resonanceEvents++;
-                }
-                
-                // Store current wave values for visualization
-                this.currentWaves = [wave1, wave2, wave3];
-            }
+            # Run simulation and track stability
+            energies = []
+            coherences = []
             
-            /**
-             * Update spatial memory grid based on wave interference
-             * This is where continuous waves become discrete ternary patterns
-             */
-            updateSpatialMemory() {
-                if (!this.learningEnabled) return;
-                
-                // Process each cell in the spatial grid
-                for (let y = 0; y < this.gridHeight; y++) {
-                    for (let x = 0; x < this.gridWidth; x++) {
-                        const cell = this.spatialMemory[y][x];
-                        
-                        // Calculate spatial influence based on position and waves
-                        const spatialX = (x / this.gridWidth) * 2 * Math.PI;
-                        const spatialY = (y / this.gridHeight) * 2 * Math.PI;
-                        
-                        // Each wave influences different parts of the grid differently
-                        const influence1 = Math.sin(spatialX + this.frequencies[0] * this.time) * this.currentWaves[0];
-                        const influence2 = Math.sin(spatialY + this.frequencies[1] * this.time) * this.currentWaves[1];
-                        const influence3 = Math.sin(spatialX + spatialY + this.frequencies[2] * this.time) * this.currentWaves[2];
-                        
-                        // Convert to ternary activation (only positive values activate)
-                        const activation = [
-                            Math.max(0, influence1),
-                            Math.max(0, influence2), 
-                            Math.max(0, influence3)
-                        ];
-                        
-                        // Update memory with learning and decay
-                        for (let i = 0; i < 3; i++) {
-                            cell.memory[i] = cell.memory[i] * this.memoryDecay + 
-                                           activation[i] * this.learningRate;
-                            cell.state[i] = activation[i];
-                        }
-                        
-                        // Track activity for analysis
-                        if (activation.some(a => a > 0.1)) {
-                            cell.lastActive = this.time;
-                        }
-                    }
-                }
-            }
+            for step in range(200):
+                sim.evolve_field()
+                energies.append(sim.total_energy)
+                coherences.append(sim.total_coherence)
             
-            /**
-             * Generate symbolic output from spatial memory patterns
-             * This demonstrates discrete symbol emergence from continuous substrates
-             */
-            generateSymbolicOutput() {
-                // Extract characteristic pattern from spatial memory
-                const pattern = this.extractSpatialPattern();
-                const symbol = this.patternToSymbol(pattern);
-                
-                // If we have a new symbol, update the symbolic output
-                if (symbol !== this.currentSymbol && symbol !== '∅') {
-                    this.currentSymbol = symbol;
-                    this.symbolHistory.push({
-                        symbol: symbol,
-                        time: this.time,
-                        pattern: pattern.slice()
-                    });
-                    this.symbolCount++;
-                    this.uniqueSymbols.add(symbol);
-                    this.lastSymbolTime = this.time;
-                    
-                    // Add to output display
-                    this.addToOutput(`${symbol} (t=${this.time.toFixed(1)})`);
-                }
-                
-                // Update symbol generation rate
-                if (this.time > 3) { // After startup period
-                    this.symbolRate = this.symbolCount / this.time;
-                }
-            }
+            # Compute metrics
+            coherence_map[i, j] = np.mean(coherences[-50:])  # Final coherence
+            energy_variance_map[i, j] = np.var(energies[-50:])  # Energy stability
             
-            /**
-             * Extract a characteristic pattern from the spatial memory
-             * Samples key positions to create a unique signature
-             */
-            extractSpatialPattern() {
-                const pattern = [];
-                
-                // Sample strategic positions across the grid
-                const samplePoints = [
-                    [5, 3], [10, 3], [15, 3],    // Top row
-                    [5, 6], [10, 6], [15, 6],    // Middle row
-                    [5, 9], [10, 9], [15, 9]     // Bottom row
-                ];
-                
-                for (const [x, y] of samplePoints) {
-                    const cell = this.spatialMemory[y][x];
-                    const maxIndex = cell.memory.indexOf(Math.max(...cell.memory));
-                    const maxValue = cell.memory[maxIndex];
-                    
-                    if (maxValue > 0.1) {
-                        pattern.push(maxIndex);  // Active ternary state
-                    } else {
-                        pattern.push(-1);        // Inactive
-                    }
-                }
-                
-                return pattern;
-            }
+            # Stability: measure how much field changes in final steps
+            final_states = []
+            for step in range(20):
+                sim.evolve_field()
+                final_states.append(np.var(sim.theta))
+            stability_map[i, j] = np.mean(final_states)
             
-            /**
-             * Convert spatial pattern to symbolic representation
-             * Maps ternary patterns to symbols using deterministic hash function
-             */
-            patternToSymbol(pattern) {
-                if (pattern.every(p => p === -1)) return '∅';
-                
-                // Create hash from pattern (simple but effective)
-                let hash = 0;
-                for (let i = 0; i < pattern.length; i++) {
-                    if (pattern[i] !== -1) {
-                        hash += pattern[i] * (i + 1) * 7;
-                    }
-                }
-                
-                // Map hash to symbol
-                const symbolIndex = Math.abs(hash) % this.symbols.length;
-                return this.symbols[symbolIndex];
-            }
+            if (i * len(alpha_range) + j) % 20 == 0:
+                print(f"  Progress: {((i * len(alpha_range) + j) / (len(beta_range) * len(alpha_range)) * 100):.0f}%")
+    
+    # Create phase diagram
+    fig, axes = plt.subplots(1, 3, figsize=(18, 5))
+    
+    # Coherence phase diagram
+    im1 = axes[0].imshow(coherence_map, extent=[alpha_range[0], alpha_range[-1], 
+                                               beta_range[0], beta_range[-1]], 
+                        aspect='auto', origin='lower', cmap='viridis')
+    axes[0].set_xlabel('α (Coherence Strength)')
+    axes[0].set_ylabel('β (Inertial Resistance)')
+    axes[0].set_title('Average Coherence Phase Diagram')
+    plt.colorbar(im1, ax=axes[0])
+    
+    # Energy stability diagram
+    im2 = axes[1].imshow(energy_variance_map, extent=[alpha_range[0], alpha_range[-1], 
+                                                     beta_range[0], beta_range[-1]], 
+                        aspect='auto', origin='lower', cmap='plasma')
+    axes[1].set_xlabel('α (Coherence Strength)')
+    axes[1].set_ylabel('β (Inertial Resistance)')
+    axes[1].set_title('Energy Variance (Stability)')
+    plt.colorbar(im2, ax=axes[1])
+    
+    # Field stability diagram
+    im3 = axes[2].imshow(stability_map, extent=[alpha_range[0], alpha_range[-1], 
+                                               beta_range[0], beta_range[-1]], 
+                        aspect='auto', origin='lower', cmap='coolwarm')
+    axes[2].set_xlabel('α (Coherence Strength)')
+    axes[2].set_ylabel('β (Inertial Resistance)')
+    axes[2].set_title('Field Stability')
+    plt.colorbar(im3, ax=axes[2])
+    
+    plt.tight_layout()
+    
+    # Find critical points
+    max_coherence_idx = np.unravel_index(np.argmax(coherence_map), coherence_map.shape)
+    min_energy_var_idx = np.unravel_index(np.argmin(energy_variance_map), energy_variance_map.shape)
+    
+    print(f"\n📊 Phase Transition Analysis Results:")
+    print(f"Maximum Coherence at: α={alpha_range[max_coherence_idx[1]]:.2f}, β={beta_range[max_coherence_idx[0]]:.2f}")
+    print(f"Most Stable Energy at: α={alpha_range[min_energy_var_idx[1]]:.2f}, β={beta_range[min_energy_var_idx[0]]:.2f}")
+    print(f"Coherence Range: {coherence_map.min():.4f} to {coherence_map.max():.4f}")
+    print(f"Energy Variance Range: {energy_variance_map.min():.6f} to {energy_variance_map.max():.6f}")
+    
+    return coherence_map, energy_variance_map, stability_map, alpha_range, beta_range
+
+def advanced_cft_memory_formation_dynamics():
+    """
+    Simulate memory formation, consolidation, and interference.
+    Models competing memories and attention-based consolidation.
+    """
+    print("\n🧠 Advanced Analysis: Memory Formation Dynamics")
+    print("=" * 50)
+    
+    # Create larger simulation for memory dynamics
+    sim = CoherenceFieldSimulator(width=80, height=60, dx=0.15)
+    sim.alpha = 1.5  # Strong coherence
+    sim.beta = 0.6   # Moderate inertia
+    sim.gamma = 0.5  # Good spatial coupling
+    
+    # Define memory patterns
+    def create_memory_pattern(center_x, center_y, strength, width=0.8):
+        x_coords = sim.X - center_x
+        y_coords = sim.Y - center_y
+        return strength * np.exp(-(x_coords**2 + y_coords**2) / width**2)
+    
+    # Memory formation experiment
+    memory_phases = [
+        ("Encoding Phase 1", create_memory_pattern(-2, 1, 1.8, 0.6)),
+        ("Encoding Phase 2", create_memory_pattern(2, -1, 1.5, 0.7)),
+        ("Interference", create_memory_pattern(0, 0, 1.2, 1.0)),
+        ("Consolidation", np.zeros_like(sim.X))  # No new input
+    ]
+    
+    # Track memory evolution
+    memory_strength = []
+    interference_levels = []
+    coherence_evolution = []
+    
+    fig, axes = plt.subplots(2, 4, figsize=(20, 10))
+    
+    for phase_idx, (phase_name, memory_input) in enumerate(memory_phases):
+        print(f"  Running {phase_name}...")
+        
+        # Add memory input to current field
+        if phase_idx < 3:  # Don't add input during consolidation
+            sim.theta += 0.3 * memory_input
+        
+        # Run this phase
+        phase_states = []
+        phase_coherences = []
+        
+        for step in range(150):
+            sim.evolve_field()
+            phase_states.append(sim.theta.copy())
+            phase_coherences.append(sim.total_coherence)
             
-            /**
-             * Render all system visualizations
-             * This makes the invisible computational processes visible
-             */
-            renderAllVisualizations() {
-                this.renderWaveCanvas();
-                this.renderSpatialCanvas();
-                this.renderAnalysisCanvas();
-            }
+            # Measure memory strength (correlation with original patterns)
+            mem1_strength = np.corrcoef(sim.theta.flatten(), 
+                                       create_memory_pattern(-2, 1, 1.8, 0.6).flatten())[0,1]
+            mem2_strength = np.corrcoef(sim.theta.flatten(), 
+                                       create_memory_pattern(2, -1, 1.5, 0.7).flatten())[0,1]
             
-            /**
-             * Render wave interference visualization
-             * Shows the continuous wave substrate that drives everything
-             */
-            renderWaveCanvas() {
-                const ctx = this.waveCtx;
-                const width = this.waveCanvas.width;
-                const height = this.waveCanvas.height;
-                
-                // Clear with slight fade for trail effect
-                ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
-                ctx.fillRect(0, 0, width, height);
-                
-                // Draw individual waves
-                ctx.lineWidth = 1;
-                
-                // Wave 1 (red)
-                ctx.strokeStyle = '#ff5722';
-                ctx.beginPath();
-                for (let x = 0; x < width; x++) {
-                    const t = this.time - (width - x) * 0.02;
-                    const y = height/2 + Math.sin(this.frequencies[0] * t) * height/4;
-                    if (x === 0) ctx.moveTo(x, y);
-                    else ctx.lineTo(x, y);
-                }
-                ctx.stroke();
-                
-                // Wave 2 (yellow)
-                ctx.strokeStyle = '#ffeb3b';
-                ctx.beginPath();
-                for (let x = 0; x < width; x++) {
-                    const t = this.time - (width - x) * 0.02;
-                    const y = height/2 + Math.sin(this.frequencies[1] * t + Math.PI/3) * height/4;
-                    if (x === 0) ctx.moveTo(x, y);
-                    else ctx.lineTo(x, y);
-                }
-                ctx.stroke();
-                
-                // Wave 3 (blue)
-                ctx.strokeStyle = '#2196f3';
-                ctx.beginPath();
-                for (let x = 0; x < width; x++) {
-                    const t = this.time - (width - x) * 0.02;
-                    const y = height/2 + Math.sin(this.frequencies[2] * t + 2*Math.PI/3) * height/4;
-                    if (x === 0) ctx.moveTo(x, y);
-                    else ctx.lineTo(x, y);
-                }
-                ctx.stroke();
-                
-                // Interference pattern (white/green for resonance)
-                ctx.strokeStyle = this.interferenceLevel > this.threshold ? '#4CAF50' : 'white';
-                ctx.lineWidth = 2;
-                ctx.beginPath();
-                for (let x = 0; x < width; x++) {
-                    const t = this.time - (width - x) * 0.02;
-                    const wave1 = Math.sin(this.frequencies[0] * t);
-                    const wave2 = Math.sin(this.frequencies[1] * t + Math.PI/3);
-                    const wave3 = Math.sin(this.frequencies[2] * t + 2*Math.PI/3);
-                    const interference = (wave1 + wave2 + wave3) / 3;
-                    const y = height/2 + interference * height/3;
-                    if (x === 0) ctx.moveTo(x, y);
-                    else ctx.lineTo(x, y);
-                }
-                ctx.stroke();
-            }
+            memory_strength.append([mem1_strength, mem2_strength])
+            coherence_evolution.append(sim.total_coherence)
             
-            /**
-             * Render spatial memory grid visualization
-             * Shows how wave patterns create ternary memory states
-             */
-            renderSpatialCanvas() {
-                const ctx = this.spatialCtx;
-                const width = this.spatialCanvas.width;
-                const height = this.spatialCanvas.height;
-                
-                ctx.clearRect(0, 0, width, height);
-                
-                const cellWidth = width / this.gridWidth;
-                const cellHeight = height / this.gridHeight;
-                
-                // Draw memory grid with color-coded ternary states
-                for (let y = 0; y < this.gridHeight; y++) {
-                    for (let x = 0; x < this.gridWidth; x++) {
-                        const cell = this.spatialMemory[y][x];
-                        const px = x * cellWidth;
-                        const py = y * cellHeight;
-                        
-                        // Determine dominant state and its strength
-                        const maxMemory = Math.max(...cell.memory);
-                        const maxIndex = cell.memory.indexOf(maxMemory);
-                        
-                        if (maxMemory > 0.05) {
-                            const alpha = Math.min(maxMemory, 1);
-                            
-                            // Color based on ternary state
-                            if (maxIndex === 0) {
-                                ctx.fillStyle = `rgba(255, 87, 34, ${alpha})`;   // Red for state 0
-                            } else if (maxIndex === 1) {
-                                ctx.fillStyle = `rgba(255, 235, 59, ${alpha})`; // Yellow for state 1
-                            } else {
-                                ctx.fillStyle = `rgba(33, 150, 243, ${alpha})`; // Blue for state 2
-                            }
-                            
-                            ctx.fillRect(px, py, cellWidth, cellHeight);
-                        }
-                        
-                        // Draw grid lines for structure
-                        ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
-                        ctx.lineWidth = 0.5;
-                        ctx.strokeRect(px, py, cellWidth, cellHeight);
-                    }
-                }
-            }
+            # Measure interference (overlap between memory regions)
+            mem1_region = create_memory_pattern(-2, 1, 1.0, 0.6) > 0.1
+            mem2_region = create_memory_pattern(2, -1, 1.0, 0.7) > 0.1
+            overlap = np.sum(mem1_region & mem2_region) / np.sum(mem1_region | mem2_region)
+            interference_levels.append(overlap)
+        
+        # Plot this phase
+        row = phase_idx // 4
+        col = phase_idx % 4
+        
+        im = axes[row, col].imshow(sim.theta, cmap='RdBu_r', origin='lower', 
+                                  extent=[sim.x_coords[0], sim.x_coords[-1],
+                                         sim.y_coords[0], sim.y_coords[-1]])
+        axes[row, col].set_title(f'{phase_name}\nCoherence: {sim.total_coherence:.3f}')
+        axes[row, col].set_xlabel('x')
+        axes[row, col].set_ylabel('y')
+        plt.colorbar(im, ax=axes[row, col], fraction=0.046, pad=0.04)
+    
+    # Memory dynamics analysis
+    memory_strength = np.array(memory_strength)
+    coherence_evolution = np.array(coherence_evolution)
+    
+    # Plot memory evolution over time
+    fig2, axes2 = plt.subplots(2, 2, figsize=(15, 10))
+    
+    time_steps = np.arange(len(memory_strength))
+    
+    axes2[0,0].plot(time_steps, memory_strength[:, 0], 'b-', label='Memory 1', linewidth=2)
+    axes2[0,0].plot(time_steps, memory_strength[:, 1], 'r-', label='Memory 2', linewidth=2)
+    axes2[0,0].axvline(150, color='gray', linestyle='--', alpha=0.7, label='Phase transitions')
+    axes2[0,0].axvline(300, color='gray', linestyle='--', alpha=0.7)
+    axes2[0,0].axvline(450, color='gray', linestyle='--', alpha=0.7)
+    axes2[0,0].set_xlabel('Time Steps')
+    axes2[0,0].set_ylabel('Memory Strength (Correlation)')
+    axes2[0,0].set_title('Memory Consolidation Dynamics')
+    axes2[0,0].legend()
+    axes2[0,0].grid(True, alpha=0.3)
+    
+    axes2[0,1].plot(time_steps, coherence_evolution, 'g-', linewidth=2)
+    axes2[0,1].axvline(150, color='gray', linestyle='--', alpha=0.7)
+    axes2[0,1].axvline(300, color='gray', linestyle='--', alpha=0.7)
+    axes2[0,1].axvline(450, color='gray', linestyle='--', alpha=0.7)
+    axes2[0,1].set_xlabel('Time Steps')
+    axes2[0,1].set_ylabel('System Coherence')
+    axes2[0,1].set_title('Coherence During Memory Formation')
+    axes2[0,1].grid(True, alpha=0.3)
+    
+    axes2[1,0].plot(time_steps, interference_levels, 'm-', linewidth=2)
+    axes2[1,0].axvline(150, color='gray', linestyle='--', alpha=0.7)
+    axes2[1,0].axvline(300, color='gray', linestyle='--', alpha=0.7)
+    axes2[1,0].axvline(450, color='gray', linestyle='--', alpha=0.7)
+    axes2[1,0].set_xlabel('Time Steps')
+    axes2[1,0].set_ylabel('Memory Interference Level')
+    axes2[1,0].set_title('Competitive Memory Dynamics')
+    axes2[1,0].grid(True, alpha=0.3)
+    
+    # Memory strength correlation
+    axes2[1,1].scatter(memory_strength[:, 0], memory_strength[:, 1], 
+                      c=time_steps, cmap='viridis', alpha=0.6)
+    axes2[1,1].set_xlabel('Memory 1 Strength')
+    axes2[1,1].set_ylabel('Memory 2 Strength')
+    axes2[1,1].set_title('Memory Competition Phase Space')
+    axes2[1,1].grid(True, alpha=0.3)
+    plt.colorbar(axes2[1,1].collections[0], ax=axes2[1,1], label='Time Step')
+    
+    plt.tight_layout()
+    
+    print(f"\n📊 Memory Formation Results:")
+    print(f"Final Memory 1 Strength: {memory_strength[-1, 0]:.3f}")
+    print(f"Final Memory 2 Strength: {memory_strength[-1, 1]:.3f}")
+    print(f"Memory Interference Peak: {np.max(interference_levels):.3f}")
+    print(f"Final System Coherence: {coherence_evolution[-1]:.3f}")
+    
+    return sim, memory_strength, coherence_evolution
+
+def advanced_cft_traveling_wave_analysis():
+    """
+    Analyze traveling wave propagation, speed, and dispersion.
+    Models neural information transmission dynamics.
+    """
+    print("\n⚡ Advanced Analysis: Neural Wave Propagation")
+    print("=" * 50)
+    
+    # Create simulation optimized for wave dynamics
+    sim = CoherenceFieldSimulator(width=120, height=40, dx=0.1)
+    sim.alpha = 0.8   # Moderate coherence
+    sim.beta = 1.2    # Higher inertia for wave propagation
+    sim.gamma = 0.6   # Strong spatial coupling
+    sim.epsilon = 0.03
+    
+    # Initialize traveling wave packet
+    wave_center_x = -4
+    wave_center_y = 0
+    wave_width = 0.8
+    wave_speed = 0.5
+    
+    # Create initial wave packet
+    distance = np.sqrt((sim.X - wave_center_x)**2 + (sim.Y - wave_center_y)**2)
+    sim.theta = 2.0 * np.exp(-distance**2 / wave_width**2) * np.cos(3 * sim.X)
+    sim.theta_dot = wave_speed * 2.0 * np.exp(-distance**2 / wave_width**2) * np.cos(3 * sim.X)
+    
+    # Track wave propagation
+    wave_positions = []
+    wave_amplitudes = []
+    wave_speeds = []
+    coherence_behind_wave = []
+    
+    n_steps = 300
+    track_interval = 5
+    
+    print("  Tracking wave propagation...")
+    
+    for step in range(n_steps):
+        sim.evolve_field()
+        
+        if step % track_interval == 0:
+            # Find wave front position (maximum gradient)
+            grad_total = np.sqrt(sim.grad_x**2 + sim.grad_y**2)
             
-            /**
-             * Render analysis visualization
-             * Shows computational metrics over time
-             */
-            renderAnalysisCanvas() {
-                const ctx = this.analysisCtx;
-                const width = this.analysisCanvas.width;
-                const height = this.analysisCanvas.height;
-                
-                // Fade background
-                ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
-                ctx.fillRect(0, 0, width, height);
-                
-                if (this.metricsHistory.length > 1) {
-                    const maxPoints = width;
-                    const start = Math.max(0, this.metricsHistory.length - maxPoints);
-                    
-                    // Draw complexity over time (green)
-                    ctx.strokeStyle = '#4CAF50';
-                    ctx.lineWidth = 1;
-                    ctx.beginPath();
-                    for (let i = start; i < this.metricsHistory.length; i++) {
-                        const x = ((i - start) / maxPoints) * width;
-                        const y = height - (this.metricsHistory[i].complexity * height);
-                        if (i === start) ctx.moveTo(x, y);
-                        else ctx.lineTo(x, y);
-                    }
-                    ctx.stroke();
-                    
-                    // Draw stability (yellow)
-                    ctx.strokeStyle = '#ffeb3b';
-                    ctx.lineWidth = 1;
-                    ctx.beginPath();
-                    for (let i = start; i < this.metricsHistory.length; i++) {
-                        const x = ((i - start) / maxPoints) * width;
-                        const y = height - (this.metricsHistory[i].stability * height);
-                        if (i === start) ctx.moveTo(x, y);
-                        else ctx.lineTo(x, y);
-                    }
-                    ctx.stroke();
-                }
-            }
+            # Find wave center (maximum amplitude along central line)
+            center_line = sim.theta[sim.height//2, :]
+            max_amp_idx = np.argmax(np.abs(center_line))
+            wave_x_pos = sim.x_coords[max_amp_idx]
             
-            /**
-             * Update all system metrics and displays
-             * This provides real-time feedback about computational behavior
-             */
-            updateSystemMetrics() {
-                // Update wave metrics
-                document.getElementById('interferenceLevel').textContent = this.interferenceLevel.toFixed(3);
-                document.getElementById('resonanceEvents').textContent = this.resonanceEvents;
-                document.getElementById('waveTime').textContent = this.time.toFixed(1) + 's';
-                
-                // Calculate and update spatial metrics
-                let activeCells = 0;
-                let totalMemory = 0;
-                for (let y = 0; y < this.gridHeight; y++) {
-                    for (let x = 0; x < this.gridWidth; x++) {
-                        const cell = this.spatialMemory[y][x];
-                        const maxMemory = Math.max(...cell.memory);
-                        if (maxMemory > 0.05) activeCells++;
-                        totalMemory += maxMemory;
-                    }
-                }
-                
-                document.getElementById('activeCells').textContent = activeCells;
-                document.getElementById('memoryLoad').textContent = 
-                    Math.round((totalMemory / (this.gridWidth * this.gridHeight)) * 100) + '%';
-                
-                // Calculate pattern entropy
-                const entropy = this.calculatePatternEntropy();
-                document.getElementById('patternEntropy').textContent = entropy.toFixed(3);
-                
-                // Update symbolic metrics
-                document.getElementById('currentSymbol').textContent = this.currentSymbol;
-                document.getElementById('symbolCount').textContent = this.symbolCount;
-                document.getElementById('uniqueSymbols').textContent = this.uniqueSymbols.size;
-                document.getElementById('symbolRate').textContent = this.symbolRate.toFixed(2) + '/s';
-                
-                // Calculate and update analysis metrics
-                this.computationalComplexity = this.calculateComplexity();
-                this.systemStability = this.calculateStability();
-                this.informationFlow = this.calculateInformationFlow();
-                
-                document.getElementById('complexity').textContent = this.computationalComplexity.toFixed(3);
-                document.getElementById('stability').textContent = this.systemStability.toFixed(3);
-                document.getElementById('infoFlow').textContent = this.informationFlow.toFixed(3);
-                
-                // Store metrics for historical analysis
-                this.metricsHistory.push({
-                    time: this.time,
-                    complexity: this.computationalComplexity,
-                    stability: this.systemStability,
-                    infoFlow: this.informationFlow,
-                    activeCells: activeCells,
-                    symbolCount: this.symbolCount
-                });
-                
-                // Keep history manageable
-                if (this.metricsHistory.length > 500) {
-                    this.metricsHistory = this.metricsHistory.slice(-250);
-                }
-            }
+            wave_positions.append(wave_x_pos)
+            wave_amplitudes.append(np.max(np.abs(sim.theta)))
             
-            /**
-             * Calculate pattern entropy in the spatial memory
-             * Measures the diversity of ternary states
-             */
-            calculatePatternEntropy() {
-                const stateCounts = [0, 0, 0];
-                let totalCells = 0;
-                
-                for (let y = 0; y < this.gridHeight; y++) {
-                    for (let x = 0; x < this.gridWidth; x++) {
-                        const cell = this.spatialMemory[y][x];
-                        const maxIndex = cell.memory.indexOf(Math.max(...cell.memory));
-                        if (Math.max(...cell.memory) > 0.05) {
-                            stateCounts[maxIndex]++;
-                            totalCells++;
-                        }
-                    }
-                }
-                
-                if (totalCells === 0) return 0;
-                
-                let entropy = 0;
-                for (const count of stateCounts) {
-                    if (count > 0) {
-                        const p = count / totalCells;
-                        entropy -= p * Math.log2(p);
-                    }
-                }
-                
-                return entropy;
-            }
+            # Calculate instantaneous wave speed
+            if len(wave_positions) > 1:
+                dx = wave_positions[-1] - wave_positions[-2]
+                dt = track_interval * sim.dt
+                speed = dx / dt
+                wave_speeds.append(speed)
+            else:
+                wave_speeds.append(0)
             
-            /**
-             * Calculate computational complexity measure
-             * Based on spatial pattern diversity and symbolic output
-             */
-            calculateComplexity() {
-                const patternEntropy = this.calculatePatternEntropy();
-                const symbolDiversity = this.uniqueSymbols.size / Math.max(1, this.symbolCount);
-                return (patternEntropy + symbolDiversity) / 2;
-            }
+            # Measure coherence in wake of wave
+            wake_region = sim.X < (wave_x_pos - 2)
+            if np.sum(wake_region) > 0:
+                wake_coherence = np.mean(sim.coherence_potential[wake_region])
+                coherence_behind_wave.append(wake_coherence)
+            else:
+                coherence_behind_wave.append(0)
+    
+    # Create wave analysis plots
+    fig, axes = plt.subplots(2, 3, figsize=(18, 12))
+    
+    # Final wave state
+    im1 = axes[0,0].imshow(sim.theta, extent=[sim.x_coords[0], sim.x_coords[-1],
+                                             sim.y_coords[0], sim.y_coords[-1]], 
+                          cmap='RdBu_r', origin='lower', aspect='auto')
+    axes[0,0].set_title('Final Wave State')
+    axes[0,0].set_xlabel('x')
+    axes[0,0].set_ylabel('y')
+    plt.colorbar(im1, ax=axes[0,0])
+    
+    # Coherence field
+    im2 = axes[0,1].imshow(sim.coherence_potential, extent=[sim.x_coords[0], sim.x_coords[-1],
+                                                           sim.y_coords[0], sim.y_coords[-1]], 
+                          cmap='Greens', origin='lower', aspect='auto')
+    axes[0,1].set_title('Coherence Wells in Wave Wake')
+    axes[0,1].set_xlabel('x')
+    axes[0,1].set_ylabel('y')
+    plt.colorbar(im2, ax=axes[0,1])
+    
+    # Wave position tracking
+    time_points = np.array(range(len(wave_positions))) * track_interval * sim.dt
+    axes[0,2].plot(time_points, wave_positions, 'b-', linewidth=2, marker='o', markersize=3)
+    axes[0,2].set_xlabel('Time')
+    axes[0,2].set_ylabel('Wave Position')
+    axes[0,2].set_title('Wave Propagation')
+    axes[0,2].grid(True, alpha=0.3)
+    
+    # Linear fit for average speed
+    if len(time_points) > 1:
+        slope, intercept = np.polyfit(time_points, wave_positions, 1)
+        axes[0,2].plot(time_points, slope * time_points + intercept, 'r--', 
+                      label=f'Avg Speed: {slope:.3f}')
+        axes[0,2].legend()
+    
+    # Wave amplitude decay
+    axes[1,0].plot(time_points, wave_amplitudes, 'r-', linewidth=2)
+    axes[1,0].set_xlabel('Time')
+    axes[1,0].set_ylabel('Wave Amplitude')
+    axes[1,0].set_title('Wave Amplitude Decay')
+    axes[1,0].grid(True, alpha=0.3)
+    
+    # Instantaneous wave speed
+    if len(wave_speeds) > 1:
+        axes[1,1].plot(time_points[1:], wave_speeds[1:], 'g-', linewidth=2)
+        axes[1,1].set_xlabel('Time')
+        axes[1,1].set_ylabel('Instantaneous Speed')
+        axes[1,1].set_title('Wave Speed Variation')
+        axes[1,1].grid(True, alpha=0.3)
+    
+    # Coherence in wave wake
+    axes[1,2].plot(time_points, coherence_behind_wave, 'm-', linewidth=2)
+    axes[1,2].set_xlabel('Time')
+    axes[1,2].set_ylabel('Wake Coherence')
+    axes[1,2].set_title('Coherence Behind Wave')
+    axes[1,2].grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    
+    # Analysis results
+    avg_speed = np.mean(wave_speeds[10:]) if len(wave_speeds) > 10 else np.mean(wave_speeds)
+    final_amplitude = wave_amplitudes[-1]
+    initial_amplitude = wave_amplitudes[0]
+    amplitude_decay = (initial_amplitude - final_amplitude) / initial_amplitude
+    
+    print(f"\n📊 Wave Propagation Results:")
+    print(f"Average Wave Speed: {avg_speed:.4f}")
+    print(f"Initial Amplitude: {initial_amplitude:.3f}")
+    print(f"Final Amplitude: {final_amplitude:.3f}")
+    print(f"Amplitude Decay: {amplitude_decay*100:.1f}%")
+    print(f"Distance Traveled: {wave_positions[-1] - wave_positions[0]:.2f}")
+    print(f"Average Wake Coherence: {np.mean(coherence_behind_wave):.4f}")
+    
+    return sim, wave_positions, wave_amplitudes, wave_speeds
+
+def advanced_cft_bifurcation_analysis():
+    """
+    Analyze bifurcation points and critical phenomena in CFT parameter space.
+    Identifies where system behavior qualitatively changes.
+    """
+    print("\n🌊 Advanced Analysis: Bifurcation and Critical Points")
+    print("=" * 50)
+    
+    # Focus on critical alpha values where coherence wells form/disappear
+    alpha_values = np.linspace(0.1, 2.5, 50)
+    
+    # Metrics to detect bifurcations
+    steady_state_variance = []
+    max_coherence_values = []
+    pattern_complexity = []
+    
+    print("  Scanning parameter space for bifurcations...")
+    
+    for i, alpha in enumerate(alpha_values):
+        sim = CoherenceFieldSimulator(width=40, height=40)
+        sim.alpha = alpha
+        sim.beta = 0.8
+        sim.gamma = 0.4
+        sim.epsilon = 0.05
+        
+        # Start with small random perturbation
+        sim.theta = 0.1 * (np.random.random((sim.height, sim.width)) - 0.5)
+        
+        # Let system reach steady state
+        for _ in range(300):
+            sim.evolve_field()
+        
+        # Analyze steady state
+        final_states = []
+        coherence_values = []
+        
+        for _ in range(50):
+            sim.evolve_field()
+            final_states.append(sim.theta.copy())
+            coherence_values.append(sim.max_coherence)
+        
+        # Compute metrics
+        steady_state_variance.append(np.var([np.var(state) for state in final_states]))
+        max_coherence_values.append(np.max(coherence_values))
+        
+        # Pattern complexity (number of local maxima)
+        final_theta = final_states[-1]
+        from scipy import ndimage
+        local_max = ndimage.maximum_filter(final_theta, size=3) == final_theta
+        complexity = np.sum(local_max & (final_theta > 0.1))
+        pattern_complexity.append(complexity)
+        
+        if i % 10 == 0:
+            print(f"    Progress: {i/len(alpha_values)*100:.0f}%")
+    
+    # Detect bifurcation points
+    # Look for sudden changes in derivatives
+    variance_derivative = np.gradient(steady_state_variance)
+    coherence_derivative = np.gradient(max_coherence_values)
+    complexity_derivative = np.gradient(pattern_complexity)
+    
+    # Find peaks in derivatives (bifurcation candidates)
+    from scipy.signal import find_peaks
+    
+    variance_peaks, _ = find_peaks(np.abs(variance_derivative), height=np.std(variance_derivative))
+    coherence_peaks, _ = find_peaks(np.abs(coherence_derivative), height=np.std(coherence_derivative))
+    
+    # Plot bifurcation analysis
+    fig, axes = plt.subplots(2, 2, figsize=(15, 10))
+    
+    # Steady state variance
+    axes[0,0].plot(alpha_values, steady_state_variance, 'b-', linewidth=2)
+    for peak in variance_peaks:
+        axes[0,0].axvline(alpha_values[peak], color='red', linestyle='--', alpha=0.7)
+    axes[0,0].set_xlabel('α (Coherence Strength)')
+    axes[0,0].set_ylabel('Steady State Variance')
+    axes[0,0].set_title('System Stability vs α')
+    axes[0,0].grid(True, alpha=0.3)
+    
+    # Maximum coherence
+    axes[0,1].plot(alpha_values, max_coherence_values, 'g-', linewidth=2)
+    for peak in coherence_peaks:
+        axes[0,1].axvline(alpha_values[peak], color='red', linestyle='--', alpha=0.7)
+    axes[0,1].set_xlabel('α (Coherence Strength)')
+    axes[0,1].set_ylabel('Maximum Coherence')
+    axes[0,1].set_title('Coherence Wells vs α')
+    axes[0,1].grid(True, alpha=0.3)
+    
+    # Pattern complexity
+    axes[1,0].plot(alpha_values, pattern_complexity, 'm-', linewidth=2)
+    axes[1,0].set_xlabel('α (Coherence Strength)')
+    axes[1,0].set_ylabel('Pattern Complexity')
+    axes[1,0].set_title('Spatial Pattern Complexity')
+    axes[1,0].grid(True, alpha=0.3)
+    
+    # Phase portrait (variance vs coherence)
+    scatter = axes[1,1].scatter(max_coherence_values, steady_state_variance, 
+                               c=alpha_values, cmap='viridis', alpha=0.7)
+    axes[1,1].set_xlabel('Maximum Coherence')
+    axes[1,1].set_ylabel('Steady State Variance')
+    axes[1,1].set_title('Phase Portrait')
+    plt.colorbar(scatter, ax=axes[1,1], label='α value')
+    
+    plt.tight_layout()
+    
+    # Identify critical points
+    if len(variance_peaks) > 0:
+        critical_alphas = alpha_values[variance_peaks]
+        print(f"\n📊 Bifurcation Analysis Results:")
+        print(f"Critical α values (bifurcation points): {critical_alphas}")
+        
+        for i, alpha_c in enumerate(critical_alphas):
+            print(f"  Bifurcation {i+1}: α = {alpha_c:.3f}")
             
-            /**
-             * Calculate system stability measure
-             * Based on consistency of computational metrics over time
-             */
-            calculateStability() {
-                if (this.metricsHistory.length < 10) return 0;
-                
-                const recent = this.metricsHistory.slice(-10);
-                const avgComplexity = recent.reduce((sum, m) => sum + m.complexity, 0) / recent.length;
-                const variance = recent.reduce((sum, m) => sum + Math.pow(m.complexity - avgComplexity, 2), 0) / recent.length;
-                
-                return Math.max(0, 1 - variance);
-            }
-            
-            /**
-             * Calculate information flow measure
-             * Based on how actively the system is generating new symbols
-             */
-            calculateInformationFlow() {
-                if (this.symbolCount === 0) return 0;
-                
-                const timeSinceLastSymbol = this.time - this.lastSymbolTime;
-                const flow = Math.exp(-timeSinceLastSymbol) * this.symbolRate;
-                
-                return Math.min(1, flow);
-            }
-            
-            /**
-             * Utility functions for system control
-             */
-            
-            addToOutput(text) {
-                const output = document.getElementById('symbolicOutput');
-                output.innerHTML += text + ' ';
-                output.scrollTop = output.scrollHeight;
-            }
-            
-            clearSpatialMemory() {
-                for (let y = 0; y < this.gridHeight; y++) {
-                    for (let x = 0; x < this.gridWidth; x++) {
-                        const cell = this.spatialMemory[y][x];
-                        cell.state = [0, 0, 0];
-                        cell.memory = [0, 0, 0];
-                        cell.lastActive = 0;
-                    }
-                }
-                this.addToOutput('🧹 Spatial memory cleared');
-            }
-            
-            clearSymbolicOutput() {
-                document.getElementById('symbolicOutput').innerHTML = 'Symbolic output cleared... ';
-                this.symbolHistory = [];
-                this.symbolCount = 0;
-                this.uniqueSymbols.clear();
-                this.currentSymbol = '∅';
-            }
-            
-            resetSystem() {
-                this.time = 0;
-                this.resonanceEvents = 0;
-                this.clearSpatialMemory();
-                this.clearSymbolicOutput();
-                this.metricsHistory = [];
-                this.addToOutput('🔄 System reset complete');
-            }
-            
-            analyzeSymbolicOutput() {
-                const analysis = `=== SYMBOLIC ANALYSIS ===
-Total symbols: ${this.symbolCount}
-Unique symbols: ${this.uniqueSymbols.size}
-Diversity: ${(this.uniqueSymbols.size / Math.max(1, this.symbolCount)).toFixed(3)}
-Rate: ${this.symbolRate.toFixed(3)} symbols/sec
-Recent: ${this.symbolHistory.slice(-5).map(s => s.symbol).join('')}`;
-                
-                this.addToOutput(analysis.replace(/\n/g, ' | '));
-            }
-            
-            runSystemAnalysis() {
-                this.addToOutput('🔬 SYSTEM ANALYSIS: ');
-                this.addToOutput(`Complexity: ${this.computationalComplexity.toFixed(3)} | `);
-                this.addToOutput(`Stability: ${this.systemStability.toFixed(3)} | `);
-                this.addToOutput(`Info Flow: ${this.informationFlow.toFixed(3)} | `);
-                this.addToOutput(`Entropy: ${this.calculatePatternEntropy().toFixed(3)}`);
-            }
-            
-            exportSystemData() {
-                const data = {
-                    timestamp: new Date().toISOString(),
-                    systemState: {
-                        time: this.time,
-                        frequencies: this.frequencies,
-                        threshold: this.threshold,
-                        learningRate: this.learningRate,
-                        memoryDecay: this.memoryDecay
-                    },
-                    metrics: this.metricsHistory.slice(-50),
-                    symbols: this.symbolHistory,
-                    spatialMemory: this.spatialMemory
-                };
-                
-                const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `wave-computation-data-${Date.now()}.json`;
-                a.click();
-                URL.revokeObjectURL(url);
-                
-                this.addToOutput('💾 System data exported');
-            }
-            
-            /**
-             * Update UI controls to reflect current frequency values
-             * Used when applying Ramanujan presets or loading saved states
-             */
-            updateUIFromFrequencies() {
-                // Update sliders
-                document.getElementById('freq1').value = this.frequencies[0];
-                document.getElementById('freq2').value = this.frequencies[1];
-                document.getElementById('freq3').value = this.frequencies[2];
-                
-                // Update number inputs
-                document.getElementById('freq1Input').value = this.frequencies[0].toFixed(3);
-                document.getElementById('freq2Input').value = this.frequencies[1].toFixed(3);
-                document.getElementById('freq3Input').value = this.frequencies[2].toFixed(3);
-            }
+    else:
+        print(f"\nNo clear bifurcation points detected in range α ∈ [{alpha_values[0]:.1f}, {alpha_values[-1]:.1f}]")
+    
+    return alpha_values, steady_state_variance, max_coherence_values, pattern_complexity
+
+def run_all_advanced_tests():
+    """Run all advanced CFT tests in sequence"""
+    print("🚀 Running Complete Advanced CFT Analysis Suite")
+    print("=" * 60)
+    
+    try:
+        # Test 1: Phase transitions
+        coherence_map, energy_map, stability_map, alpha_range, beta_range = advanced_cft_phase_transition_analysis()
+        plt.show()
+        
+        # Test 2: Memory dynamics
+        memory_sim, memory_strength, coherence_evolution = advanced_cft_memory_formation_dynamics()
+        plt.show()
+        
+        # Test 3: Wave propagation
+        wave_sim, positions, amplitudes, speeds = advanced_cft_traveling_wave_analysis()
+        plt.show()
+        
+        # Test 4: Bifurcations
+        alphas, variances, coherences, complexity = advanced_cft_bifurcation_analysis()
+        plt.show()
+        
+        print("\n🎉 All advanced tests completed successfully!")
+        print("=" * 60)
+        
+        return {
+            'phase_transition': (coherence_map, energy_map, stability_map),
+            'memory_dynamics': (memory_sim, memory_strength, coherence_evolution),
+            'wave_propagation': (wave_sim, positions, amplitudes, speeds),
+            'bifurcation': (alphas, variances, coherences, complexity)
         }
         
-        /**
-         * Global function to set Ramanujan-inspired frequency ratios
-         * These implement the precise mathematical relationships Ramanujan discovered
-         */
-        function setRamanujanRatio(preset) {
-            const system = window.waveSystem; // Reference to the main system instance
-            if (!system) return;
-            
-            switch(preset) {
-                case 'golden':
-                    // Golden ratio combination: φ, √2, φ²
-                    system.frequencies = [1.0, 1.6180339887, 2.6180339887];
-                    system.addToOutput('🌟 Golden ratio φ preset applied');
-                    break;
-                    
-                case 'sqrt2':
-                    // Square root of 2 series: 1, √2, 2
-                    system.frequencies = [1.0, 1.4142135624, 2.0];
-                    system.addToOutput('📐 √2 harmonic series applied');
-                    break;
-                    
-                case 'sqrt3':
-                    // Square root of 3 series: 1, √3, 3
-                    system.frequencies = [1.0, 1.7320508076, 3.0];
-                    system.addToOutput('△ √3 harmonic series applied');
-                    break;
-                    
-                case 'sqrt5':
-                    // Square root of 5 series: 1, √5, φ×√5
-                    system.frequencies = [1.0, 2.2360679775, 3.6180339887];
-                    system.addToOutput('⭐ √5 harmonic series applied');
-                    break;
-            }
-            
-            // Update all the UI controls to reflect the new values
-            system.updateUIFromFrequencies();
-        }
-        
-        // Initialize the system when the page loads
-        window.addEventListener('load', () => {
-            console.log('🎯 Page loaded - starting system initialization...');
-            window.waveSystem = new WaveSymbolicSystem(); // Store reference globally for presets
-        });
-    </script>
-</body>
-</html>
+    except Exception as e:
+        print(f"❌ Error in advanced tests: {e}")
+        import traceback
+        traceback.print_exc()
+        return None
+
+# Quick test - run this first to check if everything works:
+# test_cft_basic()
+
+# For advanced analysis, run:
+# results = run_all_advanced_tests()
