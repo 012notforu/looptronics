@@ -1,0 +1,343 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { Play, Pause, RotateCcw, Zap } from 'lucide-react';
+
+const ActuallyWorkingSymbolicField = () => {
+  const canvasRef = useRef(null);
+  const [isRunning, setIsRunning] = useState(false);
+  const [currentStep, setCurrentStep] = useState(0);
+  
+  // Parameters tuned for MOTION, not stability
+  const [params, setParams] = useState({
+    diffusion: 0.05,     // gentle spreading
+    antidiffusion: 0.15, // counteract spreading  
+    nonlinear: 0.3,      // create interesting patterns
+    injection: 0.02,     // continuous energy input
+    chaos: 0.1,          // random perturbations
+    speed: 1.0           // overall speed multiplier
+  });
+  
+  const gridSize = 48;
+  const [field, setField] = useState(() => 
+    Array(gridSize).fill().map(() => Array(gridSize).fill(0))
+  );
+
+  // Initialize with multiple interesting spots
+  const initializeField = () => {
+    const newField = Array(gridSize).fill().map(() => Array(gridSize).fill(0));
+    
+    // Multiple active regions
+    for (let n = 0; n < 5; n++) {
+      const cx = Math.floor(Math.random() * (gridSize - 10)) + 5;
+      const cy = Math.floor(Math.random() * (gridSize - 10)) + 5;
+      const intensity = (Math.random() - 0.5) * 2;
+      
+      for (let i = -3; i <= 3; i++) {
+        for (let j = -3; j <= 3; j++) {
+          if (cx + i >= 0 && cx + i < gridSize && cy + j >= 0 && cy + j < gridSize) {
+            const r = Math.sqrt(i*i + j*j);
+            newField[cx + i][cy + j] += intensity * Math.exp(-r*r/2);
+          }
+        }
+      }
+    }
+    
+    setField(newField);
+    setCurrentStep(0);
+  };
+
+  // Evolution that actually keeps moving
+  const evolveField = () => {
+    setField(prevField => {
+      const newField = prevField.map(row => [...row]);
+      const { diffusion, antidiffusion, nonlinear, injection, chaos, speed } = params;
+      
+      for (let i = 1; i < gridSize - 1; i++) {
+        for (let j = 1; j < gridSize - 1; j++) {
+          const current = prevField[i][j];
+          
+          // Neighbors
+          const neighbors = [
+            prevField[i-1][j], prevField[i+1][j],
+            prevField[i][j-1], prevField[i][j+1]
+          ];
+          const avgNeighbor = neighbors.reduce((a, b) => a + b) / 4;
+          
+          // Laplacian (spreading force)
+          const laplacian = avgNeighbor - current;
+          
+          // Gradient magnitude  
+          const dx = (prevField[i+1][j] - prevField[i-1][j]) / 2;
+          const dy = (prevField[i][j+1] - prevField[i][j-1]) / 2;
+          const gradMag = Math.sqrt(dx*dx + dy*dy);
+          
+          // Forces
+          let totalChange = 0;
+          
+          // 1. Diffusion (spreading)
+          totalChange += diffusion * laplacian;
+          
+          // 2. Anti-diffusion (concentration) 
+          if (gradMag > 0.01) {
+            totalChange -= antidiffusion * gradMag * Math.sign(current);
+          }
+          
+          // 3. Nonlinear self-interaction
+          totalChange += nonlinear * current * (1 - current * current) * 0.1;
+          
+          // 4. Continuous energy injection at edges
+          if (i < 3 || i > gridSize - 4 || j < 3 || j > gridSize - 4) {
+            totalChange += injection * Math.sin(currentStep * 0.1 + i * 0.3 + j * 0.2);
+          }
+          
+          // 5. Random chaos to prevent settling
+          totalChange += chaos * (Math.random() - 0.5) * 0.1;
+          
+          // 6. Prevent runaway values
+          const newValue = current + speed * totalChange * 0.1;
+          newField[i][j] = Math.max(-2, Math.min(2, newValue));
+        }
+      }
+      
+      return newField;
+    });
+    
+    setCurrentStep(prev => prev + 1);
+  };
+
+  // Animation loop
+  useEffect(() => {
+    if (!isRunning) return;
+    
+    const interval = setInterval(evolveField, 100); // 10 FPS for stability
+    return () => clearInterval(interval);
+  }, [isRunning, params]);
+
+  // Render with better contrast
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    const { width, height } = canvas;
+    ctx.clearRect(0, 0, width, height);
+    
+    const cellWidth = width / gridSize;
+    const cellHeight = height / gridSize;
+    
+    // Find min/max for better contrast
+    let minVal = Infinity, maxVal = -Infinity;
+    for (let i = 0; i < gridSize; i++) {
+      for (let j = 0; j < gridSize; j++) {
+        minVal = Math.min(minVal, field[i][j]);
+        maxVal = Math.max(maxVal, field[i][j]);
+      }
+    }
+    
+    const range = Math.max(0.1, maxVal - minVal);
+    
+    for (let i = 0; i < gridSize; i++) {
+      for (let j = 0; j < gridSize; j++) {
+        const value = field[i][j];
+        const normalized = (value - minVal) / range;
+        
+        let r, g, b;
+        if (value > 0) {
+          // Positive values: blue to white
+          const intensity = Math.min(1, Math.abs(value) * 2);
+          r = Math.floor(intensity * 255);
+          g = Math.floor(intensity * 255);
+          b = 255;
+        } else {
+          // Negative values: red to black
+          const intensity = Math.min(1, Math.abs(value) * 2);
+          r = 255;
+          g = Math.floor((1 - intensity) * 100);
+          b = Math.floor((1 - intensity) * 100);
+        }
+        
+        ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+        ctx.fillRect(i * cellWidth, j * cellHeight, cellWidth, cellHeight);
+      }
+    }
+    
+    // Add grid lines for clarity
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+    ctx.lineWidth = 0.5;
+    for (let i = 0; i <= gridSize; i++) {
+      ctx.beginPath();
+      ctx.moveTo(i * cellWidth, 0);
+      ctx.lineTo(i * cellWidth, height);
+      ctx.stroke();
+      
+      ctx.beginPath();
+      ctx.moveTo(0, i * cellHeight);
+      ctx.lineTo(width, i * cellHeight);
+      ctx.stroke();
+    }
+  }, [field]);
+
+  // Initialize on mount
+  useEffect(() => {
+    initializeField();
+  }, []);
+
+  // Quick preset configurations
+  const presets = {
+    'stable': {
+      diffusion: 0.05, antidiffusion: 0.1, nonlinear: 0.1, 
+      injection: 0.01, chaos: 0.05, speed: 0.8
+    },
+    'chaotic': {
+      diffusion: 0.1, antidiffusion: 0.2, nonlinear: 0.4, 
+      injection: 0.05, chaos: 0.2, speed: 1.5
+    },
+    'waves': {
+      diffusion: 0.08, antidiffusion: 0.15, nonlinear: 0.2, 
+      injection: 0.03, chaos: 0.02, speed: 1.2
+    },
+    'turbulent': {
+      diffusion: 0.15, antidiffusion: 0.3, nonlinear: 0.5, 
+      injection: 0.08, chaos: 0.15, speed: 2.0
+    }
+  };
+
+  const applyPreset = (presetName) => {
+    setParams(presets[presetName]);
+    initializeField();
+  };
+
+  return (
+    <div className="w-full max-w-6xl mx-auto p-6 bg-gradient-to-br from-slate-900 to-slate-800 text-white rounded-lg">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold mb-2 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+          Actually Working Symbolic Field
+        </h1>
+        <p className="text-slate-300">
+          Tuned for continuous motion and interesting dynamics
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Visualization */}
+        <div className="lg:col-span-2 space-y-4">
+          <div className="bg-slate-800 rounded-lg p-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">Field Evolution</h3>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setIsRunning(!isRunning)}
+                  className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-colors ${
+                    isRunning ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'
+                  }`}
+                >
+                  {isRunning ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                  {isRunning ? 'Pause' : 'Run'}
+                </button>
+                <button
+                  onClick={initializeField}
+                  className="px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded-lg flex items-center gap-2 transition-colors"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                  Reset
+                </button>
+              </div>
+            </div>
+            
+            <canvas
+              ref={canvasRef}
+              width={480}
+              height={480}
+              className="w-full border border-slate-600 rounded-lg"
+            />
+            
+            <div className="mt-4 text-sm text-slate-400">
+              Step: {currentStep} | Grid: {gridSize}×{gridSize} | Blue: Positive, Red: Negative
+            </div>
+          </div>
+
+          {/* Presets */}
+          <div className="bg-slate-800 rounded-lg p-4">
+            <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+              <Zap className="w-5 h-5" />
+              Quick Presets
+            </h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+              {Object.keys(presets).map(preset => (
+                <button
+                  key={preset}
+                  onClick={() => applyPreset(preset)}
+                  className="p-3 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm transition-colors capitalize"
+                >
+                  {preset}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Controls */}
+        <div className="space-y-6">
+          <div className="bg-slate-800 rounded-lg p-4">
+            <h3 className="text-lg font-semibold mb-4">Force Parameters</h3>
+            
+            {Object.entries(params).map(([key, value]) => (
+              <div key={key} className="mb-4">
+                <div className="flex justify-between text-sm mb-1">
+                  <span className="capitalize">{key}</span>
+                  <span className="font-mono">{value.toFixed(3)}</span>
+                </div>
+                <input
+                  type="range"
+                  min={key === 'speed' ? 0.1 : 0}
+                  max={key === 'speed' ? 3 : 0.5}
+                  step={0.01}
+                  value={value}
+                  onChange={(e) => setParams(prev => ({
+                    ...prev,
+                    [key]: parseFloat(e.target.value)
+                  }))}
+                  className="w-full h-2 bg-slate-600 rounded-lg appearance-none cursor-pointer"
+                />
+                <div className="text-xs text-slate-400 mt-1">
+                  {key === 'diffusion' && 'Spreading force'}
+                  {key === 'antidiffusion' && 'Concentration force'}
+                  {key === 'nonlinear' && 'Self-interaction'}
+                  {key === 'injection' && 'Continuous energy input'}
+                  {key === 'chaos' && 'Random perturbations'}
+                  {key === 'speed' && 'Overall evolution rate'}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="bg-slate-800 rounded-lg p-4">
+            <h3 className="text-lg font-semibold mb-4">What's Different</h3>
+            <div className="space-y-2 text-sm text-slate-300">
+              <div>• <strong>Continuous energy injection</strong> at boundaries</div>
+              <div>• <strong>Random perturbations</strong> prevent settling</div>
+              <div>• <strong>Nonlinear self-interaction</strong> creates patterns</div>
+              <div>• <strong>Anti-diffusion forces</strong> concentrate energy</div>
+              <div>• <strong>Value clamping</strong> prevents runaway</div>
+              <div>• <strong>Dynamic contrast</strong> for better visibility</div>
+            </div>
+          </div>
+
+          <div className="bg-slate-800 rounded-lg p-4">
+            <h3 className="text-lg font-semibold mb-4">Tips</h3>
+            <div className="space-y-2 text-xs text-slate-300">
+              <div><strong>Stable:</strong> Gentle, persistent motion</div>
+              <div><strong>Chaotic:</strong> Wild, unpredictable behavior</div>
+              <div><strong>Waves:</strong> Propagating wave-like patterns</div>
+              <div><strong>Turbulent:</strong> High-energy chaotic flow</div>
+              <div className="pt-2 border-t border-slate-600">
+                <div>Adjust individual parameters to fine-tune behavior</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default ActuallyWorkingSymbolicField;
