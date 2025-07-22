@@ -1,0 +1,686 @@
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Play, Pause, RotateCcw, Box, Layers, Activity } from 'lucide-react';
+import * as THREE from 'three';
+
+const Physics3DTorus = () => {
+  // 3D Physics parameters
+  const [params, setParams] = useState({
+    nx: 24, ny: 24, nz: 24,  // Start smaller for full 3D mapping
+    dx: 0.2, dy: 0.2, dz: 0.2, dt: 0.002,
+    beta: 1.0, gamma: 0.8, lambda: 0.12, kappa: 0.015, D: 0.15,
+  });
+
+  // Torus visualization parameters
+  const [torusParams, setTorusParams] = useState({
+    majorRadius: 3.0,      // Major radius of torus
+    minorRadius: 1.2,      // Minor radius of torus  
+    majorSegments: 48,     // Resolution around major circumference
+    minorSegments: 24,     // Resolution around minor circumference
+    mappingMode: 'both',   // 'color', 'displacement', 'both'
+    colorIntensity: 1.0,   // Color mapping strength
+    displacementScale: 0.3, // Surface displacement strength
+    autoRotate: true,      // Auto rotation
+    showField: true,       // Show field evolution
+  });
+
+  // Simulation state
+  const [isRunning, setIsRunning] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [field3D, setField3D] = useState(null);
+  const [fieldPrev3D, setFieldPrev3D] = useState(null);
+  const [statistics, setStatistics] = useState({
+    energy: 0, variance: 0, correlation: 0, curvature: 0
+  });
+
+  // Three.js refs
+  const mountRef = useRef(null);
+  const sceneRef = useRef(null);
+  const rendererRef = useRef(null);
+  const cameraRef = useRef(null);
+  const torusRef = useRef(null);
+  const materialRef = useRef(null);
+  const animationRef = useRef(null);
+
+  // Initialize 3D field with interesting patterns
+  const initializeField3D = useCallback(() => {
+    const { nx, ny, nz } = params;
+    const newField = Array(nx).fill().map(() => 
+      Array(ny).fill().map(() => Array(nz).fill(0))
+    );
+    const newFieldPrev = Array(nx).fill().map(() => 
+      Array(ny).fill().map(() => Array(nz).fill(0))
+    );
+    
+    // Create interesting 3D patterns that will show emergence
+    for (let i = 0; i < nx; i++) {
+      for (let j = 0; j < ny; j++) {
+        for (let k = 0; k < nz; k++) {
+          const x = (i / nx) * 2 * Math.PI;
+          const y = (j / ny) * 2 * Math.PI;
+          const z = (k / nz) * 2 * Math.PI;
+          
+          // Multiple interacting modes for rich dynamics
+          const mode1 = 0.3 * Math.sin(x) * Math.cos(y + z);
+          const mode2 = 0.25 * Math.cos(x + y) * Math.sin(z);
+          const mode3 = 0.2 * Math.sin(x + y + z);
+          const noise = 0.15 * (Math.random() - 0.5);
+          
+          // Localized perturbations to seed domain formation
+          const r = Math.sqrt((i-nx/2)*(i-nx/2) + (j-ny/2)*(j-ny/2) + (k-nz/2)*(k-nz/2));
+          const gaussian = 0.4 * Math.exp(-r*r / (nx*nx/16));
+          
+          newField[i][j][k] = mode1 + mode2 + mode3 + noise + gaussian;
+          newFieldPrev[i][j][k] = newField[i][j][k];
+        }
+      }
+    }
+    
+    setField3D(newField);
+    setFieldPrev3D(newFieldPrev);
+    setCurrentTime(0);
+  }, [params]);
+
+  // Full 3D physics evolution
+  const evolveField3D = useCallback((field, fieldPrev) => {
+    const { nx, ny, nz, dt, beta, gamma, lambda, kappa, D } = params;
+    const newField = Array(nx).fill().map(() => 
+      Array(ny).fill().map(() => Array(nz).fill(0))
+    );
+    
+    for (let i = 0; i < nx; i++) {
+      for (let j = 0; j < ny; j++) {
+        for (let k = 0; k < nz; k++) {
+          // Periodic boundaries
+          const ip = (i + 1) % nx, im = (i - 1 + nx) % nx;
+          const jp = (j + 1) % ny, jm = (j - 1 + ny) % ny;
+          const kp = (k + 1) % nz, km = (k - 1 + nz) % nz;
+          
+          // Full 3D gradient
+          const dx = (field[ip][j][k] - field[im][j][k]) / (2 * params.dx);
+          const dy = (field[i][jp][k] - field[i][jm][k]) / (2 * params.dy);
+          const dz = (field[i][j][kp] - field[i][j][km]) / (2 * params.dz);
+          const gradSq = dx*dx + dy*dy + dz*dz;
+          
+          // 3D Laplacian
+          const laplacian = (
+            (field[ip][j][k] - 2*field[i][j][k] + field[im][j][k]) / (params.dx*params.dx) +
+            (field[i][jp][k] - 2*field[i][j][k] + field[i][jm][k]) / (params.dy*params.dy) +
+            (field[i][j][kp] - 2*field[i][j][k] + field[i][j][km]) / (params.dz*params.dz)
+          );
+          
+          // Second derivatives for curvature
+          const d2dx2 = (field[ip][j][k] - 2*field[i][j][k] + field[im][j][k]) / (params.dx*params.dx);
+          const d2dy2 = (field[i][jp][k] - 2*field[i][j][k] + field[i][jm][k]) / (params.dy*params.dy);
+          const d2dz2 = (field[i][j][kp] - 2*field[i][j][k] + field[i][j][km]) / (params.dz*params.dz);
+          
+          // 3D curvature coupling (simplified but mathematically consistent)
+          const curvature = -lambda * gradSq * (d2dx2 + d2dy2 + d2dz2);
+          
+          // Nonconservation with 3D structure
+          const noncons = kappa * field[i][j][k] * (gradSq + 0.1 * Math.sin(field[i][j][k]));
+          
+          // Full 3D equation of motion
+          const acceleration = (gamma/beta) * laplacian + 
+                             (1/beta) * curvature + 
+                             (1/beta) * noncons + 
+                             D * laplacian;
+          
+          newField[i][j][k] = 2*field[i][j][k] - fieldPrev[i][j][k] + acceleration * dt * dt;
+        }
+      }
+    }
+    
+    return newField;
+  }, [params]);
+
+  // Map 3D field to torus surface
+  const mapFieldToTorus = useCallback(() => {
+    if (!field3D || !torusRef.current) return;
+    
+    const { nx, ny, nz } = params;
+    const { majorRadius, minorRadius, mappingMode, colorIntensity, displacementScale } = torusParams;
+    
+    const geometry = torusRef.current.geometry;
+    const position = geometry.attributes.position;
+    const color = geometry.attributes.color;
+    
+    // Find field range for normalization
+    let minVal = Infinity, maxVal = -Infinity;
+    for (let i = 0; i < nx; i++) {
+      for (let j = 0; j < ny; j++) {
+        for (let k = 0; k < nz; k++) {
+          minVal = Math.min(minVal, field3D[i][j][k]);
+          maxVal = Math.max(maxVal, field3D[i][j][k]);
+        }
+      }
+    }
+    
+    // Store original positions for displacement
+    if (!geometry.userData.originalPositions) {
+      geometry.userData.originalPositions = position.array.slice();
+    }
+    const originalPositions = geometry.userData.originalPositions;
+    
+    // Update each vertex on the torus
+    for (let vertexIndex = 0; vertexIndex < position.count; vertexIndex++) {
+      // Get original torus position
+      const origX = originalPositions[vertexIndex * 3];
+      const origY = originalPositions[vertexIndex * 3 + 1];
+      const origZ = originalPositions[vertexIndex * 3 + 2];
+      
+      // Convert torus coordinates to field space coordinates
+      // Torus parametrization: (R + r*cos(v))*cos(u), (R + r*cos(v))*sin(u), r*sin(v)
+      const R = majorRadius;
+      const r = minorRadius;
+      
+      // Inverse torus mapping to get (u,v) parameters
+      const rho = Math.sqrt(origX*origX + origY*origY);
+      const u = Math.atan2(origY, origX); // Major angle (0 to 2π)
+      const v = Math.atan2(origZ, rho - R); // Minor angle (0 to 2π)
+      
+      // Map torus parameters to 3D field coordinates
+      const fieldU = ((u + Math.PI) / (2 * Math.PI)) * (nx - 1);
+      const fieldV = ((v + Math.PI) / (2 * Math.PI)) * (ny - 1);
+      
+      // Use the torus circumference position to map to Z coordinate
+      const circumferencePos = (vertexIndex / position.count) * (nz - 1);
+      const fieldW = circumferencePos;
+      
+      // Trilinear interpolation in 3D field
+      const ui = Math.floor(fieldU), vi = Math.floor(fieldV), wi = Math.floor(fieldW);
+      const uf = fieldU - ui, vf = fieldV - vi, wf = fieldW - wi;
+      
+      // Clamp indices
+      const ui0 = Math.max(0, Math.min(nx-1, ui));
+      const ui1 = Math.max(0, Math.min(nx-1, ui+1));
+      const vi0 = Math.max(0, Math.min(ny-1, vi));
+      const vi1 = Math.max(0, Math.min(ny-1, vi+1));
+      const wi0 = Math.max(0, Math.min(nz-1, wi));
+      const wi1 = Math.max(0, Math.min(nz-1, wi+1));
+      
+      // 8-point trilinear interpolation
+      const c000 = field3D[ui0][vi0][wi0] || 0;
+      const c001 = field3D[ui0][vi0][wi1] || 0;
+      const c010 = field3D[ui0][vi1][wi0] || 0;
+      const c011 = field3D[ui0][vi1][wi1] || 0;
+      const c100 = field3D[ui1][vi0][wi0] || 0;
+      const c101 = field3D[ui1][vi0][wi1] || 0;
+      const c110 = field3D[ui1][vi1][wi0] || 0;
+      const c111 = field3D[ui1][vi1][wi1] || 0;
+      
+      const c00 = c000*(1-uf) + c100*uf;
+      const c01 = c001*(1-uf) + c101*uf;
+      const c10 = c010*(1-uf) + c110*uf;
+      const c11 = c011*(1-uf) + c111*uf;
+      
+      const c0 = c00*(1-vf) + c10*vf;
+      const c1 = c01*(1-vf) + c11*vf;
+      
+      const fieldValue = c0*(1-wf) + c1*wf;
+      
+      const normalized = (fieldValue - minVal) / (maxVal - minVal);
+      
+      // Apply displacement mapping
+      if (mappingMode === 'displacement' || mappingMode === 'both') {
+        const displacement = (normalized - 0.5) * displacementScale;
+        
+        // Calculate surface normal direction for displacement
+        const normal = new THREE.Vector3(origX, origY, origZ).normalize();
+        
+        position.setX(vertexIndex, origX + normal.x * displacement);
+        position.setY(vertexIndex, origY + normal.y * displacement);
+        position.setZ(vertexIndex, origZ + normal.z * displacement);
+      } else {
+        // Reset to original position
+        position.setX(vertexIndex, origX);
+        position.setY(vertexIndex, origY);
+        position.setZ(vertexIndex, origZ);
+      }
+      
+      // Apply color mapping
+      if (mappingMode === 'color' || mappingMode === 'both') {
+        // Use scientific color map: blue → green → yellow → red
+        const hue = (1 - normalized) * 240 / 360; // Blue to red
+        const saturation = 0.8 + 0.2 * Math.sin(normalized * Math.PI);
+        const lightness = 0.3 + normalized * 0.5;
+        
+        const hslColor = new THREE.Color().setHSL(hue, saturation, lightness * colorIntensity);
+        color.setXYZ(vertexIndex, hslColor.r, hslColor.g, hslColor.b);
+      }
+    }
+    
+    position.needsUpdate = true;
+    if (color) color.needsUpdate = true;
+    geometry.computeVertexNormals(); // Recompute normals after displacement
+  }, [field3D, params, torusParams]);
+
+  // Compute physics statistics
+  const computeStatistics = useCallback(() => {
+    if (!field3D) return;
+    
+    const { nx, ny, nz } = params;
+    let energy = 0, variance = 0, mean = 0, curvature = 0;
+    let count = 0;
+    
+    // First pass: mean
+    for (let i = 0; i < nx; i++) {
+      for (let j = 0; j < ny; j++) {
+        for (let k = 0; k < nz; k++) {
+          mean += field3D[i][j][k];
+          count++;
+        }
+      }
+    }
+    mean /= count;
+    
+    // Second pass: variance, energy, curvature
+    for (let i = 0; i < nx; i++) {
+      for (let j = 0; j < ny; j++) {
+        for (let k = 0; k < nz; k++) {
+          const val = field3D[i][j][k];
+          variance += (val - mean) * (val - mean);
+          
+          // Approximate energy density
+          if (fieldPrev3D) {
+            const ddt = (val - fieldPrev3D[i][j][k]) / params.dt;
+            energy += 0.5 * params.beta * ddt * ddt;
+          }
+          
+          // Approximate curvature
+          if (i > 0 && i < nx-1 && j > 0 && j < ny-1 && k > 0 && k < nz-1) {
+            const laplacian = (
+              field3D[i+1][j][k] + field3D[i-1][j][k] +
+              field3D[i][j+1][k] + field3D[i][j-1][k] +
+              field3D[i][j][k+1] + field3D[i][j][k-1] - 6*val
+            );
+            curvature += Math.abs(laplacian);
+          }
+        }
+      }
+    }
+    
+    setStatistics({
+      energy: energy / count,
+      variance: variance / count,
+      correlation: Math.sqrt(variance / count) * 2.0,
+      curvature: curvature / count
+    });
+  }, [field3D, fieldPrev3D, params]);
+
+  // Initialize Three.js scene
+  const initThreeJS = useCallback(() => {
+    if (!mountRef.current) return;
+
+    // Scene
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0a0a0a);
+    
+    // Camera
+    const camera = new THREE.PerspectiveCamera(
+      60, 
+      mountRef.current.clientWidth / mountRef.current.clientHeight, 
+      0.1, 
+      100
+    );
+    camera.position.set(8, 6, 8);
+    camera.lookAt(0, 0, 0);
+    
+    // Renderer
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(mountRef.current.clientWidth, mountRef.current.clientHeight);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    mountRef.current.appendChild(renderer.domElement);
+    
+    // Lighting
+    const ambientLight = new THREE.AmbientLight(0x404040, 0.3);
+    scene.add(ambientLight);
+    
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.7);
+    directionalLight.position.set(10, 10, 5);
+    directionalLight.castShadow = true;
+    scene.add(directionalLight);
+    
+    const pointLight = new THREE.PointLight(0x4080ff, 0.5, 50);
+    pointLight.position.set(-5, 5, -5);
+    scene.add(pointLight);
+    
+    // Create torus geometry
+    const { majorRadius, minorRadius, majorSegments, minorSegments } = torusParams;
+    const geometry = new THREE.TorusGeometry(majorRadius, minorRadius, minorSegments, majorSegments);
+    
+    // Add color attribute
+    const colors = new Float32Array(geometry.attributes.position.count * 3);
+    geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    
+    // Material with vertex colors
+    const material = new THREE.MeshPhongMaterial({
+      vertexColors: true,
+      shininess: 100,
+      side: THREE.DoubleSide,
+    });
+    
+    // Create torus mesh
+    const torus = new THREE.Mesh(geometry, material);
+    torus.castShadow = true;
+    torus.receiveShadow = true;
+    scene.add(torus);
+    
+    // Mouse controls
+    let mouseDown = false;
+    let mouseX = 0, mouseY = 0;
+    
+    const onMouseDown = (event) => {
+      mouseDown = true;
+      mouseX = event.clientX;
+      mouseY = event.clientY;
+    };
+    
+    const onMouseUp = () => { mouseDown = false; };
+    
+    const onMouseMove = (event) => {
+      if (!mouseDown) return;
+      
+      const deltaX = event.clientX - mouseX;
+      const deltaY = event.clientY - mouseY;
+      
+      torus.rotation.y += deltaX * 0.01;
+      torus.rotation.x += deltaY * 0.01;
+      
+      mouseX = event.clientX;
+      mouseY = event.clientY;
+    };
+    
+    const onWheel = (event) => {
+      camera.position.multiplyScalar(1 + event.deltaY * 0.001);
+    };
+    
+    renderer.domElement.addEventListener('mousedown', onMouseDown);
+    renderer.domElement.addEventListener('mouseup', onMouseUp);
+    renderer.domElement.addEventListener('mousemove', onMouseMove);
+    renderer.domElement.addEventListener('wheel', onWheel);
+    
+    // Store refs
+    sceneRef.current = scene;
+    rendererRef.current = renderer;
+    cameraRef.current = camera;
+    torusRef.current = torus;
+    materialRef.current = material;
+    
+    return () => {
+      renderer.domElement.removeEventListener('mousedown', onMouseDown);
+      renderer.domElement.removeEventListener('mouseup', onMouseUp);
+      renderer.domElement.removeEventListener('mousemove', onMouseMove);
+      renderer.domElement.removeEventListener('wheel', onWheel);
+      if (mountRef.current && renderer.domElement) {
+        mountRef.current.removeChild(renderer.domElement);
+      }
+    };
+  }, [torusParams]);
+
+  // Animation loop
+  const animate = useCallback(() => {
+    if (isRunning && field3D && fieldPrev3D) {
+      // Evolve physics
+      const newField = evolveField3D(field3D, fieldPrev3D);
+      setFieldPrev3D(field3D);
+      setField3D(newField);
+      setCurrentTime(t => t + params.dt);
+      
+      // Update statistics
+      computeStatistics();
+    }
+    
+    // Update torus visualization
+    if (torusParams.showField) {
+      mapFieldToTorus();
+    }
+    
+    // Auto-rotate
+    if (torusParams.autoRotate && torusRef.current) {
+      torusRef.current.rotation.y += 0.003;
+      torusRef.current.rotation.z += 0.001;
+    }
+    
+    // Render
+    if (rendererRef.current && sceneRef.current && cameraRef.current) {
+      rendererRef.current.render(sceneRef.current, cameraRef.current);
+    }
+    
+    animationRef.current = requestAnimationFrame(animate);
+  }, [isRunning, field3D, fieldPrev3D, evolveField3D, mapFieldToTorus, computeStatistics, torusParams.autoRotate, torusParams.showField, params.dt]);
+
+  // Effects
+  useEffect(() => {
+    initializeField3D();
+  }, [initializeField3D]);
+
+  useEffect(() => {
+    const cleanup = initThreeJS();
+    return cleanup;
+  }, [initThreeJS]);
+
+  useEffect(() => {
+    animationRef.current = requestAnimationFrame(animate);
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    };
+  }, [animate]);
+
+  return (
+    <div className="w-full max-w-6xl mx-auto p-6 bg-gray-900 text-white">
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold mb-2">🌌 3D Physics Torus - Living Field Visualization</h1>
+        <p className="text-gray-300">Complete 3D field θ(x,y,z,t) mapped onto torus surface showing emergence patterns</p>
+      </div>
+      
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        {/* 3D Torus Visualization */}
+        <div className="lg:col-span-3">
+          <div className="bg-gray-800 p-4 rounded-lg">
+            <h2 className="text-xl font-semibold mb-4">Living Physics Torus</h2>
+            <div 
+              ref={mountRef}
+              className="w-full h-96 border border-gray-600 rounded"
+              style={{ background: '#0a0a0a' }}
+            />
+            <div className="mt-4 flex gap-2 flex-wrap">
+              <button
+                onClick={() => setIsRunning(!isRunning)}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded"
+              >
+                {isRunning ? <Pause size={16} /> : <Play size={16} />}
+                {isRunning ? 'Pause' : 'Play'}
+              </button>
+              <button
+                onClick={initializeField3D}
+                className="flex items-center gap-2 px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded"
+              >
+                <RotateCcw size={16} />
+                Reset
+              </button>
+              <div className="text-sm py-2 px-3 bg-gray-700 rounded">
+                T: {currentTime.toFixed(2)}s
+              </div>
+              <div className="text-sm py-2 px-3 bg-gray-700 rounded">
+                Grid: {params.nx}³
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        {/* Controls */}
+        <div className="space-y-6">
+          {/* Physics Stats */}
+          <div className="bg-gray-800 p-4 rounded-lg">
+            <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+              <Activity size={18} />
+              3D Field Stats
+            </h3>
+            <div className="space-y-2 text-sm">
+              <div>
+                <span className="text-gray-400">Energy:</span>
+                <span className="ml-2 font-mono">{statistics.energy.toExponential(2)}</span>
+              </div>
+              <div>
+                <span className="text-gray-400">Variance:</span>
+                <span className="ml-2 font-mono">{statistics.variance.toFixed(3)}</span>
+              </div>
+              <div>
+                <span className="text-gray-400">Correlation:</span>
+                <span className="ml-2 font-mono">{statistics.correlation.toFixed(3)}</span>
+              </div>
+              <div>
+                <span className="text-gray-400">Curvature:</span>
+                <span className="ml-2 font-mono">{statistics.curvature.toExponential(2)}</span>
+              </div>
+            </div>
+          </div>
+          
+          {/* Torus Parameters */}
+          <div className="bg-gray-800 p-4 rounded-lg">
+            <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+              <Box size={18} />
+              Torus Mapping
+            </h3>
+            <div className="space-y-3 text-sm">
+              <div>
+                <label className="block text-gray-400 mb-1">Mapping Mode</label>
+                <select
+                  value={torusParams.mappingMode}
+                  onChange={(e) => setTorusParams(p => ({...p, mappingMode: e.target.value}))}
+                  className="w-full bg-gray-700 rounded px-2 py-1"
+                >
+                  <option value="color">Color Only</option>
+                  <option value="displacement">Displacement Only</option>
+                  <option value="both">Color + Displacement</option>
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-gray-400 mb-1">Color Intensity</label>
+                <input
+                  type="range"
+                  min="0.1"
+                  max="2"
+                  step="0.1"
+                  value={torusParams.colorIntensity}
+                  onChange={(e) => setTorusParams(p => ({...p, colorIntensity: parseFloat(e.target.value)}))}
+                  className="w-full"
+                />
+                <span className="text-xs text-gray-500">{torusParams.colorIntensity}</span>
+              </div>
+              
+              <div>
+                <label className="block text-gray-400 mb-1">Displacement</label>
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.05"
+                  value={torusParams.displacementScale}
+                  onChange={(e) => setTorusParams(p => ({...p, displacementScale: parseFloat(e.target.value)}))}
+                  className="w-full"
+                />
+                <span className="text-xs text-gray-500">{torusParams.displacementScale}</span>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={torusParams.autoRotate}
+                  onChange={(e) => setTorusParams(p => ({...p, autoRotate: e.target.checked}))}
+                />
+                <span>Auto Rotate</span>
+              </div>
+            </div>
+          </div>
+          
+          {/* Physics Parameters */}
+          <div className="bg-gray-800 p-4 rounded-lg">
+            <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+              <Layers size={18} />
+              Physics
+            </h3>
+            <div className="space-y-3 text-sm">
+              <div>
+                <label className="block text-gray-400 mb-1">Curvature λ</label>
+                <input
+                  type="range"
+                  min="0"
+                  max="0.3"
+                  step="0.01"
+                  value={params.lambda}
+                  onChange={(e) => setParams(p => ({...p, lambda: parseFloat(e.target.value)}))}
+                  className="w-full"
+                />
+                <span className="text-xs text-gray-500">{params.lambda}</span>
+              </div>
+              
+              <div>
+                <label className="block text-gray-400 mb-1">Gradient γ</label>
+                <input
+                  type="range"
+                  min="0.1"
+                  max="2"
+                  step="0.1"
+                  value={params.gamma}
+                  onChange={(e) => setParams(p => ({...p, gamma: parseFloat(e.target.value)}))}
+                  className="w-full"
+                />
+                <span className="text-xs text-gray-500">{params.gamma}</span>
+              </div>
+              
+              <div>
+                <label className="block text-gray-400 mb-1">Nonconservation κ</label>
+                <input
+                  type="range"
+                  min="0"
+                  max="0.05"
+                  step="0.001"
+                  value={params.kappa}
+                  onChange={(e) => setParams(p => ({...p, kappa: parseFloat(e.target.value)}))}
+                  className="w-full"
+                />
+                <span className="text-xs text-gray-500">{params.kappa}</span>
+              </div>
+              
+              <div>
+                <label className="block text-gray-400 mb-1">Grid Size</label>
+                <select
+                  value={params.nx}
+                  onChange={(e) => {
+                    const n = parseInt(e.target.value);
+                    setParams(p => ({...p, nx: n, ny: n, nz: n}));
+                  }}
+                  className="w-full bg-gray-700 rounded px-2 py-1"
+                >
+                  <option value={16}>16³ (Fast)</option>
+                  <option value={24}>24³ (Good)</option>
+                  <option value={32}>32³ (High)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          
+          {/* Info */}
+          <div className="bg-gray-800 p-4 rounded-lg">
+            <h3 className="text-lg font-semibold mb-3">🔧 3D → Torus Mapping</h3>
+            <ul className="text-xs text-gray-300 space-y-1">
+              <li>• Full 3D field θ(x,y,z,t) → torus surface</li>
+              <li>• Trilinear interpolation for smooth mapping</li>
+              <li>• Real emergence patterns visible</li>
+              <li>• Domain formation and percolation</li>
+              <li>• Drag: rotate, Wheel: zoom</li>
+              <li>• Watch phase transitions emerge!</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Physics3DTorus;
