@@ -94,8 +94,6 @@ How to Run
 # Just open index.html in a browser.
 # No install, no dependencies.
 
-Or use the hosted version (if deployed) at: [your link here]
-
 Future Directions
 
 For full details, see the documentation section below.
@@ -111,180 +109,75 @@ Investigate symbolic analogs of neural dynamics and information flow
 Build interpretable symbolic AI from this foundation
 
 
-
 ---
 
 I. Mathematical Foundation
 
-1.1 Lagrangian Formulation
+We consider a symbolic scalar field θ(x, t) evolving on a discrete lattice. The symbolic dynamics are governed by a field-theoretic Lagrangian 𝓛^S that incorporates standard kinetic and spatial terms, a regularized coherence force, and symbolic geometric feedback.
 
-We consider a symbolic field  evolving on a discrete lattice with Lagrangian density:
+1.1 Lagrangian Density
 
-\mathcal{L}^S = (\beta/2)(\partial\theta/\partial t)^2 - (\gamma/2)|\nabla\theta|^2 + \alpha/(|\nabla\theta|^2 + \epsilon^2)^{3/2} - (\kappa/2)R^S \theta^2
+𝓛^S = (β / 2) * (∂θ/∂t)^2 
+     - (γ / 2) * |∇θ|^2 
+     + α / (|∇θ|^2 + ε^2)^(3/2) 
+     - (κ / 2) * R^S * θ^2
 
-Mathematical justification for each term:
+Term explanations:
 
-Kinetic term:  provides temporal evolution energy, standard in field theory
+Kinetic term:
+(β / 2) * (∂θ/∂t)^2 — field energy from time evolution.
 
-Gradient term:  gives spatial coupling energy, analogous to elastic energy
+Gradient (spatial coupling) term:
+-(γ / 2) * |∇θ|^2 — spatial smoothness / elastic behavior.
 
-Coherence term:  creates anti-diffusive force, mathematically regularized to prevent singularities
+Regularized coherence term:
++ α / (|∇θ|^2 + ε^2)^(3/2) — coherence amplification with singularity protection.
 
-Curvature coupling:  enables geometric feedback where field couples to its own induced curvature
+Curvature coupling term:
+-(κ / 2) * R^S * θ^2 — geometric feedback from symbolic curvature.
 
 
-1.2 Euler-Lagrange Equations
 
-Applying the variational principle  yields:
+---
 
-\partial^2\theta/\partial t^2 = (1/\beta)[\gamma\nabla^2\theta + \alpha\nabla \cdot (\nabla\theta / (|\nabla\theta|^2 + \epsilon^2)^{3/2}) + \kappa R^S \theta + \text{geometric terms}]
+1.2 Euler–Lagrange Equation of Motion
 
-1.3 Symbolic Metric Tensor
+Derived via the variational principle δS = 0, where S = ∫𝓛^S dt dx dy:
 
-The field induces a metric on the lattice:
+∂²θ/∂t² = (1 / β) * [
+    γ * ∇²θ
+  + α * ∇ ⋅ (∇θ / (|∇θ|^2 + ε^2)^(3/2))
+  + κ * R^S * θ
+  + (higher-order geometric terms)
+]
 
-g^S_{ij} = \delta_{ij} + \lambda(\nabla_i \theta)(\nabla_j \theta)
+This equation governs the symbolic field’s evolution under the influence of coherence, curvature, and spatial interactions.
 
-Ricci curvature computed from field derivatives:
 
-R^S_{ij} = -\lambda(\nabla_i\nabla_j \theta)(\nabla\theta) + \text{correction terms}
+---
 
-Scalar curvature:
+1.3 Symbolic Metric Tensor and Curvature
 
-R^S = g_S^{ij} R^S_{ij}
+To encode symbolic geometry, the field induces a metric:
 
-This creates Einstein-style feedback: curvature drives field evolution while field gradients create curvature.
+g^S_ij = δ_ij + λ * (∇_i θ)(∇_j θ)
 
-II. Quantitative Validation
+The Ricci curvature is approximated as:
 
-2.1 Path Integral Analysis
+R^S_ij ≈ -λ * (∇_i ∇_j θ)(∇θ) + (correction terms)
 
-Method: Monte Carlo sampling of field configurations  over space-time histories.
+The scalar curvature is then computed as:
 
-Action calculation:
+R^S = g^S^ij * R^S_ij
 
-S[\theta] = \int \mathcal{L}^S \sqrt{\det(g^S)} \, d^2x \, dt
 
-Path integral:
+---
 
-Z = \int e^{iS[\theta]} \, D\theta
+This formulation allows symbolic feedback between curvature and field dynamics. The field generates symbolic curvature, which in turn modifies the field’s own evolution — mimicking a discrete analog of general relativistic feedback but expressed entirely through symbolic gradients and lattice operations.
 
-Results (1000+ samples):
 
-Coherence |Z|: 0.12-0.18 (constructive interference)
 
-Convergence: Variance < 0.001
 
-Conservation violation: 8.5 (indicates non-trivial dynamics)
-
-Emergent structure: 1.6 (non-random correlations)
-
-
-Conclusion: High coherence with low variance confirms the system exhibits preferred configurations.
-
-2.2 Conservation Laws (Noether's Theorem)
-
-Time translation symmetry implies energy conservation:
-
-\partial E/\partial t + \nabla \cdot J_E = 0
-
-where 
-
-Spatial translation symmetry implies momentum conservation:
-
-\partial P_i/\partial t + \nabla_j T_{ij} = 0
-
-Measured conservation violation: ~8.5
-
-2.3 Scaling Analysis
-
-Robustness across parameter variations:
-
-
-
-
-
-
-
-
-
-
-Persistent dynamics across grid sizes 16×16 to 64×64 and various initial conditions.
-
-III. Emergent Phenomena
-
-3.1 Phase Separation
-
-Natural segregation into  and  domains. Matches Ginzburg-Landau and Allen-Cahn behavior.
-
-3.2 Percolation Transitions
-
-Clusters of same-sign field values form spanning networks. Matches 2D percolation theory.
-
-3.3 Interface Instabilities
-
-Interface destabilization matches known instabilities like Saffman-Taylor and Mullins-Sekerka.
-
-IV. Computational Implementation
-
-4.1 Discrete Field Equations
-
-Spatial derivatives: Central difference with periodic boundaries.
-Temporal evolution: Leapfrog integration.
-Stability condition: 
-
-4.2 Metric Tensor Computation
-
-Real-time updates of symbolic metric and curvature terms.
-
-4.3 Reproducibility
-
-JavaScript-based, browser-compatible, documented parameters, and runs on standard hardware.
-
-V. Theoretical Connections
-
-5.1 Information Theory
-
-Entropy, algorithmic complexity, and information flow modeled through symbolic field gradients.
-
-5.2 Network Science
-
-Field equations align with graph Laplacians, random walks, and centrality measures.
-
-5.3 Statistical Mechanics
-
-Path integral framework maps to partition function . Observes critical phenomena and matches Ising/percolation classes.
-
-VI. Limitations
-
-Continuum limit not rigorously proven
-
-Existence/uniqueness of solutions not formalized
-
-Empirical validation pending real-world analogs
-
-
-VII. Future Work
-
-Continuum and renormalization analysis
-
-Optimization applications (networks, ML)
-
-Experimental analogs in physical, neural, or social systems
-
-
-VIII. Conclusion
-
-This framework provides a rigorous, symbolic lattice-based system with:
-
-Proper field-theoretic mathematical formulation
-
-Coherent emergent phenomena validated numerically
-
-Connections to diverse domains: geometry, information, networks, statistical physics
-
-
-Its reproducibility and robustness mark it as a serious platform for studying emergent symbolic dynamics with geometric feedback, independent of metaphor or mysticism.
 
 
 
