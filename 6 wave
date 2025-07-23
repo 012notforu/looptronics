@@ -3,1655 +3,865 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Self-Optimizing Wave Computer</title>
+    <title>Symbolic Physics Grid Engine</title>
     <style>
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #1e3c72, #2a5298);
-            color: white;
             margin: 0;
-            padding: 8px;
-            min-height: 100vh;
+            padding: 20px;
+            font-family: 'Courier New', monospace;
+            background: #0a0a0a;
+            color: #00ff88;
             overflow-x: auto;
         }
-        
         .container {
-            min-width: 800px;
-            margin: 0 auto;
-            zoom: 0.7;
-            transform-origin: top left;
+            display: flex;
+            gap: 20px;
+            min-width: 1400px;
         }
-        
-        @media (max-width: 768px) {
-            .container {
-                zoom: 0.5;
-                min-width: 1000px;
-            }
-        }
-        
-        @media (max-width: 480px) {
-            .container {
-                zoom: 0.4;
-                min-width: 1200px;
-            }
-        }
-        
-        .header {
-            text-align: center;
-            margin-bottom: 15px;
-            background: rgba(255,255,255,0.1);
-            padding: 10px;
-            border-radius: 10px;
-            backdrop-filter: blur(10px);
-        }
-        
-        .header h1 {
-            margin: 5px 0;
-            font-size: 24px;
-        }
-        
-        .header p {
-            margin: 5px 0;
-            font-size: 12px;
-        }
-        
-        .explanation {
-            background: rgba(255,255,255,0.15);
-            padding: 8px;
-            border-radius: 8px;
-            margin-bottom: 15px;
-            font-size: 10px;
-            line-height: 1.4;
-        }
-        
         .main-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
-            gap: 10px;
-            margin-bottom: 15px;
+            flex: 1;
         }
-        
-        .panel {
-            background: rgba(255,255,255,0.1);
-            border-radius: 8px;
-            padding: 8px;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255,255,255,0.2);
+        .grid-container {
+            position: relative;
+            border: 2px solid #00ff88;
+            background: #111;
+            margin-bottom: 20px;
         }
-        
-        .panel h3 {
-            margin: 0 0 8px 0;
-            color: #ffeb3b;
-            font-size: 12px;
-            border-bottom: 1px solid rgba(255,235,59,0.3);
-            padding-bottom: 4px;
-        }
-        
         canvas {
-            width: 100%;
-            background: rgba(0,0,0,0.3);
-            border-radius: 4px;
-            border: 1px solid rgba(255,255,255,0.2);
-            height: 80px;
+            display: block;
+            cursor: crosshair;
         }
-        
         .controls {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 4px;
-            margin: 8px 0;
+            background: #1a1a1a;
+            border: 1px solid #00ff88;
+            padding: 15px;
+            border-radius: 5px;
+            width: 350px;
+            max-height: 90vh;
+            overflow-y: auto;
         }
-        
-        .control-group {
+        .parameter-group {
+            margin: 15px 0;
+            padding: 10px;
+            background: #0d1a0d;
+            border-left: 3px solid #00ff88;
+        }
+        .parameter {
+            margin: 8px 0;
             display: flex;
             align-items: center;
-            gap: 4px;
-            margin: 3px 0;
-            font-size: 9px;
+            gap: 10px;
         }
-        
-        .control-group label {
-            min-width: 35px;
-            font-size: 8px;
-            font-weight: bold;
+        .parameter label {
+            min-width: 100px;
+            font-size: 11px;
         }
-        
-        .control-group input[type="range"] {
-            flex: 1;
-            height: 15px;
+        .parameter input, .parameter select {
+            background: #002200;
+            border: 1px solid #00ff88;
+            color: #00ff88;
+            padding: 4px;
+            border-radius: 3px;
+            width: 80px;
         }
-        
-        .control-group .value {
-            min-width: 25px;
-            text-align: right;
-            font-family: monospace;
-            background: rgba(0,0,0,0.3);
-            padding: 1px 3px;
-            border-radius: 2px;
-            font-size: 8px;
+        .metric {
+            margin: 8px 0;
+            padding: 6px;
+            background: #0d1a0d;
+            border-left: 3px solid #00ff88;
+            font-size: 11px;
         }
-        
         button {
-            background: linear-gradient(135deg, #4CAF50, #45a049);
-            color: white;
-            border: none;
-            padding: 4px 6px;
-            border-radius: 4px;
+            background: #002200;
+            border: 1px solid #00ff88;
+            color: #00ff88;
+            padding: 8px 16px;
+            margin: 5px;
             cursor: pointer;
-            font-weight: bold;
-            transition: all 0.3s;
-            font-size: 9px;
+            border-radius: 3px;
+            transition: all 0.2s ease;
         }
-        
         button:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            background: #004400;
         }
-        
-        button:active {
-            transform: translateY(0);
+        button.active {
+            background: #004400 !important;
+            font-weight: bold !important;
+            box-shadow: 0 0 5px #00ff88;
         }
-        
-        .pause-btn {
-            background: linear-gradient(135deg, #ff9800, #f57c00);
-        }
-        
-        .reset-btn {
-            background: linear-gradient(135deg, #f44336, #d32f2f);
-        }
-        
-        .metrics {
-            background: rgba(0,0,0,0.4);
-            padding: 4px;
-            border-radius: 4px;
-            margin: 4px 0;
-            font-family: monospace;
-            font-size: 8px;
-            line-height: 1.2;
-        }
-        
-        .metrics-row {
+        h1, h2, h3 { color: #00ffaa; margin: 10px 0; }
+        .visualization-mode {
             display: flex;
-            justify-content: space-between;
-            margin: 1px 0;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin: 10px 0;
         }
-        
-        .metrics-label {
-            color: #ffeb3b;
-        }
-        
-        .metrics-value {
-            color: #4CAF50;
-            font-weight: bold;
-        }
-        
-        .output-area {
-            background: rgba(0,0,0,0.4);
-            padding: 4px;
-            border-radius: 4px;
-            height: 60px;
-            overflow-y: auto;
-            font-family: monospace;
-            font-size: 8px;
-            line-height: 1.2;
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-        
-        .symbol {
-            color: #4CAF50;
-            font-weight: bold;
-        }
-        
-        .ternary-0 { color: #ff5722; }
-        .ternary-1 { color: #ffeb3b; }
-        .ternary-2 { color: #2196f3; }
-        
-        .status-bar {
-            background: rgba(0,0,0,0.3);
-            padding: 3px 6px;
-            border-radius: 4px;
-            margin: 4px 0;
-            text-align: center;
-            font-weight: bold;
-            color: #4CAF50;
+        .visualization-mode button {
             font-size: 10px;
+            padding: 4px 8px;
+            margin: 2px;
+        }
+        .grid-info {
+            background: #1a1a2e;
+            border: 1px solid #16213e;
+            padding: 8px;
+            border-radius: 3px;
+            margin: 10px 0;
+            font-size: 10px;
+        }
+        .legend {
+            font-size: 10px;
+            margin-top: 10px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 3px 0;
+        }
+        .color-box {
+            width: 12px;
+            height: 12px;
+            margin-right: 6px;
+            border: 1px solid #333;
         }
     </style>
 </head>
 <body>
+    <h1>🧮 Symbolic Physics Grid Engine</h1>
+    <p>Interactive symbolic spacetime with quantum-to-classical transitions, curvature dynamics, and wave interference</p>
+    
     <div class="container">
-        <div class="header">
-            <h1>🧠 Self-Optimizing Wave Computer</h1>
-            <p>Autonomous machine learning system generating interpretable mathematical expressions</p>
-        </div>
-
-        <div class="explanation">
-            <strong>Self-Optimizing Wave Computer:</strong> This system learns to optimize its own wave parameters while generating interpretable 
-            mathematical expressions. It evolves toward different objectives (complexity, stability, novelty) and communicates its discoveries 
-            through symbolic math rather than random symbols, making its "thoughts" readable and meaningful.
-        </div>
-
-        <!-- Self-Optimization Engine -->
-        <div style="margin-bottom: 15px;">
-            <div class="panel" style="width: 100%;">
-                <h3>🧠 Self-Optimization Engine</h3>
-                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 15px; align-items: start;">
-                    
-                    <!-- Optimization Objectives -->
-                    <div>
-                        <div style="font-size: 10px; margin-bottom: 8px; color: #ffeb3b;"><strong>Learning Objectives:</strong></div>
-                        <div style="display: grid; grid-template-columns: 1fr; gap: 3px;">
-                            <label style="font-size: 8px; display: flex; align-items: center; gap: 4px;">
-                                <input type="checkbox" id="optimizeComplexity" checked style="transform: scale(0.8);">
-                                Maximize Complexity
-                            </label>
-                            <label style="font-size: 8px; display: flex; align-items: center; gap: 4px;">
-                                <input type="checkbox" id="optimizeStability" style="transform: scale(0.8);">
-                                Maximize Stability
-                            </label>
-                            <label style="font-size: 8px; display: flex; align-items: center; gap: 4px;">
-                                <input type="checkbox" id="optimizeNovelty" checked style="transform: scale(0.8);">
-                                Maximize Novelty
-                            </label>
-                            <label style="font-size: 8px; display: flex; align-items: center; gap: 4px;">
-                                <input type="checkbox" id="optimizeExpression" checked style="transform: scale(0.8);">
-                                Rich Expressions
-                            </label>
-                        </div>
-                        
-                        <div class="control-group" style="margin-top: 8px;">
-                            <label>Learn Rate:</label>
-                            <input type="range" id="optimizationRate" min="0.001" max="0.1" step="0.001" value="0.01">
-                            <span class="value" id="optimizationRateVal">0.01</span>
-                        </div>
-                    </div>
-                    
-                    <!-- Performance Metrics -->
-                    <div>
-                        <div style="font-size: 10px; margin-bottom: 8px; color: #ffeb3b;"><strong>Performance Tracking:</strong></div>
-                        <div class="metrics">
-                            <div class="metrics-row">
-                                <span class="metrics-label">Fitness Score:</span>
-                                <span class="metrics-value" id="fitnessScore">0.000</span>
-                            </div>
-                            <div class="metrics-row">
-                                <span class="metrics-label">Generation:</span>
-                                <span class="metrics-value" id="generation">0</span>
-                            </div>
-                            <div class="metrics-row">
-                                <span class="metrics-label">Best Fitness:</span>
-                                <span class="metrics-value" id="bestFitness">0.000</span>
-                            </div>
-                            <div class="metrics-row">
-                                <span class="metrics-label">Improvements:</span>
-                                <span class="metrics-value" id="improvements">0</span>
-                            </div>
-                        </div>
-                        
-                        <div style="margin-top: 8px;">
-                            <div style="font-size: 8px; color: #888;">Learning Status: <span id="learningStatus">Exploring...</span></div>
-                        </div>
-                    </div>
-                    
-                    <!-- Parameter Evolution -->
-                    <div>
-                        <div style="font-size: 10px; margin-bottom: 8px; color: #ffeb3b;"><strong>Parameter Evolution:</strong></div>
-                        <canvas id="evolutionCanvas" width="200" height="80" style="width: 100%; height: 80px;"></canvas>
-                        <div style="font-size: 8px; color: #888; text-align: center; margin-top: 4px;">
-                            Fitness evolution over generations
-                        </div>
-                        
-                        <div class="controls" style="margin-top: 8px;">
-                            <button id="toggleOptimization">🧠 Learning: ON</button>
-                            <button id="resetOptimization">🔄 Reset</button>
-                        </div>
-                    </div>
-                    
-                    <!-- System Insights -->
-                    <div>
-                        <div style="font-size: 10px; margin-bottom: 8px; color: #ffeb3b;"><strong>System Insights:</strong></div>
-                        <div class="output-area" id="insightsOutput" style="height: 60px;">
-                            Learning engine initializing...
-                        </div>
-                        
-                        <div style="margin-top: 8px; padding: 4px; background: rgba(0,0,0,0.3); border-radius: 4px; font-size: 8px;">
-                            <div><strong>Current Strategy:</strong> <span id="currentStrategy">Exploration</span></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
         <div class="main-grid">
-            <!-- Wave Interference Substrate Panel -->
-            <div class="panel">
-                <h3>🌊 Wave Substrate</h3>
-                <canvas id="waveCanvas" width="200" height="80"></canvas>
-                
-                <div class="control-group">
-                    <label>ω₁:</label>
-                    <input type="range" id="freq1" min="0.3" max="5.0" step="0.001" value="1.0">
-                    <input type="number" id="freq1Input" min="0.3" max="5.0" step="0.001" value="1.0" style="width: 50px; font-size: 7px; padding: 1px;">
-                </div>
-                <div class="control-group">
-                    <label>ω₂:</label>
-                    <input type="range" id="freq2" min="0.3" max="5.0" step="0.001" value="1.5">
-                    <input type="number" id="freq2Input" min="0.3" max="5.0" step="0.001" value="1.5" style="width: 50px; font-size: 7px; padding: 1px;">
-                </div>
-                <div class="control-group">
-                    <label>ω₃:</label>
-                    <input type="range" id="freq3" min="0.3" max="5.0" step="0.001" value="2.0">
-                    <input type="number" id="freq3Input" min="0.3" max="5.0" step="0.001" value="2.0" style="width: 50px; font-size: 7px; padding: 1px;">
-                </div>
-                <div class="control-group">
-                    <label>ω₄:</label>
-                    <input type="range" id="freq4" min="0.3" max="5.0" step="0.001" value="2.5">
-                    <input type="number" id="freq4Input" min="0.3" max="5.0" step="0.001" value="2.5" style="width: 50px; font-size: 7px; padding: 1px;">
-                </div>
-                <div class="control-group">
-                    <label>ω₅:</label>
-                    <input type="range" id="freq5" min="0.3" max="5.0" step="0.001" value="3.0">
-                    <input type="number" id="freq5Input" min="0.3" max="5.0" step="0.001" value="3.0" style="width: 50px; font-size: 7px; padding: 1px;">
-                </div>
-                <div class="control-group">
-                    <label>ω₆:</label>
-                    <input type="range" id="freq6" min="0.3" max="5.0" step="0.001" value="3.5">
-                    <input type="number" id="freq6Input" min="0.3" max="5.0" step="0.001" value="3.5" style="width: 50px; font-size: 7px; padding: 1px;">
-                </div>
-                <div class="control-group">
-                    <label>Threshold:</label>
-                    <input type="range" id="threshold" min="0.1" max="0.9" step="0.001" value="0.5">
-                    <span class="value" id="thresholdVal">0.5</span>
-                </div>
-                
-                <div style="margin: 8px 0; padding: 4px; background: rgba(0,0,0,0.2); border-radius: 4px;">
-                    <div style="font-size: 8px; margin-bottom: 4px;"><strong>Ramanujan Presets:</strong></div>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2px;">
-                        <button onclick="setRamanujanRatio('golden')" style="font-size: 7px; padding: 2px;">φ Golden</button>
-                        <button onclick="setRamanujanRatio('sqrt2')" style="font-size: 7px; padding: 2px;">√2 Ratio</button>
-                        <button onclick="setRamanujanRatio('sqrt3')" style="font-size: 7px; padding: 2px;">√3 Ratio</button>
-                        <button onclick="setRamanujanRatio('sqrt5')" style="font-size: 7px; padding: 2px;">√5 Ratio</button>
-                        <button onclick="setRamanujanRatio('ramanujan')" style="font-size: 7px; padding: 2px;">π² Series</button>
-                    </div>
-                </div>
-
-                <div style="margin: 8px 0; padding: 4px; background: rgba(0,0,0,0.2); border-radius: 4px;">
-                    <div style="font-size: 8px; margin-bottom: 4px;"><strong>Emergence Presets:</strong></div>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2px;">
-                        <button onclick="setEmergencePreset('fibonacci')" style="font-size: 7px; padding: 2px;">🌀 Fibonacci</button>
-                        <button onclick="setEmergencePreset('prime')" style="font-size: 7px; padding: 2px;">🔢 Prime Seq</button>
-                        <button onclick="setEmergencePreset('chaos')" style="font-size: 7px; padding: 2px;">🌪️ Chaotic</button>
-                        <button onclick="setEmergencePreset('harmonic')" style="font-size: 7px; padding: 2px;">🎵 Harmonic</button>
-                        <button onclick="setEmergencePreset('resonance')" style="font-size: 7px; padding: 2px;">⚡ Resonance</button>
-                    </div>
-                </div>
-
-                <div class="controls">
-                    <button id="pauseBtn" class="pause-btn">⏸️ Pause</button>
-                    <button id="resetBtn" class="reset-btn">🔄 Reset</button>
-                </div>
-
-                <div class="metrics">
-                    <div class="metrics-row">
-                        <span class="metrics-label">Interference:</span>
-                        <span class="metrics-value" id="interferenceLevel">0.00</span>
-                    </div>
-                    <div class="metrics-row">
-                        <span class="metrics-label">Resonance:</span>
-                        <span class="metrics-value" id="resonanceEvents">0</span>
-                    </div>
-                    <div class="metrics-row">
-                        <span class="metrics-label">Time:</span>
-                        <span class="metrics-value" id="waveTime">0.0s</span>
-                    </div>
+            <div class="grid-container">
+                <canvas id="mainCanvas" width="800" height="600"></canvas>
+                <div class="grid-info">
+                    Click and drag to create symbolic disturbances | Mouse wheel to zoom | Arrow keys to pan
                 </div>
             </div>
-
-            <!-- Spatial Memory Grid Panel -->
-            <div class="panel">
-                <h3>🧠 Spatial Memory</h3>
-                <canvas id="spatialCanvas" width="200" height="80"></canvas>
-                
-                <div class="control-group">
-                    <label>Learn:</label>
-                    <input type="range" id="learnRate" min="0.1" max="1.0" step="0.1" value="0.5">
-                    <span class="value" id="learnRateVal">0.5</span>
+            
+            <div class="visualization-mode">
+                <button onclick="setVisualizationMode('field')" class="active">Symbolic Field θ</button>
+                <button onclick="setVisualizationMode('curvature')">Ricci Curvature R^(S)</button>
+                <button onclick="setVisualizationMode('energy')">Energy Density T^(S)</button>
+                <button onclick="setVisualizationMode('metric')">Symbolic Metric g^(S)</button>
+                <button onclick="setVisualizationMode('deviation')">Einstein Deviation</button>
+                <button onclick="setVisualizationMode('coherence')">Field Coherence</button>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <h2>🧨 Symbolic Physics Engine</h2>
+            
+            <div class="parameter-group">
+                <h3>Core Field Dynamics</h3>
+                <div class="parameter">
+                    <label>α (nonlinear):</label>
+                    <input type="number" id="alpha" value="0.5" step="0.1" min="0">
                 </div>
-                <div class="control-group">
-                    <label>Decay:</label>
-                    <input type="range" id="memoryDecay" min="0.90" max="0.99" step="0.01" value="0.95">
-                    <span class="value" id="memoryDecayVal">0.95</span>
+                <div class="parameter">
+                    <label>β (inertia):</label>
+                    <input type="number" id="beta" value="1.0" step="0.1" min="0.1">
                 </div>
-
-                <div class="controls">
-                    <button id="clearMemory">🧹 Clear</button>
-                    <button id="toggleLearning">🧠 Learning</button>
+                <div class="parameter">
+                    <label>γ (diffusion):</label>
+                    <input type="number" id="gamma" value="0.1" step="0.05" min="0">
                 </div>
-
-                <div class="metrics">
-                    <div class="metrics-row">
-                        <span class="metrics-label">Active:</span>
-                        <span class="metrics-value" id="activeCells">0</span>
-                    </div>
-                    <div class="metrics-row">
-                        <span class="metrics-label">Load:</span>
-                        <span class="metrics-value" id="memoryLoad">0%</span>
-                    </div>
-                    <div class="metrics-row">
-                        <span class="metrics-label">Entropy:</span>
-                        <span class="metrics-value" id="patternEntropy">0.00</span>
-                    </div>
+                <div class="parameter">
+                    <label>ε (regularize):</label>
+                    <input type="number" id="epsilon" value="0.1" step="0.01" min="0.01">
                 </div>
             </div>
-
-            <!-- Mathematical Expression Engine -->
-            <div class="panel">
-                <h3>🧮 Mathematical Expression Engine</h3>
-                
-                <div class="status-bar">
-                    Expression: <span id="currentSymbol" class="symbol">∅</span>
+            
+            <div class="parameter-group">
+                <h3>🚀 Symbolic Relativity</h3>
+                <div class="parameter">
+                    <label>λ (metric coupling):</label>
+                    <input type="number" id="lambda" value="0.1" step="0.01" min="0">
                 </div>
-                
-                <div class="output-area" id="symbolicOutput">
-                    System initializing...
+                <div class="parameter">
+                    <label>G_s (gravity):</label>
+                    <input type="number" id="gsymbolic" value="0.01" step="0.001" min="0">
                 </div>
-
-                <div class="controls">
-                    <button id="clearSymbols">🧹 Clear</button>
-                    <button id="analyzeSymbols">📊 Analyze</button>
-                </div>
-
-                <div class="metrics">
-                    <div class="metrics-row">
-                        <span class="metrics-label">Count:</span>
-                        <span class="metrics-value" id="symbolCount">0</span>
-                    </div>
-                    <div class="metrics-row">
-                        <span class="metrics-label">Complexity:</span>
-                        <span class="metrics-value" id="uniqueSymbols">0</span>
-                    </div>
-                    <div class="metrics-row">
-                        <span class="metrics-label">Rate:</span>
-                        <span class="metrics-value" id="symbolRate">0.0/s</span>
-                    </div>
+                <div class="parameter">
+                    <label>κ (geodesic):</label>
+                    <input type="number" id="kappa" value="0.1" step="0.01" min="0">
                 </div>
             </div>
-
-            <!-- System Analysis Panel -->
-            <div class="panel">
-                <h3>📊 Analysis</h3>
-                
-                <canvas id="analysisCanvas" width="200" height="80"></canvas>
-                
-                <div class="controls">
-                    <button id="runAnalysis">🔬 Analyze</button>
-                    <button id="exportData">💾 Export</button>
+            
+            <div class="parameter-group">
+                <h3>Symbolic Potential</h3>
+                <div class="parameter">
+                    <label>V₀ (depth):</label>
+                    <input type="number" id="v0" value="1.0" step="0.1">
                 </div>
-
-                <div class="metrics">
-                    <div class="metrics-row">
-                        <span class="metrics-label">Complexity:</span>
-                        <span class="metrics-value" id="complexity">0.00</span>
-                    </div>
-                    <div class="metrics-row">
-                        <span class="metrics-label">Stability:</span>
-                        <span class="metrics-value" id="stability">0.00</span>
-                    </div>
-                    <div class="metrics-row">
-                        <span class="metrics-label">Info Flow:</span>
-                        <span class="metrics-value" id="infoFlow">0.00</span>
-                    </div>
+                <div class="parameter">
+                    <label>ω (frequency):</label>
+                    <input type="number" id="omega" value="2.0" step="0.1">
                 </div>
             </div>
-
-            <!-- Spectral Analysis Observatory -->
-            <div class="panel">
-                <h3>🔍 Spectral Observatory</h3>
-                
-                <canvas id="spectralCanvas" width="200" height="80"></canvas>
-                
-                <div class="controls">
-                    <button id="toggleSpectral">📈 Monitor: ON</button>
-                    <button id="resetSpectral">🔄 Reset</button>
+            
+            <div class="parameter-group">
+                <h3>Simulation Parameters</h3>
+                <div class="parameter">
+                    <label>dt:</label>
+                    <input type="number" id="dt" value="0.005" step="0.001" min="0.001">
                 </div>
-
-                <div class="metrics">
-                    <div class="metrics-row">
-                        <span class="metrics-label">Peak Freq:</span>
-                        <span class="metrics-value" id="peakFrequency">0.00</span>
-                    </div>
-                    <div class="metrics-row">
-                        <span class="metrics-label">Spectral Energy:</span>
-                        <span class="metrics-value" id="spectralEnergy">0.00</span>
-                    </div>
-                    <div class="metrics-row">
-                        <span class="metrics-label">Bandwidth:</span>
-                        <span class="metrics-value" id="spectralBandwidth">0.00</span>
-                    </div>
+                <div class="parameter">
+                    <label>Grid Resolution:</label>
+                    <select id="gridSize">
+                        <option value="64">64x64</option>
+                        <option value="128" selected>128x128</option>
+                        <option value="256">256x256</option>
+                    </select>
                 </div>
+                <div class="parameter">
+                    <label>Boundary:</label>
+                    <select id="boundary">
+                        <option value="periodic" selected>Periodic</option>
+                        <option value="fixed">Fixed</option>
+                        <option value="absorbing">Absorbing</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="metric">
+                <strong>🧨 Symbolic Metrics</strong>
+            </div>
+            <div class="metric">
+                <strong>Avg Ricci R^(S):</strong>
+                <div id="avgRicci">--</div>
+            </div>
+            <div class="metric">
+                <strong>Avg Energy T^(S):</strong>
+                <div id="avgEnergy">--</div>
+            </div>
+            <div class="metric">
+                <strong>Einstein Deviation:</strong>
+                <div id="einsteinDev">--</div>
+            </div>
+            <div class="metric">
+                <strong>Total Field Energy:</strong>
+                <div id="totalEnergy">--</div>
+            </div>
+            <div class="metric">
+                <strong>Field Coherence:</strong>
+                <div id="fieldCoherence">--</div>
+            </div>
+            <div class="metric">
+                <strong>Max Curvature:</strong>
+                <div id="maxCurvature">--</div>
+            </div>
+            
+            <button onclick="startSimulation()">Start/Resume</button>
+            <button onclick="pauseSimulation()">Pause</button>
+            <button onclick="resetField()">Reset Field</button>
+            <button onclick="addRandomDisturbance()">Random Disturbance</button>
+            <button onclick="addWavePacket()">Add Wave Packet</button>
+            <button onclick="addVortex()">Add Vortex</button>
+            
+            <div class="parameter-group">
+                <h3>Presets</h3>
+                <button onclick="setQuantumRegime()">Quantum Regime</button>
+                <button onclick="setClassicalRegime()">Classical Regime</button>
+                <button onclick="setTransitionRegime()">Transition Regime</button>
+                <button onclick="setChaosRegime()">Chaos Regime</button>
+            </div>
+            
+            <div class="legend">
+                <h3>Visualization Guide</h3>
+                <div class="legend-item">
+                    <div class="color-box" style="background: linear-gradient(90deg, #000080, #ffffff, #ff0000);"></div>
+                    Field θ: Blue(negative) → White(zero) → Red(positive)
+                </div>
+                <div class="legend-item">
+                    <div class="color-box" style="background: linear-gradient(90deg, #000000, #00ff00);"></div>
+                    Curvature R^(S): Black(low) → Green(high)
+                </div>
+                <div class="legend-item">
+                    <div class="color-box" style="background: linear-gradient(90deg, #000000, #ffff00);"></div>
+                    Energy T^(S): Black(low) → Yellow(high)
+                </div>
+                <div class="legend-item">
+                    <div class="color-box" style="background: linear-gradient(90deg, #000000, #ff00ff);"></div>
+                    Einstein Dev: Black(satisfied) → Magenta(violation)
+                </div>
+            </div>
+            
+            <div style="margin-top: 15px; font-size: 10px; opacity: 0.7;">
+                <p><strong>🧨 Revolutionary Framework:</strong> This implements our validated symbolic coherence field equations on a 2D grid. The field θ(x,y,t) evolves according to symbolic general relativity with quantum-to-classical transitions controlled by G_s parameter.</p>
+                <p><strong>Quantum Regime (G_s ≈ 0):</strong> Free wave oscillations, high Einstein deviation</p>
+                <p><strong>Classical Regime (G_s > 0.1):</strong> Constrained evolution, low Einstein deviation</p>
             </div>
         </div>
     </div>
 
     <script>
-        class SelfOptimizingWaveComputer {
+        // Symbolic Physics Grid Engine
+        class SymbolicPhysicsGrid {
             constructor() {
-                console.log('🚀 Initializing Self-Optimizing Wave Computer...');
+                this.canvas = document.getElementById('mainCanvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.width = this.canvas.width;
+                this.height = this.canvas.height;
                 
+                // Grid parameters
+                this.gridSize = 128;
+                this.cellSize = Math.min(this.width / this.gridSize, this.height / this.gridSize);
+                this.dx = 1.0 / this.gridSize;
+                this.dt = 0.005;
                 this.time = 0;
-                this.isRunning = true;
-                this.learningEnabled = true;
                 
-                this.frequencies = [1.0, 1.5, 2.0, 2.5, 3.0, 3.5];
-                this.threshold = 0.5;
-                this.interferenceLevel = 0;
-                this.resonanceEvents = 0;
+                // Physical parameters
+                this.alpha = 0.5;
+                this.beta = 1.0;
+                this.gamma = 0.1;
+                this.epsilon = 0.1;
+                this.lambda = 0.1;
+                this.G_symbolic = 0.01;
+                this.kappa = 0.1;
+                this.v0 = 1.0;
+                this.omega = 2.0;
+                this.boundary = 'periodic';
                 
-                this.initializeCanvases();
-                this.initializeSpatialMemory();
-                this.initializeMathematicalExpressions();
-                this.initializeAnalysisSystem();
-                this.initializeSpectralMonitoring();
-                this.initializeSelfOptimization();
-                this.setupUserControls();
-                this.startComputationalLoop();
+                // Field arrays (2D)
+                this.theta = this.createGrid();
+                this.theta_t = this.createGrid();
+                this.theta_new = this.createGrid();
+                this.theta_t_new = this.createGrid();
                 
-                console.log('✅ Self-optimizing wave computer initialization complete');
-                this.addToOutput('🌊 Self-optimizing wave computer online - ready to learn and evolve');
-                this.addToInsights('🧠 Learning engine active - beginning autonomous optimization');
+                // Symbolic relativity arrays
+                this.ricci_scalar = this.createGrid();
+                this.energy_density = this.createGrid();
+                this.metric_determinant = this.createGrid();
+                this.einstein_deviation = this.createGrid();
+                this.field_coherence = this.createGrid();
+                
+                // Visualization
+                this.visualizationMode = 'field';
+                this.colorScale = { min: -1, max: 1 };
+                this.zoom = 1.0;
+                this.offsetX = 0;
+                this.offsetY = 0;
+                
+                this.running = false;
+                this.mouseDown = false;
+                this.lastMouseX = 0;
+                this.lastMouseY = 0;
+                
+                this.initializeField();
+                this.setupEventListeners();
             }
             
-            initializeCanvases() {
-                this.waveCanvas = document.getElementById('waveCanvas');
-                this.waveCtx = this.waveCanvas.getContext('2d');
-                
-                this.spatialCanvas = document.getElementById('spatialCanvas');
-                this.spatialCtx = this.spatialCanvas.getContext('2d');
-                
-                this.analysisCanvas = document.getElementById('analysisCanvas');
-                this.analysisCtx = this.analysisCanvas.getContext('2d');
-                
-                this.spectralCanvas = document.getElementById('spectralCanvas');
-                this.spectralCtx = this.spectralCanvas.getContext('2d');
-                
-                this.evolutionCanvas = document.getElementById('evolutionCanvas');
-                this.evolutionCtx = this.evolutionCanvas.getContext('2d');
-                
-                console.log('📊 Canvas elements initialized for visualization');
+            createGrid() {
+                return Array(this.gridSize).fill(0).map(() => Array(this.gridSize).fill(0));
             }
             
-            initializeSpatialMemory() {
-                this.gridWidth = 20;
-                this.gridHeight = 12;
-                this.learningRate = 0.5;
-                this.memoryDecay = 0.95;
-                
-                this.spatialMemory = [];
-                for (let y = 0; y < this.gridHeight; y++) {
-                    const row = [];
-                    for (let x = 0; x < this.gridWidth; x++) {
-                        row.push({
-                            state: [0, 0, 0],
-                            memory: [0, 0, 0],
-                            lastActive: 0
-                        });
+            // Initialize field with wave patterns
+            initializeField() {
+                for (let i = 0; i < this.gridSize; i++) {
+                    for (let j = 0; j < this.gridSize; j++) {
+                        const x = i * this.dx;
+                        const y = j * this.dx;
+                        
+                        // Initial symbolic field with multiple wave modes
+                        this.theta[i][j] = 0.3 * Math.sin(4 * Math.PI * x) * Math.cos(4 * Math.PI * y) +
+                                          0.2 * Math.sin(8 * Math.PI * x) * Math.sin(8 * Math.PI * y) +
+                                          0.1 * (Math.random() - 0.5);
+                        
+                        this.theta_t[i][j] = 0.1 * (Math.random() - 0.5);
+                        
+                        // Initialize symbolic relativity fields
+                        this.ricci_scalar[i][j] = 0;
+                        this.energy_density[i][j] = 0;
+                        this.metric_determinant[i][j] = 1;
+                        this.einstein_deviation[i][j] = 0;
+                        this.field_coherence[i][j] = 0;
                     }
-                    this.spatialMemory.push(row);
                 }
-                
-                console.log(`🧠 Spatial memory grid created: ${this.gridWidth}x${this.gridHeight} cells`);
+                this.time = 0;
             }
             
-            initializeMathematicalExpressions() {
-                this.mathOperators = ['+', '-', '*', '/', '^', '√', 'sin', 'cos', 'log', 'exp'];
-                this.mathConstants = ['π', 'e', 'φ', '∞', '0', '1', '2', 'i'];
-                this.mathRelations = ['=', '>', '<', '≈', '∝', '→', '↔', '∈'];
-                this.mathTerms = ['x', 'y', 'z', 'f', 'g', 'h', 'α', 'β', 'γ'];
-                
-                this.currentSymbol = '∅';
-                this.symbolHistory = [];
-                this.symbolCount = 0;
-                this.expressionComplexity = new Set();
-                this.lastSymbolTime = 0;
-                this.symbolRate = 0;
-                
-                console.log('🧮 Mathematical expression generation system initialized');
-            }
-            
-            initializeAnalysisSystem() {
-                this.metricsHistory = [];
-                this.computationalComplexity = 0;
-                this.systemStability = 0;
-                this.informationFlow = 0;
-                
-                console.log('📈 Analysis system initialized for computational metrics');
-            }
-            
-            initializeSpectralMonitoring() {
-                this.spectralWindowSize = 64;
-                this.spectralMonitoringEnabled = true;
-                
-                this.symbolBuffer = [];
-                this.symbolToNumber = new Map();
-                this.createSymbolMapping();
-                
-                this.currentSpectrum = null;
-                this.peakFrequency = 0;
-                this.spectralEnergy = 0;
-                this.spectralBandwidth = 0;
-                
-                console.log('🔍 Spectral monitoring observatory initialized');
-            }
-            
-            createSymbolMapping() {
-                const symbols = ['x', 'y', 'z', 'f', 'g', 'h', 'α', 'β', 'γ', 'π', 'e', 'φ'];
-                for (let i = 0; i < symbols.length; i++) {
-                    this.symbolToNumber.set(symbols[i], i + 1);
-                }
-                this.symbolToNumber.set('∅', 0);
-            }
-            
-            initializeSelfOptimization() {
-                this.optimizationEnabled = true;
-                this.optimizationRate = 0.01;
-                this.generation = 0;
-                this.improvements = 0;
-                
-                this.objectives = {
-                    complexity: true,
-                    stability: false,
-                    novelty: true,
-                    expression: true
-                };
-                
-                this.currentFitness = 0;
-                this.bestFitness = 0;
-                this.fitnessHistory = [];
-                this.bestParameters = null;
-                this.learningStrategy = 'exploration';
-                this.lastOptimizationTime = 0;
-                
-                console.log('🧠 Self-optimization engine initialized - ready to evolve');
-            }
-            
-            setupUserControls() {
-                // Wave controls
-                for (let i = 1; i <= 6; i++) {
-                    document.getElementById(`freq${i}`).addEventListener('input', (e) => {
-                        this.frequencies[i-1] = parseFloat(e.target.value);
-                        document.getElementById(`freq${i}Input`).value = e.target.value;
-                    });
-                    
-                    document.getElementById(`freq${i}Input`).addEventListener('input', (e) => {
-                        this.frequencies[i-1] = parseFloat(e.target.value);
-                        document.getElementById(`freq${i}`).value = e.target.value;
-                    });
-                }
-                
-                document.getElementById('threshold').addEventListener('input', (e) => {
-                    this.threshold = parseFloat(e.target.value);
-                    document.getElementById('thresholdVal').textContent = e.target.value;
-                });
-                
-                document.getElementById('learnRate').addEventListener('input', (e) => {
-                    this.learningRate = parseFloat(e.target.value);
-                    document.getElementById('learnRateVal').textContent = e.target.value;
-                });
-                
-                document.getElementById('memoryDecay').addEventListener('input', (e) => {
-                    this.memoryDecay = parseFloat(e.target.value);
-                    document.getElementById('memoryDecayVal').textContent = e.target.value;
-                });
-                
-                // System controls
-                document.getElementById('pauseBtn').addEventListener('click', () => {
-                    this.isRunning = !this.isRunning;
-                    document.getElementById('pauseBtn').innerHTML = this.isRunning ? '⏸️ Pause' : '▶️ Play';
-                });
-                
-                document.getElementById('resetBtn').addEventListener('click', () => {
-                    this.resetSystem();
-                });
-                
-                document.getElementById('clearMemory').addEventListener('click', () => {
-                    this.clearSpatialMemory();
-                });
-                
-                document.getElementById('toggleLearning').addEventListener('click', () => {
-                    this.learningEnabled = !this.learningEnabled;
-                    document.getElementById('toggleLearning').innerHTML = 
-                        this.learningEnabled ? '🧠 Learning' : '🧠 Frozen';
-                });
-                
-                document.getElementById('clearSymbols').addEventListener('click', () => {
-                    this.clearSymbolicOutput();
-                });
-                
-                document.getElementById('analyzeSymbols').addEventListener('click', () => {
-                    this.analyzeSymbolicOutput();
-                });
-                
-                document.getElementById('runAnalysis').addEventListener('click', () => {
-                    this.runSystemAnalysis();
-                });
-                
-                document.getElementById('exportData').addEventListener('click', () => {
-                    this.exportSystemData();
-                });
-                
-                document.getElementById('toggleSpectral').addEventListener('click', () => {
-                    this.spectralMonitoringEnabled = !this.spectralMonitoringEnabled;
-                    document.getElementById('toggleSpectral').innerHTML = 
-                        `📈 Monitor: ${this.spectralMonitoringEnabled ? 'ON' : 'OFF'}`;
-                });
-                
-                document.getElementById('resetSpectral').addEventListener('click', () => {
-                    this.resetSpectralAnalysis();
-                });
-                
-                // Optimization controls
-                document.getElementById('optimizationRate').addEventListener('input', (e) => {
-                    this.optimizationRate = parseFloat(e.target.value);
-                    document.getElementById('optimizationRateVal').textContent = e.target.value;
-                });
-                
-                document.getElementById('optimizeComplexity').addEventListener('change', (e) => {
-                    this.objectives.complexity = e.target.checked;
-                });
-                
-                document.getElementById('optimizeStability').addEventListener('change', (e) => {
-                    this.objectives.stability = e.target.checked;
-                });
-                
-                document.getElementById('optimizeNovelty').addEventListener('change', (e) => {
-                    this.objectives.novelty = e.target.checked;
-                });
-                
-                document.getElementById('optimizeExpression').addEventListener('change', (e) => {
-                    this.objectives.expression = e.target.checked;
-                });
-                
-                document.getElementById('toggleOptimization').addEventListener('click', () => {
-                    this.optimizationEnabled = !this.optimizationEnabled;
-                    document.getElementById('toggleOptimization').innerHTML = 
-                        `🧠 Learning: ${this.optimizationEnabled ? 'ON' : 'OFF'}`;
-                });
-                
-                document.getElementById('resetOptimization').addEventListener('click', () => {
-                    this.resetOptimization();
-                });
-                
-                console.log('🎛️ User interface controls connected and active');
-            }
-            
-            startComputationalLoop() {
-                const computeFrame = () => {
-                    if (this.isRunning) {
-                        this.time += 0.05;
-                        
-                        this.updateWaveInterference();
-                        this.updateSpatialMemory();
-                        this.generateMathematicalExpression();
-                        this.renderAllVisualizations();
-                        this.updateSystemMetrics();
-                        
-                        if (this.spectralMonitoringEnabled) {
-                            this.updateSpectralAnalysis();
-                        }
-                        
-                        if (this.optimizationEnabled) {
-                            this.updateSelfOptimization();
-                        }
+            // Handle boundary conditions
+            getIndex(i, j) {
+                if (this.boundary === 'periodic') {
+                    i = ((i % this.gridSize) + this.gridSize) % this.gridSize;
+                    j = ((j % this.gridSize) + this.gridSize) % this.gridSize;
+                } else if (this.boundary === 'fixed') {
+                    i = Math.max(0, Math.min(this.gridSize - 1, i));
+                    j = Math.max(0, Math.min(this.gridSize - 1, j));
+                } else if (this.boundary === 'absorbing') {
+                    if (i < 0 || i >= this.gridSize || j < 0 || j >= this.gridSize) {
+                        return {i: -1, j: -1}; // Flag for absorption
                     }
-                    
-                    requestAnimationFrame(computeFrame);
-                };
-                
-                computeFrame();
-                console.log('🔄 Main computational loop started');
-            }
-            
-            updateWaveInterference() {
-                const wave1 = Math.sin(this.frequencies[0] * this.time);
-                const wave2 = Math.sin(this.frequencies[1] * this.time + Math.PI/6);
-                const wave3 = Math.sin(this.frequencies[2] * this.time + Math.PI/3);
-                const wave4 = Math.sin(this.frequencies[3] * this.time + Math.PI/2);
-                const wave5 = Math.sin(this.frequencies[4] * this.time + 2*Math.PI/3);
-                const wave6 = Math.sin(this.frequencies[5] * this.time + 5*Math.PI/6);
-                
-                this.interferenceLevel = (wave1 + wave2 + wave3 + wave4 + wave5 + wave6) / 6;
-                
-                if (Math.abs(this.interferenceLevel) > this.threshold) {
-                    this.resonanceEvents++;
                 }
-                
-                this.currentWaves = [wave1, wave2, wave3, wave4, wave5, wave6];
+                return {i, j};
             }
             
-            updateSpatialMemory() {
-                if (!this.learningEnabled) return;
+            getValue(field, i, j) {
+                const idx = this.getIndex(i, j);
+                if (idx.i === -1) return 0; // Absorbing boundary
+                return field[idx.i][idx.j];
+            }
+            
+            // Compute spatial derivatives
+            computeGradient(field, i, j) {
+                const dx_val = (this.getValue(field, i+1, j) - this.getValue(field, i-1, j)) / (2 * this.dx);
+                const dy_val = (this.getValue(field, i, j+1) - this.getValue(field, i, j-1)) / (2 * this.dx);
+                return {x: dx_val, y: dy_val};
+            }
+            
+            computeLaplacian(field, i, j) {
+                const center = field[i][j];
+                const dxx = (this.getValue(field, i+1, j) - 2*center + this.getValue(field, i-1, j)) / (this.dx * this.dx);
+                const dyy = (this.getValue(field, i, j+1) - 2*center + this.getValue(field, i, j-1)) / (this.dx * this.dx);
+                return dxx + dyy;
+            }
+            
+            // Symbolic potential
+            potential(theta) {
+                return -this.v0 * Math.cos(this.omega * theta);
+            }
+            
+            potentialDerivative(theta) {
+                return this.v0 * this.omega * Math.sin(this.omega * theta);
+            }
+            
+            // Main evolution step
+            evolveField() {
+                this.updateParameters();
                 
-                for (let y = 0; y < this.gridHeight; y++) {
-                    for (let x = 0; x < this.gridWidth; x++) {
-                        const cell = this.spatialMemory[y][x];
+                // Evolve field using symbolic coherence equations
+                for (let i = 0; i < this.gridSize; i++) {
+                    for (let j = 0; j < this.gridSize; j++) {
+                        const grad = this.computeGradient(this.theta, i, j);
+                        const laplacian = this.computeLaplacian(this.theta, i, j);
+                        const grad_mag2 = grad.x * grad.x + grad.y * grad.y;
                         
-                        const spatialX = (x / this.gridWidth) * 2 * Math.PI;
-                        const spatialY = (y / this.gridHeight) * 2 * Math.PI;
+                        // Numerical stability
+                        const eps2 = Math.max(this.epsilon * this.epsilon, 1e-8);
                         
-                        const influence1 = (Math.sin(spatialX + this.frequencies[0] * this.time) * this.currentWaves[0] + 
-                                         Math.sin(spatialY + this.frequencies[1] * this.time) * this.currentWaves[1]) / 2;
-                        const influence2 = (Math.sin(spatialX + this.frequencies[2] * this.time) * this.currentWaves[2] + 
-                                         Math.sin(spatialY + this.frequencies[3] * this.time) * this.currentWaves[3]) / 2;
-                        const influence3 = (Math.sin(spatialX + spatialY + this.frequencies[4] * this.time) * this.currentWaves[4] + 
-                                         Math.sin(spatialX - spatialY + this.frequencies[5] * this.time) * this.currentWaves[5]) / 2;
+                        // Nonlinear terms from symbolic coherence field equation
+                        const denom1 = Math.pow(eps2 + grad_mag2, 5/2);
+                        const denom2 = Math.pow(eps2 + grad_mag2, 3/2);
                         
-                        const activation = [
-                            Math.max(0, influence1),
-                            Math.max(0, influence2), 
-                            Math.max(0, influence3)
-                        ];
+                        const nonlinear1 = 3 * this.alpha * (grad_mag2 * laplacian) / denom1;
+                        const nonlinear2 = -this.alpha * laplacian / denom2;
+                        const diffusion = this.gamma * laplacian;
+                        const potential = this.potentialDerivative(this.theta[i][j]);
                         
-                        for (let i = 0; i < 3; i++) {
-                            cell.memory[i] = cell.memory[i] * this.memoryDecay + 
-                                           activation[i] * this.learningRate;
-                            cell.state[i] = activation[i];
-                        }
+                        // Symbolic field evolution equation
+                        const acceleration = (1 / this.beta) * (nonlinear1 + nonlinear2 + diffusion + potential);
                         
-                        if (activation.some(a => a > 0.1)) {
-                            cell.lastActive = this.time;
+                        // Update using leapfrog method
+                        this.theta_t_new[i][j] = this.theta_t[i][j] + this.dt * acceleration;
+                        this.theta_new[i][j] = this.theta[i][j] + this.dt * this.theta_t_new[i][j];
+                        
+                        // Stability check
+                        if (!isFinite(this.theta_new[i][j]) || Math.abs(this.theta_new[i][j]) > 10) {
+                            this.theta_new[i][j] = this.theta[i][j] * 0.9;
+                            this.theta_t_new[i][j] = this.theta_t[i][j] * 0.9;
                         }
                     }
                 }
+                
+                // Update arrays
+                [this.theta, this.theta_new] = [this.theta_new, this.theta];
+                [this.theta_t, this.theta_t_new] = [this.theta_t_new, this.theta_t];
+                
+                this.time += this.dt;
+                this.computeSymbolicRelativity();
             }
             
-            generateMathematicalExpression() {
-                const pattern = this.extractSpatialPattern();
-                const expression = this.patternToMathExpression(pattern);
-                
-                if (expression !== this.currentSymbol && expression !== '∅') {
-                    this.currentSymbol = expression;
-                    this.symbolHistory.push({
-                        symbol: expression,
-                        time: this.time,
-                        pattern: pattern.slice()
-                    });
-                    this.symbolCount++;
-                    this.expressionComplexity.add(expression);
-                    this.lastSymbolTime = this.time;
-                    
-                    this.addToOutput(`${expression}`);
+            // Compute symbolic general relativity quantities
+            computeSymbolicRelativity() {
+                for (let i = 0; i < this.gridSize; i++) {
+                    for (let j = 0; j < this.gridSize; j++) {
+                        const grad = this.computeGradient(this.theta, i, j);
+                        const laplacian = this.computeLaplacian(this.theta, i, j);
+                        const grad_mag2 = grad.x * grad.x + grad.y * grad.y;
+                        
+                        // Symbolic metric determinant g^(S) = det(δ_ij + λ * ∇θ ⊗ ∇θ)
+                        this.metric_determinant[i][j] = 1.0 + this.lambda * grad_mag2;
+                        
+                        // Symbolic Ricci scalar R^(S) = ∇²θ + λ|∇θ|²
+                        this.ricci_scalar[i][j] = laplacian + this.lambda * grad_mag2;
+                        
+                        // Symbolic energy-momentum tensor T^(S)_00 = β(∂θ/∂t)² + V(θ)
+                        const kinetic = this.beta * this.theta_t[i][j] * this.theta_t[i][j];
+                        const potential = this.potential(this.theta[i][j]);
+                        this.energy_density[i][j] = kinetic + potential;
+                        
+                        // Einstein equation deviation |R^(S) - G_s * T^(S)|
+                        const expected_ricci = this.G_symbolic * this.energy_density[i][j];
+                        this.einstein_deviation[i][j] = Math.abs(this.ricci_scalar[i][j] - expected_ricci);
+                        
+                        // Local field coherence
+                        const local_variation = Math.abs(grad.x) + Math.abs(grad.y);
+                        this.field_coherence[i][j] = 1.0 / (1.0 + local_variation * 10);
+                    }
                 }
                 
-                if (this.time > 3) {
-                    this.symbolRate = this.symbolCount / this.time;
+                this.updateMetrics();
+            }
+            
+            // Update parameter values from UI
+            updateParameters() {
+                this.alpha = parseFloat(document.getElementById('alpha').value);
+                this.beta = parseFloat(document.getElementById('beta').value);
+                this.gamma = parseFloat(document.getElementById('gamma').value);
+                this.epsilon = parseFloat(document.getElementById('epsilon').value);
+                this.lambda = parseFloat(document.getElementById('lambda').value);
+                this.G_symbolic = parseFloat(document.getElementById('gsymbolic').value);
+                this.kappa = parseFloat(document.getElementById('kappa').value);
+                this.v0 = parseFloat(document.getElementById('v0').value);
+                this.omega = parseFloat(document.getElementById('omega').value);
+                this.dt = parseFloat(document.getElementById('dt').value);
+                this.boundary = document.getElementById('boundary').value;
+            }
+            
+            // Update metrics display
+            updateMetrics() {
+                let sumRicci = 0, maxRicci = 0;
+                let sumEnergy = 0, maxEnergy = 0;
+                let sumDeviation = 0, maxDeviation = 0;
+                let sumCoherence = 0;
+                let totalEnergy = 0;
+                let maxCurvature = 0;
+                
+                for (let i = 0; i < this.gridSize; i++) {
+                    for (let j = 0; j < this.gridSize; j++) {
+                        sumRicci += this.ricci_scalar[i][j];
+                        maxRicci = Math.max(maxRicci, Math.abs(this.ricci_scalar[i][j]));
+                        
+                        sumEnergy += this.energy_density[i][j];
+                        maxEnergy = Math.max(maxEnergy, this.energy_density[i][j]);
+                        
+                        sumDeviation += this.einstein_deviation[i][j];
+                        maxDeviation = Math.max(maxDeviation, this.einstein_deviation[i][j]);
+                        
+                        sumCoherence += this.field_coherence[i][j];
+                        
+                        const kinetic = 0.5 * this.beta * this.theta_t[i][j] * this.theta_t[i][j];
+                        const potential = this.potential(this.theta[i][j]);
+                        totalEnergy += (kinetic + potential) * this.dx * this.dx;
+                        
+                        const laplacian = Math.abs(this.computeLaplacian(this.theta, i, j));
+                        maxCurvature = Math.max(maxCurvature, laplacian);
+                    }
+                }
+                
+                const n = this.gridSize * this.gridSize;
+                document.getElementById('avgRicci').textContent = (sumRicci / n).toFixed(4);
+                document.getElementById('avgEnergy').textContent = (sumEnergy / n).toFixed(4);
+                document.getElementById('einsteinDev').textContent = (sumDeviation / n).toFixed(6);
+                document.getElementById('totalEnergy').textContent = totalEnergy.toFixed(2);
+                document.getElementById('fieldCoherence').textContent = (sumCoherence / n).toFixed(4);
+                document.getElementById('maxCurvature').textContent = maxCurvature.toFixed(4);
+            }
+            
+            // Visualization methods
+            getVisualizationField() {
+                switch (this.visualizationMode) {
+                    case 'field': return this.theta;
+                    case 'curvature': return this.ricci_scalar;
+                    case 'energy': return this.energy_density;
+                    case 'metric': return this.metric_determinant;
+                    case 'deviation': return this.einstein_deviation;
+                    case 'coherence': return this.field_coherence;
+                    default: return this.theta;
                 }
             }
             
-            extractSpatialPattern() {
-                const pattern = [];
-                const samplePoints = [
-                    [5, 3], [10, 3], [15, 3],
-                    [5, 6], [10, 6], [15, 6],
-                    [5, 9], [10, 9], [15, 9]
-                ];
+            updateColorScale() {
+                const field = this.getVisualizationField();
+                let min = Infinity, max = -Infinity;
                 
-                for (const [x, y] of samplePoints) {
-                    const cell = this.spatialMemory[y][x];
-                    const maxIndex = cell.memory.indexOf(Math.max(...cell.memory));
-                    const maxValue = cell.memory[maxIndex];
+                for (let i = 0; i < this.gridSize; i++) {
+                    for (let j = 0; j < this.gridSize; j++) {
+                        const val = field[i][j];
+                        if (isFinite(val)) {
+                            min = Math.min(min, val);
+                            max = Math.max(max, val);
+                        }
+                    }
+                }
+                
+                this.colorScale = { min, max };
+            }
+            
+            getColor(value) {
+                if (!isFinite(value)) return [0, 0, 0];
+                
+                const normalized = (value - this.colorScale.min) / (this.colorScale.max - this.colorScale.min + 1e-8);
+                const clamped = Math.max(0, Math.min(1, normalized));
+                
+                switch (this.visualizationMode) {
+                    case 'field':
+                        // Blue-White-Red for field values
+                        if (clamped < 0.5) {
+                            const t = clamped * 2;
+                            return [t * 255, t * 255, 255];
+                        } else {
+                            const t = (clamped - 0.5) * 2;
+                            return [255, (1-t) * 255, (1-t) * 255];
+                        }
+                    case 'curvature':
+                        // Black to Green for curvature
+                        return [0, clamped * 255, 0];
+                    case 'energy':
+                        // Black to Yellow for energy
+                        return [clamped * 255, clamped * 255, 0];
+                    case 'metric':
+                        // Black to Cyan for metric
+                        return [0, clamped * 255, clamped * 255];
+                    case 'deviation':
+                        // Black to Magenta for Einstein deviation
+                        return [clamped * 255, 0, clamped * 255];
+                    case 'coherence':
+                        // Black to White for coherence
+                        return [clamped * 255, clamped * 255, clamped * 255];
+                    default:
+                        return [clamped * 255, clamped * 255, clamped * 255];
+                }
+            }
+            
+            render() {
+                this.updateColorScale();
+                this.ctx.fillStyle = '#000';
+                this.ctx.fillRect(0, 0, this.width, this.height);
+                
+                const field = this.getVisualizationField();
+                const displaySize = this.cellSize * this.zoom;
+                
+                for (let i = 0; i < this.gridSize; i++) {
+                    for (let j = 0; j < this.gridSize; j++) {
+                        const x = (i * displaySize) + this.offsetX;
+                        const y = (j * displaySize) + this.offsetY;
+                        
+                        // Skip if outside visible area
+                        if (x + displaySize < 0 || x > this.width || y + displaySize < 0 || y > this.height) continue;
+                        
+                        const [r, g, b] = this.getColor(field[i][j]);
+                        this.ctx.fillStyle = `rgb(${Math.floor(r)}, ${Math.floor(g)}, ${Math.floor(b)})`;
+                        this.ctx.fillRect(x, y, Math.ceil(displaySize), Math.ceil(displaySize));
+                    }
+                }
+                
+                // Draw grid lines if zoomed in enough
+                if (displaySize > 4) {
+                    this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+                    this.ctx.lineWidth = 1;
+                    this.ctx.beginPath();
                     
-                    if (maxValue > 0.1) {
-                        pattern.push(maxIndex);
+                    for (let i = 0; i <= this.gridSize; i++) {
+                        const x = (i * displaySize) + this.offsetX;
+                        const y = (i * displaySize) + this.offsetY;
+                        
+                        this.ctx.moveTo(x, 0);
+                        this.ctx.lineTo(x, this.height);
+                        this.ctx.moveTo(0, y);
+                        this.ctx.lineTo(this.width, y);
+                    }
+                    this.ctx.stroke();
+                }
+            }
+            
+            // User interaction methods
+            setupEventListeners() {
+                this.canvas.addEventListener('mousedown', (e) => this.handleMouseDown(e));
+                this.canvas.addEventListener('mousemove', (e) => this.handleMouseMove(e));
+                this.canvas.addEventListener('mouseup', (e) => this.handleMouseUp(e));
+                this.canvas.addEventListener('wheel', (e) => this.handleWheel(e));
+                document.addEventListener('keydown', (e) => this.handleKeyDown(e));
+            }
+            
+            getGridCoordinates(clientX, clientY) {
+                const rect = this.canvas.getBoundingClientRect();
+                const canvasX = clientX - rect.left;
+                const canvasY = clientY - rect.top;
+                
+                const gridX = Math.floor((canvasX - this.offsetX) / (this.cellSize * this.zoom));
+                const gridY = Math.floor((canvasY - this.offsetY) / (this.cellSize * this.zoom));
+                
+                return {x: gridX, y: gridY};
+            }
+            
+            handleMouseDown(e) {
+                this.mouseDown = true;
+                this.lastMouseX = e.clientX;
+                this.lastMouseY = e.clientY;
+                
+                const coords = this.getGridCoordinates(e.clientX, e.clientY);
+                this.addLocalDisturbance(coords.x, coords.y, 1.0);
+            }
+            
+            handleMouseMove(e) {
+                if (this.mouseDown) {
+                    if (e.shiftKey) {
+                        // Pan mode
+                        const dx = e.clientX - this.lastMouseX;
+                        const dy = e.clientY - this.lastMouseY;
+                        this.offsetX += dx;
+                        this.offsetY += dy;
                     } else {
-                        pattern.push(-1);
+                        // Paint mode
+                        const coords = this.getGridCoordinates(e.clientX, e.clientY);
+                        this.addLocalDisturbance(coords.x, coords.y, 0.5);
                     }
                 }
-                
-                return pattern;
+                this.lastMouseX = e.clientX;
+                this.lastMouseY = e.clientY;
             }
             
-            patternToMathExpression(pattern) {
-                if (pattern.every(p => p === -1)) return '∅';
-                
-                const signature = pattern.filter(p => p !== -1);
-                if (signature.length === 0) return '∅';
-                
-                const complexity = signature.length;
-                const diversity = new Set(signature).size;
-                const sum = signature.reduce((a, b) => a + b, 0);
-                const avg = (sum / signature.length).toFixed(1);
-                
-                const ops = this.mathOperators;
-                const terms = this.mathTerms;
-                const consts = this.mathConstants;
-                const rels = this.mathRelations;
-                
-                // Generate different types of mathematical expressions
-                const templates = [
-                    `f(x) = ${ops[sum % ops.length]}(${avg})`,
-                    `${terms[complexity % terms.length]} ${rels[diversity % rels.length]} ${avg}`,
-                    `∫${ops[sum % ops.length]}(x)dx = ${avg}`,
-                    `lim_{x→${diversity}} ${ops[complexity % ops.length]}(x) = ${avg}`,
-                    `${terms[sum % terms.length]} ∈ [0, ${complexity}]`,
-                    `if x > ${diversity} then ${ops[sum % ops.length]}(x)`
-                ];
-                
-                return templates[sum % templates.length];
+            handleMouseUp(e) {
+                this.mouseDown = false;
             }
             
-            updateSpectralAnalysis() {
-                if (this.currentSymbol !== '∅') {
-                    const symbolValue = this.getSymbolNumericValue(this.currentSymbol);
-                    this.symbolBuffer.push(symbolValue);
-                    
-                    if (this.symbolBuffer.length > this.spectralWindowSize * 2) {
-                        this.symbolBuffer = this.symbolBuffer.slice(-this.spectralWindowSize);
-                    }
-                    
-                    if (this.symbolBuffer.length >= this.spectralWindowSize) {
-                        this.performFFTAnalysis();
-                    }
+            handleWheel(e) {
+                e.preventDefault();
+                const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+                this.zoom = Math.max(0.1, Math.min(10, this.zoom * zoomFactor));
+            }
+            
+            handleKeyDown(e) {
+                const panSpeed = 20;
+                switch (e.key) {
+                    case 'ArrowLeft': this.offsetX += panSpeed; break;
+                    case 'ArrowRight': this.offsetX -= panSpeed; break;
+                    case 'ArrowUp': this.offsetY += panSpeed; break;
+                    case 'ArrowDown': this.offsetY -= panSpeed; break;
+                    case 'r': this.resetField(); break;
+                    case ' ': e.preventDefault(); this.running ? this.pauseSimulation() : this.startSimulation(); break;
                 }
             }
             
-            getSymbolNumericValue(symbol) {
-                // Simple hash function for mathematical expressions
-                let hash = 0;
-                for (let i = 0; i < symbol.length; i++) {
-                    hash = ((hash << 5) - hash + symbol.charCodeAt(i)) & 0xffffffff;
-                }
-                return Math.abs(hash) % 24; // Map to 0-23 range
-            }
-            
-            performFFTAnalysis() {
-                const N = Math.min(this.symbolBuffer.length, this.spectralWindowSize);
-                const data = this.symbolBuffer.slice(-N);
-                
-                const spectrum = this.computeDFT(data);
-                this.analyzeSpectrum(spectrum);
-                this.currentSpectrum = spectrum;
-            }
-            
-            computeDFT(data) {
-                const N = data.length;
-                const spectrum = [];
-                
-                for (let k = 0; k < N / 2; k++) {
-                    let realPart = 0;
-                    let imagPart = 0;
-                    
-                    for (let n = 0; n < N; n++) {
-                        const angle = -2 * Math.PI * k * n / N;
-                        realPart += data[n] * Math.cos(angle);
-                        imagPart += data[n] * Math.sin(angle);
-                    }
-                    
-                    const magnitude = Math.sqrt(realPart * realPart + imagPart * imagPart);
-                    spectrum[k] = magnitude;
-                }
-                
-                return spectrum;
-            }
-            
-            analyzeSpectrum(spectrum) {
-                if (!spectrum || spectrum.length === 0) return;
-                
-                let peakIndex = 0;
-                let peakValue = spectrum[0];
-                for (let i = 1; i < spectrum.length; i++) {
-                    if (spectrum[i] > peakValue) {
-                        peakValue = spectrum[i];
-                        peakIndex = i;
-                    }
-                }
-                
-                this.peakFrequency = peakIndex / (spectrum.length * 2);
-                this.spectralEnergy = spectrum.reduce((sum, val) => sum + val * val, 0) / spectrum.length;
-                this.spectralBandwidth = this.calculateSpectralBandwidth(spectrum);
-            }
-            
-            calculateSpectralBandwidth(spectrum) {
-                const totalEnergy = spectrum.reduce((sum, val) => sum + val * val, 0);
-                if (totalEnergy === 0) return 0;
-                
-                let centroid = 0;
-                for (let i = 0; i < spectrum.length; i++) {
-                    centroid += i * spectrum[i] * spectrum[i];
-                }
-                centroid /= totalEnergy;
-                
-                let spread = 0;
-                for (let i = 0; i < spectrum.length; i++) {
-                    const deviation = i - centroid;
-                    spread += deviation * deviation * spectrum[i] * spectrum[i];
-                }
-                spread = Math.sqrt(spread / totalEnergy);
-                
-                return spread / spectrum.length;
-            }
-            
-            updateSelfOptimization() {
-                if (this.time - this.lastOptimizationTime < 3.0) return;
-                
-                this.lastOptimizationTime = this.time;
-                this.generation++;
-                
-                this.currentFitness = this.calculateFitness();
-                
-                if (this.currentFitness > this.bestFitness) {
-                    this.bestFitness = this.currentFitness;
-                    this.improvements++;
-                    this.bestParameters = {
-                        frequencies: [...this.frequencies],
-                        threshold: this.threshold,
-                        learningRate: this.learningRate,
-                        memoryDecay: this.memoryDecay
-                    };
-                    this.learningStrategy = 'exploitation';
-                    this.addToInsights(`🎯 NEW BEST: Fitness ${this.currentFitness.toFixed(3)} - Gen ${this.generation}`);
-                } else {
-                    this.learningStrategy = 'exploration';
-                }
-                
-                this.evolveParameters();
-                
-                this.fitnessHistory.push({
-                    generation: this.generation,
-                    fitness: this.currentFitness,
-                    strategy: this.learningStrategy
-                });
-                
-                if (this.fitnessHistory.length > 100) {
-                    this.fitnessHistory = this.fitnessHistory.slice(-50);
-                }
-            }
-            
-            calculateFitness() {
-                let fitness = 0;
-                let components = 0;
-                
-                if (this.objectives.complexity) {
-                    fitness += this.computationalComplexity;
-                    components++;
-                }
-                
-                if (this.objectives.stability) {
-                    fitness += this.systemStability;
-                    components++;
-                }
-                
-                if (this.objectives.novelty) {
-                    const novelty = this.expressionComplexity.size / Math.max(1, this.symbolCount);
-                    fitness += novelty;
-                    components++;
-                }
-                
-                if (this.objectives.expression) {
-                    const expressionRichness = Math.min(1, this.symbolRate * 0.5);
-                    fitness += expressionRichness;
-                    components++;
-                }
-                
-                return components > 0 ? fitness / components : 0;
-            }
-            
-            evolveParameters() {
-                const mutationStrength = this.optimizationRate;
-                
-                if (this.learningStrategy === 'exploration') {
-                    for (let i = 0; i < this.frequencies.length; i++) {
-                        const mutation = (Math.random() - 0.5) * mutationStrength * 2;
-                        this.frequencies[i] = Math.max(0.3, Math.min(5.0, this.frequencies[i] + mutation));
-                    }
-                    
-                    if (Math.random() < 0.3) {
-                        const thresholdMutation = (Math.random() - 0.5) * mutationStrength;
-                        this.threshold = Math.max(0.1, Math.min(0.9, this.threshold + thresholdMutation));
-                    }
-                    
-                } else if (this.bestParameters) {
-                    for (let i = 0; i < this.frequencies.length; i++) {
-                        const direction = Math.random() - 0.5;
-                        const step = direction * mutationStrength * 0.5;
-                        this.frequencies[i] = Math.max(0.3, Math.min(5.0, this.bestParameters.frequencies[i] + step));
-                    }
-                }
-                
-                this.updateUIFromFrequencies();
-                document.getElementById('thresholdVal').textContent = this.threshold.toFixed(3);
-                document.getElementById('learnRateVal').textContent = this.learningRate.toFixed(1);
-            }
-            
-            renderAllVisualizations() {
-                this.renderWaveCanvas();
-                this.renderSpatialCanvas();
-                this.renderAnalysisCanvas();
-                
-                if (this.spectralMonitoringEnabled) {
-                    this.renderSpectralCanvas();
-                }
-                
-                if (this.optimizationEnabled) {
-                    this.renderEvolutionCanvas();
-                }
-            }
-            
-            renderWaveCanvas() {
-                const ctx = this.waveCtx;
-                const width = this.waveCanvas.width;
-                const height = this.waveCanvas.height;
-                
-                ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
-                ctx.fillRect(0, 0, width, height);
-                
-                ctx.lineWidth = 1;
-                const colors = ['#ff5722', '#ffeb3b', '#2196f3', '#4CAF50', '#9c27b0', '#ff9800'];
-                
-                for (let waveIndex = 0; waveIndex < 6; waveIndex++) {
-                    ctx.strokeStyle = colors[waveIndex];
-                    ctx.beginPath();
-                    for (let x = 0; x < width; x++) {
-                        const t = this.time - (width - x) * 0.02;
-                        const phase = waveIndex * Math.PI / 6;
-                        const y = height/2 + Math.sin(this.frequencies[waveIndex] * t + phase) * height/6;
-                        if (x === 0) ctx.moveTo(x, y);
-                        else ctx.lineTo(x, y);
-                    }
-                    ctx.stroke();
-                }
-                
-                ctx.strokeStyle = this.interferenceLevel > this.threshold ? '#4CAF50' : 'white';
-                ctx.lineWidth = 2;
-                ctx.beginPath();
-                for (let x = 0; x < width; x++) {
-                    const t = this.time - (width - x) * 0.02;
-                    let interference = 0;
-                    for (let i = 0; i < 6; i++) {
-                        const phase = i * Math.PI / 6;
-                        interference += Math.sin(this.frequencies[i] * t + phase);
-                    }
-                    interference /= 6;
-                    const y = height/2 + interference * height/3;
-                    if (x === 0) ctx.moveTo(x, y);
-                    else ctx.lineTo(x, y);
-                }
-                ctx.stroke();
-            }
-            
-            renderSpatialCanvas() {
-                const ctx = this.spatialCtx;
-                const width = this.spatialCanvas.width;
-                const height = this.spatialCanvas.height;
-                
-                ctx.clearRect(0, 0, width, height);
-                
-                const cellWidth = width / this.gridWidth;
-                const cellHeight = height / this.gridHeight;
-                
-                for (let y = 0; y < this.gridHeight; y++) {
-                    for (let x = 0; x < this.gridWidth; x++) {
-                        const cell = this.spatialMemory[y][x];
-                        const px = x * cellWidth;
-                        const py = y * cellHeight;
-                        
-                        const maxMemory = Math.max(...cell.memory);
-                        const maxIndex = cell.memory.indexOf(maxMemory);
-                        
-                        if (maxMemory > 0.05) {
-                            const alpha = Math.min(maxMemory, 1);
-                            
-                            if (maxIndex === 0) {
-                                ctx.fillStyle = `rgba(255, 87, 34, ${alpha})`;
-                            } else if (maxIndex === 1) {
-                                ctx.fillStyle = `rgba(255, 235, 59, ${alpha})`;
-                            } else {
-                                ctx.fillStyle = `rgba(33, 150, 243, ${alpha})`;
+            // Add disturbances
+            addLocalDisturbance(gridX, gridY, amplitude) {
+                if (gridX >= 0 && gridX < this.gridSize && gridY >= 0 && gridY < this.gridSize) {
+                    const radius = 3;
+                    for (let di = -radius; di <= radius; di++) {
+                        for (let dj = -radius; dj <= radius; dj++) {
+                            const i = gridX + di;
+                            const j = gridY + dj;
+                            const idx = this.getIndex(i, j);
+                            if (idx.i >= 0 && idx.i < this.gridSize && idx.j >= 0 && idx.j < this.gridSize) {
+                                const dist = Math.sqrt(di*di + dj*dj);
+                                const factor = Math.exp(-dist * dist / (radius * radius));
+                                this.theta[idx.i][idx.j] += amplitude * factor * (Math.random() - 0.5);
+                                this.theta_t[idx.i][idx.j] += amplitude * factor * 0.1 * (Math.random() - 0.5);
                             }
-                            
-                            ctx.fillRect(px, py, cellWidth, cellHeight);
-                        }
-                        
-                        ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
-                        ctx.lineWidth = 0.5;
-                        ctx.strokeRect(px, py, cellWidth, cellHeight);
-                    }
-                }
-            }
-            
-            renderAnalysisCanvas() {
-                const ctx = this.analysisCtx;
-                const width = this.analysisCanvas.width;
-                const height = this.analysisCanvas.height;
-                
-                ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
-                ctx.fillRect(0, 0, width, height);
-                
-                if (this.metricsHistory.length > 1) {
-                    const maxPoints = width;
-                    const start = Math.max(0, this.metricsHistory.length - maxPoints);
-                    
-                    ctx.strokeStyle = '#4CAF50';
-                    ctx.lineWidth = 1;
-                    ctx.beginPath();
-                    for (let i = start; i < this.metricsHistory.length; i++) {
-                        const x = ((i - start) / maxPoints) * width;
-                        const y = height - (this.metricsHistory[i].complexity * height);
-                        if (i === start) ctx.moveTo(x, y);
-                        else ctx.lineTo(x, y);
-                    }
-                    ctx.stroke();
-                    
-                    ctx.strokeStyle = '#ffeb3b';
-                    ctx.lineWidth = 1;
-                    ctx.beginPath();
-                    for (let i = start; i < this.metricsHistory.length; i++) {
-                        const x = ((i - start) / maxPoints) * width;
-                        const y = height - (this.metricsHistory[i].stability * height);
-                        if (i === start) ctx.moveTo(x, y);
-                        else ctx.lineTo(x, y);
-                    }
-                    ctx.stroke();
-                }
-            }
-            
-            renderSpectralCanvas() {
-                const ctx = this.spectralCtx;
-                const width = this.spectralCanvas.width;
-                const height = this.spectralCanvas.height;
-                
-                ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
-                ctx.fillRect(0, 0, width, height);
-                
-                if (!this.currentSpectrum || this.currentSpectrum.length === 0) {
-                    ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
-                    ctx.font = '10px monospace';
-                    ctx.textAlign = 'center';
-                    ctx.fillText('Collecting data...', width/2, height/2);
-                    return;
-                }
-                
-                const spectrum = this.currentSpectrum;
-                const barWidth = width / spectrum.length;
-                const maxMagnitude = Math.max(...spectrum) || 1;
-                
-                for (let i = 0; i < spectrum.length; i++) {
-                    const barHeight = (spectrum[i] / maxMagnitude) * height * 0.8;
-                    const x = i * barWidth;
-                    const y = height - barHeight;
-                    
-                    const intensity = spectrum[i] / maxMagnitude;
-                    if (intensity > 0.7) {
-                        ctx.fillStyle = '#ff5722';
-                    } else if (intensity > 0.4) {
-                        ctx.fillStyle = '#ffeb3b';
-                    } else {
-                        ctx.fillStyle = '#4CAF50';
-                    }
-                    
-                    ctx.fillRect(x, y, barWidth - 1, barHeight);
-                }
-            }
-            
-            renderEvolutionCanvas() {
-                const ctx = this.evolutionCtx;
-                const width = this.evolutionCanvas.width;
-                const height = this.evolutionCanvas.height;
-                
-                ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
-                ctx.fillRect(0, 0, width, height);
-                
-                if (this.fitnessHistory.length < 2) {
-                    ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
-                    ctx.font = '10px monospace';
-                    ctx.textAlign = 'center';
-                    ctx.fillText('Learning...', width/2, height/2);
-                    return;
-                }
-                
-                const maxFitness = Math.max(...this.fitnessHistory.map(h => h.fitness)) || 1;
-                const pointWidth = width / Math.max(1, this.fitnessHistory.length - 1);
-                
-                ctx.strokeStyle = '#4CAF50';
-                ctx.lineWidth = 2;
-                ctx.beginPath();
-                
-                for (let i = 0; i < this.fitnessHistory.length; i++) {
-                    const x = i * pointWidth;
-                    const y = height - (this.fitnessHistory[i].fitness / maxFitness) * height * 0.8;
-                    
-                    if (i === 0) {
-                        ctx.moveTo(x, y);
-                    } else {
-                        ctx.lineTo(x, y);
-                    }
-                }
-                ctx.stroke();
-                
-                ctx.fillStyle = '#ffeb3b';
-                for (let i = 0; i < this.fitnessHistory.length; i++) {
-                    if (i === 0 || this.fitnessHistory[i].fitness > this.fitnessHistory[i-1].fitness) {
-                        const x = i * pointWidth;
-                        const y = height - (this.fitnessHistory[i].fitness / maxFitness) * height * 0.8;
-                        ctx.beginPath();
-                        ctx.arc(x, y, 2, 0, 2 * Math.PI);
-                        ctx.fill();
-                    }
-                }
-            }
-            
-            updateSystemMetrics() {
-                document.getElementById('interferenceLevel').textContent = this.interferenceLevel.toFixed(3);
-                document.getElementById('resonanceEvents').textContent = this.resonanceEvents;
-                document.getElementById('waveTime').textContent = this.time.toFixed(1) + 's';
-                
-                let activeCells = 0;
-                let totalMemory = 0;
-                for (let y = 0; y < this.gridHeight; y++) {
-                    for (let x = 0; x < this.gridWidth; x++) {
-                        const cell = this.spatialMemory[y][x];
-                        const maxMemory = Math.max(...cell.memory);
-                        if (maxMemory > 0.05) activeCells++;
-                        totalMemory += maxMemory;
-                    }
-                }
-                
-                document.getElementById('activeCells').textContent = activeCells;
-                document.getElementById('memoryLoad').textContent = 
-                    Math.round((totalMemory / (this.gridWidth * this.gridHeight)) * 100) + '%';
-                
-                const entropy = this.calculatePatternEntropy();
-                document.getElementById('patternEntropy').textContent = entropy.toFixed(3);
-                
-                document.getElementById('currentSymbol').textContent = this.currentSymbol;
-                document.getElementById('symbolCount').textContent = this.symbolCount;
-                document.getElementById('uniqueSymbols').textContent = this.expressionComplexity.size;
-                document.getElementById('symbolRate').textContent = this.symbolRate.toFixed(2) + '/s';
-                
-                if (this.spectralMonitoringEnabled) {
-                    document.getElementById('peakFrequency').textContent = this.peakFrequency.toFixed(3);
-                    document.getElementById('spectralEnergy').textContent = this.spectralEnergy.toFixed(2);
-                    document.getElementById('spectralBandwidth').textContent = this.spectralBandwidth.toFixed(3);
-                }
-                
-                if (this.optimizationEnabled) {
-                    document.getElementById('fitnessScore').textContent = this.currentFitness.toFixed(3);
-                    document.getElementById('generation').textContent = this.generation;
-                    document.getElementById('bestFitness').textContent = this.bestFitness.toFixed(3);
-                    document.getElementById('improvements').textContent = this.improvements;
-                    document.getElementById('learningStatus').textContent = this.learningStrategy;
-                    document.getElementById('currentStrategy').textContent = this.learningStrategy;
-                }
-                
-                this.computationalComplexity = this.calculateComplexity();
-                this.systemStability = this.calculateStability();
-                this.informationFlow = this.calculateInformationFlow();
-                
-                document.getElementById('complexity').textContent = this.computationalComplexity.toFixed(3);
-                document.getElementById('stability').textContent = this.systemStability.toFixed(3);
-                document.getElementById('infoFlow').textContent = this.informationFlow.toFixed(3);
-                
-                this.metricsHistory.push({
-                    time: this.time,
-                    complexity: this.computationalComplexity,
-                    stability: this.systemStability,
-                    infoFlow: this.informationFlow,
-                    activeCells: activeCells,
-                    symbolCount: this.symbolCount
-                });
-                
-                if (this.metricsHistory.length > 500) {
-                    this.metricsHistory = this.metricsHistory.slice(-250);
-                }
-            }
-            
-            calculatePatternEntropy() {
-                const stateCounts = [0, 0, 0];
-                let totalCells = 0;
-                
-                for (let y = 0; y < this.gridHeight; y++) {
-                    for (let x = 0; x < this.gridWidth; x++) {
-                        const cell = this.spatialMemory[y][x];
-                        const maxIndex = cell.memory.indexOf(Math.max(...cell.memory));
-                        if (Math.max(...cell.memory) > 0.05) {
-                            stateCounts[maxIndex]++;
-                            totalCells++;
                         }
                     }
                 }
-                
-                if (totalCells === 0) return 0;
-                
-                let entropy = 0;
-                for (const count of stateCounts) {
-                    if (count > 0) {
-                        const p = count / totalCells;
-                        entropy -= p * Math.log2(p);
-                    }
+            }
+            
+            // Animation loop
+            animate() {
+                if (this.running) {
+                    this.evolveField();
                 }
-                
-                return entropy;
+                this.render();
+                requestAnimationFrame(() => this.animate());
             }
+        }
+        
+        // Initialize engine
+        const engine = new SymbolicPhysicsGrid();
+        
+        // Control functions
+        function startSimulation() {
+            engine.running = true;
+        }
+        
+        function pauseSimulation() {
+            engine.running = false;
+        }
+        
+        function resetField() {
+            engine.initializeField();
+        }
+        
+        function addRandomDisturbance() {
+            const x = Math.floor(Math.random() * engine.gridSize);
+            const y = Math.floor(Math.random() * engine.gridSize);
+            engine.addLocalDisturbance(x, y, 2.0);
+        }
+        
+        function addWavePacket() {
+            const cx = engine.gridSize / 2;
+            const cy = engine.gridSize / 2;
+            const width = 10;
             
-            calculateComplexity() {
-                const patternEntropy = this.calculatePatternEntropy();
-                const expressionDiversity = this.expressionComplexity.size / Math.max(1, this.symbolCount);
-                return (patternEntropy + expressionDiversity) / 2;
-            }
-            
-            calculateStability() {
-                if (this.metricsHistory.length < 10) return 0;
-                
-                const recent = this.metricsHistory.slice(-10);
-                const avgComplexity = recent.reduce((sum, m) => sum + m.complexity, 0) / recent.length;
-                const variance = recent.reduce((sum, m) => sum + Math.pow(m.complexity - avgComplexity, 2), 0) / recent.length;
-                
-                return Math.max(0, 1 - variance);
-            }
-            
-            calculateInformationFlow() {
-                if (this.symbolCount === 0) return 0;
-                
-                const timeSinceLastSymbol = this.time - this.lastSymbolTime;
-                const flow = Math.exp(-timeSinceLastSymbol) * this.symbolRate;
-                
-                return Math.min(1, flow);
-            }
-            
-            addToOutput(text) {
-                const output = document.getElementById('symbolicOutput');
-                output.innerHTML += text + ' ';
-                output.scrollTop = output.scrollHeight;
-            }
-            
-            addToInsights(text) {
-                const output = document.getElementById('insightsOutput');
-                output.innerHTML += text + ' ';
-                output.scrollTop = output.scrollHeight;
-            }
-            
-            clearSpatialMemory() {
-                for (let y = 0; y < this.gridHeight; y++) {
-                    for (let x = 0; x < this.gridWidth; x++) {
-                        const cell = this.spatialMemory[y][x];
-                        cell.state = [0, 0, 0];
-                        cell.memory = [0, 0, 0];
-                        cell.lastActive = 0;
-                    }
-                }
-                this.addToOutput('🧹 Spatial memory cleared');
-            }
-            
-            clearSymbolicOutput() {
-                document.getElementById('symbolicOutput').innerHTML = 'Mathematical expressions cleared... ';
-                this.symbolHistory = [];
-                this.symbolCount = 0;
-                this.expressionComplexity.clear();
-                this.currentSymbol = '∅';
-            }
-            
-            resetSystem() {
-                this.time = 0;
-                this.resonanceEvents = 0;
-                this.clearSpatialMemory();
-                this.clearSymbolicOutput();
-                this.metricsHistory = [];
-                this.addToOutput('🔄 System reset complete');
-            }
-            
-            analyzeSymbolicOutput() {
-                const analysis = `=== MATHEMATICAL ANALYSIS ===
-Total expressions: ${this.symbolCount}
-Unique expressions: ${this.expressionComplexity.size}
-Diversity: ${(this.expressionComplexity.size / Math.max(1, this.symbolCount)).toFixed(3)}
-Rate: ${this.symbolRate.toFixed(3)} expressions/sec`;
-                
-                this.addToOutput(analysis.replace(/\n/g, ' | '));
-            }
-            
-            runSystemAnalysis() {
-                this.addToOutput('🔬 SYSTEM ANALYSIS: ');
-                this.addToOutput(`Complexity: ${this.computationalComplexity.toFixed(3)} | `);
-                this.addToOutput(`Stability: ${this.systemStability.toFixed(3)} | `);
-                this.addToOutput(`Info Flow: ${this.informationFlow.toFixed(3)}`);
-            }
-            
-            exportSystemData() {
-                const data = {
-                    timestamp: new Date().toISOString(),
-                    systemState: {
-                        time: this.time,
-                        frequencies: this.frequencies,
-                        threshold: this.threshold,
-                        learningRate: this.learningRate,
-                        memoryDecay: this.memoryDecay
-                    },
-                    optimization: {
-                        generation: this.generation,
-                        bestFitness: this.bestFitness,
-                        improvements: this.improvements,
-                        objectives: this.objectives
-                    },
-                    expressions: Array.from(this.expressionComplexity),
-                    fitnessHistory: this.fitnessHistory
-                };
-                
-                const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `wave-computer-data-${Date.now()}.json`;
-                a.click();
-                URL.revokeObjectURL(url);
-                
-                this.addToOutput('💾 System data exported');
-            }
-            
-            resetSpectralAnalysis() {
-                this.symbolBuffer = [];
-                this.currentSpectrum = null;
-                this.peakFrequency = 0;
-                this.spectralEnergy = 0;
-                this.spectralBandwidth = 0;
-                
-                this.addToOutput('🔍 Spectral analysis reset');
-            }
-            
-            resetOptimization() {
-                this.generation = 0;
-                this.improvements = 0;
-                this.currentFitness = 0;
-                this.bestFitness = 0;
-                this.fitnessHistory = [];
-                this.bestParameters = null;
-                this.learningStrategy = 'exploration';
-                this.lastOptimizationTime = 0;
-                
-                document.getElementById('insightsOutput').innerHTML = 'Learning engine reset... ';
-                
-                this.addToOutput('🧠 Self-optimization system reset');
-                this.addToInsights('🔄 Learning parameters reset - beginning new optimization cycle');
-            }
-            
-            updateUIFromFrequencies() {
-                for (let i = 1; i <= 6; i++) {
-                    document.getElementById(`freq${i}`).value = this.frequencies[i-1];
-                    document.getElementById(`freq${i}Input`).value = this.frequencies[i-1].toFixed(3);
+            for (let i = 0; i < engine.gridSize; i++) {
+                for (let j = 0; j < engine.gridSize; j++) {
+                    const dx = i - cx;
+                    const dy = j - cy;
+                    const r = Math.sqrt(dx*dx + dy*dy);
+                    const amplitude = Math.exp(-r*r / (width*width));
+                    const wave = Math.sin(r * 0.5) * amplitude;
+                    engine.theta[i][j] += wave;
                 }
             }
         }
         
-        function setRamanujanRatio(preset) {
-            const system = window.waveSystem;
-            if (!system) return;
+        function addVortex() {
+            const cx = engine.gridSize / 2;
+            const cy = engine.gridSize / 2;
             
-            switch(preset) {
-                case 'golden':
-                    system.frequencies = [1.0, 1.618, 2.618, 4.236, 6.854, 11.090];
-                    system.addToOutput('🌟 Golden ratio cascade applied');
-                    break;
-                    
-                case 'sqrt2':
-                    system.frequencies = [1.0, 1.414, 2.0, 2.828, 4.0, 5.657];
-                    system.addToOutput('📐 √2 harmonic series applied');
-                    break;
-                    
-                case 'sqrt3':
-                    system.frequencies = [1.0, 1.732, 3.0, 5.196, 9.0, 15.588];
-                    system.addToOutput('△ √3 harmonic series applied');
-                    break;
-                    
-                case 'sqrt5':
-                    system.frequencies = [1.0, 2.236, 5.0, 11.180, 25.0, 55.902];
-                    system.addToOutput('⭐ √5 harmonic series applied');
-                    break;
-                    
-                case 'ramanujan':
-                    system.frequencies = [1.0, 1.571, 2.467, 3.873, 6.083, 9.549];
-                    system.addToOutput('🧮 Ramanujan π² series applied');
-                    break;
+            for (let i = 0; i < engine.gridSize; i++) {
+                for (let j = 0; j < engine.gridSize; j++) {
+                    const dx = i - cx;
+                    const dy = j - cy;
+                    const r = Math.sqrt(dx*dx + dy*dy);
+                    const theta = Math.atan2(dy, dx);
+                    const amplitude = Math.exp(-r*r / 400) * r / 10;
+                    engine.theta[i][j] += amplitude * Math.sin(3 * theta);
+                    engine.theta_t[i][j] += amplitude * Math.cos(3 * theta) * 0.1;
+                }
             }
-            
-            system.updateUIFromFrequencies();
         }
         
-        function setEmergencePreset(preset) {
-            const system = window.waveSystem;
-            if (!system) return;
+        function setVisualizationMode(mode) {
+            engine.visualizationMode = mode;
             
-            switch(preset) {
-                case 'fibonacci':
-                    system.frequencies = [1.0, 1.618, 2.618, 4.236, 6.854, 11.090];
-                    system.addToOutput('🌀 Fibonacci emergence cascade');
-                    break;
-                    
-                case 'prime':
-                    system.frequencies = [2.0, 3.0, 5.0, 7.0, 11.0, 13.0];
-                    system.addToOutput('🔢 Prime sequence - max diversity');
-                    break;
-                    
-                case 'chaos':
-                    system.frequencies = [1.0, 1.4, 3.2, 4.7, 6.1, 8.9];
-                    system.addToOutput('🌪️ Chaotic ratios - enhanced emergence');
-                    break;
-                    
-                case 'harmonic':
-                    system.frequencies = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0];
-                    system.addToOutput('🎵 Perfect harmonics - stable patterns');
-                    break;
-                    
-                case 'resonance':
-                    system.frequencies = [1.0, 1.333, 1.777, 2.369, 3.159, 4.212];
-                    system.addToOutput('⚡ Resonance optimization - max efficiency');
-                    break;
-            }
-            
-            system.updateUIFromFrequencies();
+            // Update button states
+            document.querySelectorAll('.visualization-mode button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
         }
         
-        window.addEventListener('load', () => {
-            console.log('🎯 Page loaded - starting system initialization...');
-            window.waveSystem = new SelfOptimizingWaveComputer();
-        });
+        // Preset configurations
+        function setQuantumRegime() {
+            document.getElementById('gsymbolic').value = '0.001';
+            document.getElementById('lambda').value = '0.05';
+            document.getElementById('gamma').value = '0.05';
+            engine.updateParameters();
+        }
+        
+        function setClassicalRegime() {
+            document.getElementById('gsymbolic').value = '0.1';
+            document.getElementById('lambda').value = '0.2';
+            document.getElementById('gamma').value = '0.2';
+            engine.updateParameters();
+        }
+        
+        function setTransitionRegime() {
+            document.getElementById('gsymbolic').value = '0.01';
+            document.getElementById('lambda').value = '0.1';
+            document.getElementById('gamma').value = '0.1';
+            engine.updateParameters();
+        }
+        
+        function setChaosRegime() {
+            document.getElementById('gsymbolic').value = '0.001';
+            document.getElementById('lambda').value = '0.3';
+            document.getElementById('alpha').value = '1.0';
+            engine.updateParameters();
+        }
+        
+        // Start animation
+        engine.animate();
     </script>
 </body>
 </html>
