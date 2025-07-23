@@ -3,411 +3,797 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Symbolic Physics Grid Engine</title>
+    <title>Field Dynamics Lab</title>
     <style>
-        body {
+        * {
             margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 100%);
+            color: #e1e8f0;
+            line-height: 1.5;
+        }
+        
+        .header {
+            background: rgba(255, 255, 255, 0.02);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
             padding: 20px;
-            font-family: 'Courier New', monospace;
-            background: #0a0a0a;
-            color: #00ff88;
-            overflow-x: auto;
+            text-align: center;
         }
-        .container {
-            display: flex;
-            gap: 20px;
-            min-width: 1400px;
+        
+        .header h1 {
+            color: #64ffda;
+            font-size: 28px;
+            font-weight: 300;
+            margin-bottom: 8px;
         }
-        .main-grid {
-            flex: 1;
+        
+        .header p {
+            color: #b0bec5;
+            font-size: 14px;
+            opacity: 0.8;
         }
-        .grid-container {
-            position: relative;
-            border: 2px solid #00ff88;
-            background: #111;
-            margin-bottom: 20px;
+        
+        .main-container {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            height: calc(100vh - 100px);
+            gap: 1px;
+            background: rgba(255, 255, 255, 0.05);
         }
-        canvas {
-            display: block;
-            cursor: crosshair;
-        }
-        .controls {
-            background: #1a1a1a;
-            border: 1px solid #00ff88;
-            padding: 15px;
-            border-radius: 5px;
-            width: 350px;
-            max-height: 90vh;
+        
+        .control-panel {
+            background: rgba(15, 15, 35, 0.95);
+            backdrop-filter: blur(10px);
             overflow-y: auto;
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
         }
-        .parameter-group {
-            margin: 15px 0;
-            padding: 10px;
-            background: #0d1a0d;
-            border-left: 3px solid #00ff88;
-        }
-        .parameter {
-            margin: 8px 0;
+        
+        .visualization-area {
+            background: rgba(26, 26, 46, 0.95);
             display: flex;
+            flex-direction: column;
+        }
+        
+        .vis-header {
+            background: rgba(255, 255, 255, 0.02);
+            padding: 16px 24px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-between;
             align-items: center;
-            gap: 10px;
         }
-        .parameter label {
-            min-width: 100px;
-            font-size: 11px;
+        
+        .vis-title {
+            color: #64ffda;
+            font-size: 16px;
+            font-weight: 500;
         }
-        .parameter input, .parameter select {
-            background: #002200;
-            border: 1px solid #00ff88;
-            color: #00ff88;
-            padding: 4px;
-            border-radius: 3px;
-            width: 80px;
+        
+        .vis-controls {
+            display: flex;
+            gap: 8px;
         }
-        .metric {
-            margin: 8px 0;
-            padding: 6px;
-            background: #0d1a0d;
-            border-left: 3px solid #00ff88;
-            font-size: 11px;
-        }
-        button {
-            background: #002200;
-            border: 1px solid #00ff88;
-            color: #00ff88;
+        
+        .vis-btn {
+            background: rgba(100, 255, 218, 0.1);
+            border: 1px solid rgba(100, 255, 218, 0.3);
+            color: #64ffda;
             padding: 8px 16px;
-            margin: 5px;
+            border-radius: 20px;
+            font-size: 12px;
             cursor: pointer;
-            border-radius: 3px;
-            transition: all 0.2s ease;
+            transition: all 0.3s ease;
         }
-        button:hover {
-            background: #004400;
+        
+        .vis-btn:hover {
+            background: rgba(100, 255, 218, 0.2);
+            transform: translateY(-1px);
         }
-        button.active {
-            background: #004400 !important;
-            font-weight: bold !important;
-            box-shadow: 0 0 5px #00ff88;
+        
+        .vis-btn.active {
+            background: rgba(100, 255, 218, 0.3);
+            box-shadow: 0 0 20px rgba(100, 255, 218, 0.4);
         }
-        h1, h2, h3 { color: #00ffaa; margin: 10px 0; }
-        .visualization-mode {
+        
+        .canvas-container {
+            flex: 1;
+            position: relative;
+            margin: 20px;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        
+        canvas {
+            width: 100%;
+            height: 100%;
+            cursor: crosshair;
+            background: #000;
+        }
+        
+        .canvas-overlay {
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(10px);
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid rgba(100, 255, 218, 0.3);
+            font-size: 12px;
+            color: #b0bec5;
+        }
+        
+        .control-section {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        .section-header {
+            background: rgba(255, 255, 255, 0.02);
+            padding: 16px 20px;
+            font-weight: 500;
+            font-size: 14px;
+            color: #64ffda;
+            cursor: pointer;
             display: flex;
-            flex-wrap: wrap;
-            gap: 5px;
-            margin: 10px 0;
-        }
-        .visualization-mode button {
-            font-size: 10px;
-            padding: 4px 8px;
-            margin: 2px;
-        }
-        .grid-info {
-            background: #1a1a2e;
-            border: 1px solid #16213e;
-            padding: 8px;
-            border-radius: 3px;
-            margin: 10px 0;
-            font-size: 10px;
-        }
-        .legend {
-            font-size: 10px;
-            margin-top: 10px;
-        }
-        .legend-item {
-            display: flex;
+            justify-content: space-between;
             align-items: center;
-            margin: 3px 0;
+            transition: all 0.3s ease;
         }
-        .color-box {
+        
+        .section-header:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        
+        .section-content {
+            padding: 20px;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease;
+        }
+        
+        .section-content.expanded {
+            max-height: 600px;
+        }
+        
+        .data-input-area {
+            background: rgba(100, 255, 218, 0.05);
+            border: 2px dashed rgba(100, 255, 218, 0.3);
+            border-radius: 8px;
+            padding: 24px;
+            text-align: center;
+            margin: 16px 0;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .data-input-area:hover {
+            background: rgba(100, 255, 218, 0.1);
+            border-color: rgba(100, 255, 218, 0.5);
+        }
+        
+        .data-input-area.dragover {
+            background: rgba(100, 255, 218, 0.15);
+            border-color: #64ffda;
+        }
+        
+        .upload-icon {
+            font-size: 32px;
+            color: #64ffda;
+            margin-bottom: 12px;
+        }
+        
+        .preset-freq-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin: 16px 0;
+        }
+        
+        .preset-freq-item {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            padding: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .preset-freq-item:hover {
+            background: rgba(100, 255, 218, 0.1);
+            border-color: rgba(100, 255, 218, 0.3);
+        }
+        
+        .preset-freq-item.active {
+            background: rgba(100, 255, 218, 0.15);
+            border-color: rgba(100, 255, 218, 0.5);
+        }
+        
+        .preset-freq-name {
+            font-size: 12px;
+            color: #e1e8f0;
+            font-weight: 500;
+        }
+        
+        .preset-freq-detail {
+            font-size: 10px;
+            color: #b0bec5;
+            margin-top: 2px;
+        }
+        
+        .preset-freq-toggle {
+            position: absolute;
+            top: 8px;
+            right: 8px;
             width: 12px;
             height: 12px;
-            margin-right: 6px;
-            border: 1px solid #333;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+        
+        .preset-freq-item.active .preset-freq-toggle {
+            background: #64ffda;
+            border-color: #64ffda;
+        }
+        
+        .manual-freq-item {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            padding: 8px 12px;
+            margin: 4px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+        
+        .manual-freq-item.active {
+            background: rgba(100, 255, 218, 0.1);
+            border-color: rgba(100, 255, 218, 0.3);
+        }
+        
+        .manual-freq-info {
+            font-size: 11px;
+            color: #e1e8f0;
+        }
+        
+        .manual-freq-controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        
+        .mini-toggle {
+            width: 30px;
+            height: 16px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .mini-toggle.active {
+            background: #64ffda;
+        }
+        
+        .mini-toggle-slider {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 12px;
+            height: 12px;
+            background: #fff;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+        
+        .mini-toggle.active .mini-toggle-slider {
+            transform: translateX(14px);
+        }
+        
+        .remove-btn {
+            background: rgba(255, 100, 100, 0.2);
+            border: 1px solid rgba(255, 100, 100, 0.4);
+            color: #ff6b6b;
+            padding: 2px 6px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 10px;
+        }
+        
+        .remove-btn:hover {
+            background: rgba(255, 100, 100, 0.3);
+        }
+        
+        .preset-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #e1e8f0;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .preset-btn:hover {
+            background: rgba(100, 255, 218, 0.1);
+            border-color: rgba(100, 255, 218, 0.3);
+            transform: translateY(-1px);
+        }
+        
+        .param-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 12px 0;
+        }
+        
+        .param-label {
+            font-size: 13px;
+            color: #b0bec5;
+        }
+        
+        .param-input {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #e1e8f0;
+            padding: 6px 10px;
+            border-radius: 4px;
+            width: 80px;
+            font-size: 12px;
+            text-align: center;
+        }
+        
+        .param-input:focus {
+            outline: none;
+            border-color: #64ffda;
+            box-shadow: 0 0 0 2px rgba(100, 255, 218, 0.2);
+        }
+        
+        .freq-input-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            margin: 8px 0;
+        }
+        
+        .freq-input {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #e1e8f0;
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        
+        .add-freq-btn {
+            background: rgba(100, 255, 218, 0.2);
+            border: 1px solid rgba(100, 255, 218, 0.4);
+            color: #64ffda;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        .freq-tag {
+            display: inline-block;
+            background: rgba(100, 255, 218, 0.1);
+            border: 1px solid rgba(100, 255, 218, 0.3);
+            color: #64ffda;
+            padding: 4px 8px;
+            margin: 2px;
+            border-radius: 12px;
+            font-size: 10px;
+            cursor: pointer;
+        }
+        
+        .freq-tag:hover {
+            background: rgba(255, 100, 100, 0.2);
+            border-color: rgba(255, 100, 100, 0.5);
+        }
+        
+        .action-btn {
+            background: linear-gradient(135deg, #64ffda 0%, #00bcd4 100%);
+            border: none;
+            color: #000;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+            margin: 8px 4px;
+            transition: all 0.3s ease;
+            font-size: 13px;
+        }
+        
+        .action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(100, 255, 218, 0.4);
+        }
+        
+        .action-btn.secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: #e1e8f0;
+        }
+        
+        .injection-controls {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            margin: 16px 0;
+        }
+        
+        .toggle-switch {
+            position: relative;
+            width: 50px;
+            height: 24px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .toggle-switch.active {
+            background: #64ffda;
+        }
+        
+        .toggle-slider {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 20px;
+            height: 20px;
+            background: #fff;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+        
+        .toggle-switch.active .toggle-slider {
+            transform: translateX(26px);
+        }
+        
+        .status-bar {
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
+            padding: 12px 24px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: #b0bec5;
+        }
+        
+        .metric-value {
+            color: #64ffda;
+            font-weight: 500;
+        }
+        
+        .waveform-preview {
+            height: 60px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 4px;
+            margin: 12px 0;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .hidden {
+            display: none;
         }
     </style>
 </head>
 <body>
-    <h1>🧮 Symbolic Physics Grid Engine</h1>
-    <p>Interactive symbolic spacetime with quantum-to-classical transitions, curvature dynamics, and wave interference</p>
-    
-    <div class="container">
-        <div class="main-grid">
-            <div class="grid-container">
-                <canvas id="mainCanvas" width="800" height="600"></canvas>
-                <div class="grid-info">
-                    Click and drag to create symbolic disturbances | Mouse wheel to zoom | Arrow keys to pan
+    <div class="header">
+        <h1>Field Dynamics Lab</h1>
+        <p>Multi-frequency injection into emergent symbolic fields - study how different combinations create unique structures</p>
+    </div>
+
+    <div class="main-container">
+        <div class="control-panel">
+            <!-- Data Input Section -->
+            <div class="control-section">
+                <div class="section-header" onclick="toggleSection('data')">
+                    <span>📊 Data Input</span>
+                    <span id="data-arrow">▼</span>
+                </div>
+                <div class="section-content expanded" id="data-content">
+                    <div class="data-input-area" onclick="document.getElementById('fileInput').click()">
+                        <div class="upload-icon">📁</div>
+                        <div>Drop files here or click to browse</div>
+                        <div style="font-size: 11px; opacity: 0.7; margin-top: 8px;">
+                            Supports: .wav, .csv, .txt, .json
+                        </div>
+                    </div>
+                    <input type="file" id="fileInput" class="hidden" accept=".wav,.csv,.txt,.json" onchange="loadDataFile(this)">
+                    
+                    <div style="margin: 20px 0;">
+                        <div style="font-size: 13px; color: #64ffda; margin-bottom: 12px;">Built-in Waveforms (Click to Toggle)</div>
+                        <div class="preset-freq-grid">
+                            <div class="preset-freq-item" id="preset-alpha" onclick="togglePresetFrequency('alpha')">
+                                <div class="preset-freq-name">Alpha Waves</div>
+                                <div class="preset-freq-detail">8-12 Hz</div>
+                                <div class="preset-freq-toggle"></div>
+                            </div>
+                            <div class="preset-freq-item" id="preset-beta" onclick="togglePresetFrequency('beta')">
+                                <div class="preset-freq-name">Beta Waves</div>
+                                <div class="preset-freq-detail">13-30 Hz</div>
+                                <div class="preset-freq-toggle"></div>
+                            </div>
+                            <div class="preset-freq-item" id="preset-gamma" onclick="togglePresetFrequency('gamma')">
+                                <div class="preset-freq-name">Gamma Waves</div>
+                                <div class="preset-freq-detail">30-100 Hz</div>
+                                <div class="preset-freq-toggle"></div>
+                            </div>
+                            <div class="preset-freq-item" id="preset-theta" onclick="togglePresetFrequency('theta')">
+                                <div class="preset-freq-name">Theta Waves</div>
+                                <div class="preset-freq-detail">4-8 Hz</div>
+                                <div class="preset-freq-toggle"></div>
+                            </div>
+                            <div class="preset-freq-item" id="preset-delta" onclick="togglePresetFrequency('delta')">
+                                <div class="preset-freq-name">Delta Waves</div>
+                                <div class="preset-freq-detail">0.5-4 Hz</div>
+                                <div class="preset-freq-toggle"></div>
+                            </div>
+                            <div class="preset-freq-item" id="preset-schumann" onclick="togglePresetFrequency('schumann')">
+                                <div class="preset-freq-name">Schumann</div>
+                                <div class="preset-freq-detail">7.83 Hz</div>
+                                <div class="preset-freq-toggle"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="margin: 20px 0;">
+                        <div style="font-size: 13px; color: #64ffda; margin-bottom: 12px;">Manual Frequencies</div>
+                        <div class="freq-input-row">
+                            <input type="number" class="freq-input" id="manualFreq" placeholder="Enter Hz (e.g. 40)" step="0.1">
+                            <input type="number" class="freq-input" id="manualAmp" placeholder="Amplitude (e.g. 0.02)" step="0.001" value="0.01">
+                            <button class="add-freq-btn" onclick="addManualFrequency()">Add</button>
+                        </div>
+                        
+                        <div id="manualFrequenciesList" style="margin-top: 16px; max-height: 120px; overflow-y: auto;">
+                            <!-- Manual frequencies will appear here -->
+                        </div>
+                    </div>
+                    
+                    <div style="margin: 20px 0;">
+                        <div style="font-size: 13px; color: #64ffda; margin-bottom: 12px;">Active Frequencies</div>
+                        <div id="activeFrequencyDisplay" style="font-size: 11px; color: #b0bec5; min-height: 40px;">
+                            No frequencies active
+                        </div>
+                    </div>
+                    
+                    <div class="waveform-preview" id="waveformPreview">
+                        <canvas id="previewCanvas" width="300" height="60"></canvas>
+                    </div>
                 </div>
             </div>
-            
-            <div class="visualization-mode">
-                <button onclick="setVisualizationMode('field')" class="active">Symbolic Field θ</button>
-                <button onclick="setVisualizationMode('curvature')">Ricci Curvature R^(S)</button>
-                <button onclick="setVisualizationMode('energy')">Energy Density T^(S)</button>
-                <button onclick="setVisualizationMode('metric')">Symbolic Metric g^(S)</button>
-                <button onclick="setVisualizationMode('deviation')">Einstein Deviation</button>
-                <button onclick="setVisualizationMode('coherence')">Field Coherence</button>
+
+            <!-- Injection Control -->
+            <div class="control-section">
+                <div class="section-header" onclick="toggleSection('injection')">
+                    <span>🎯 Injection Control</span>
+                    <span id="injection-arrow">▼</span>
+                </div>
+                <div class="section-content expanded" id="injection-content">
+                    <div class="injection-controls">
+                        <label style="font-size: 13px; color: #b0bec5;">Signal Active:</label>
+                        <div class="toggle-switch" id="injectionToggle" onclick="toggleInjection()">
+                            <div class="toggle-slider"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="param-row">
+                        <span class="param-label">Injection Strength</span>
+                        <input type="number" class="param-input" id="injectionStrength" value="2.0" step="0.1" oninput="updateParameter('injectionStrength')">
+                    </div>
+                    
+                    <div class="param-row">
+                        <span class="param-label">Injection Radius</span>
+                        <input type="number" class="param-input" id="injectionRadius" value="8" step="1" min="1" oninput="updateParameter('injectionRadius')">
+                    </div>
+                    
+                    <button class="action-btn" onclick="toggleSimulation()">▶ Play / ⏸ Pause</button>
+                    <button class="action-btn" onclick="injectCurrentWave()">Inject Once</button>
+                    <button class="action-btn secondary" onclick="clearField()">Clear Field</button>
+                </div>
+            </div>
+
+            <!-- Field Parameters -->
+            <div class="control-section">
+                <div class="section-header" onclick="toggleSection('params')">
+                    <span>⚙️ Field Parameters</span>
+                    <span id="params-arrow">▼</span>
+                </div>
+                <div class="section-content expanded" id="params-content">
+                    <div class="param-row">
+                        <span class="param-label">Nonlinearity</span>
+                        <input type="number" class="param-input" id="alpha" value="0.5" step="0.1" oninput="updateParameter('alpha')">
+                    </div>
+                    
+                    <div class="param-row">
+                        <span class="param-label">Coherence</span>
+                        <input type="number" class="param-input" id="coherence" value="0.2" step="0.05" oninput="updateParameter('coherence')">
+                    </div>
+                    
+                    <div class="param-row">
+                        <span class="param-label">Diffusion</span>
+                        <input type="number" class="param-input" id="gamma" value="0.05" step="0.01" oninput="updateParameter('gamma')">
+                    </div>
+                    
+                    <div class="param-row">
+                        <span class="param-label">Time Step</span>
+                        <input type="number" class="param-input" id="dt" value="0.005" step="0.001" oninput="updateParameter('dt')">
+                    </div>
+                </div>
+            </div>
+
+            <!-- System Presets -->
+            <div class="control-section">
+                <div class="section-header" onclick="toggleSection('presets')">
+                    <span>🎛️ System Presets</span>
+                    <span id="presets-arrow">▼</span>
+                </div>
+                <div class="section-content expanded" id="presets-content">
+                    <button class="action-btn secondary" onclick="setPreset('responsive')">Responsive</button>
+                    <button class="action-btn secondary" onclick="setPreset('coherent')">High Coherence</button>
+                    <button class="action-btn secondary" onclick="setPreset('chaotic')">Chaotic</button>
+                    <button class="action-btn secondary" onclick="setPreset('stable')">Stable</button>
+                    
+                    <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.1);">
+                        <div style="font-size: 12px; color: #64ffda; margin-bottom: 8px;">Frequency Combinations</div>
+                        <button class="action-btn secondary" onclick="setFrequencyPreset('psychedelic')">Psychedelic Brain</button>
+                        <button class="action-btn secondary" onclick="setFrequencyPreset('meditation')">Meditation State</button>
+                        <button class="action-btn secondary" onclick="setFrequencyPreset('focus')">Focus State</button>
+                        <button class="action-btn secondary" onclick="setFrequencyPreset('schumann_harmonics')">Schumann + Harmonics</button>
+                    </div>
+                </div>
             </div>
         </div>
-        
-        <div class="controls">
-            <h2>🧨 Symbolic Physics Engine</h2>
-            
-            <div class="parameter-group">
-                <h3>Core Field Dynamics</h3>
-                <div class="parameter">
-                    <label>α (nonlinear):</label>
-                    <input type="number" id="alpha" value="0.5" step="0.1" min="0">
-                </div>
-                <div class="parameter">
-                    <label>β (inertia):</label>
-                    <input type="number" id="beta" value="1.0" step="0.1" min="0.1">
-                </div>
-                <div class="parameter">
-                    <label>γ (diffusion):</label>
-                    <input type="number" id="gamma" value="0.1" step="0.05" min="0">
-                </div>
-                <div class="parameter">
-                    <label>ε (regularize):</label>
-                    <input type="number" id="epsilon" value="0.1" step="0.01" min="0.01">
+
+        <div class="visualization-area">
+            <div class="vis-header">
+                <div class="vis-title">Field Visualization</div>
+                <div class="vis-controls">
+                    <button class="vis-btn active" onclick="setVisualizationMode('field')">Field</button>
+                    <button class="vis-btn" onclick="setVisualizationMode('energy')">Energy</button>
+                    <button class="vis-btn" onclick="setVisualizationMode('coherence')">Coherence</button>
+                    <button class="vis-btn" onclick="setVisualizationMode('gradient')">Gradient</button>
                 </div>
             </div>
             
-            <div class="parameter-group">
-                <h3>🚀 Symbolic Relativity</h3>
-                <div class="parameter">
-                    <label>λ (metric coupling):</label>
-                    <input type="number" id="lambda" value="0.1" step="0.01" min="0">
+            <div class="canvas-container">
+                <canvas id="fieldCanvas" width="800" height="600"></canvas>
+                <div class="canvas-overlay">
+                    <div>Time: <span id="currentTime" class="metric-value">0.000</span></div>
+                    <div>Energy: <span id="totalEnergy" class="metric-value">--</span></div>
+                    <div>Coherence: <span id="avgCoherence" class="metric-value">--</span></div>
                 </div>
-                <div class="parameter">
-                    <label>G_s (gravity):</label>
-                    <input type="number" id="gsymbolic" value="0.01" step="0.001" min="0">
-                </div>
-                <div class="parameter">
-                    <label>κ (geodesic):</label>
-                    <input type="number" id="kappa" value="0.1" step="0.01" min="0">
-                </div>
-            </div>
-            
-            <div class="parameter-group">
-                <h3>Symbolic Potential</h3>
-                <div class="parameter">
-                    <label>V₀ (depth):</label>
-                    <input type="number" id="v0" value="1.0" step="0.1">
-                </div>
-                <div class="parameter">
-                    <label>ω (frequency):</label>
-                    <input type="number" id="omega" value="2.0" step="0.1">
-                </div>
-            </div>
-            
-            <div class="parameter-group">
-                <h3>Simulation Parameters</h3>
-                <div class="parameter">
-                    <label>dt:</label>
-                    <input type="number" id="dt" value="0.005" step="0.001" min="0.001">
-                </div>
-                <div class="parameter">
-                    <label>Grid Resolution:</label>
-                    <select id="gridSize">
-                        <option value="64">64x64</option>
-                        <option value="128" selected>128x128</option>
-                        <option value="256">256x256</option>
-                    </select>
-                </div>
-                <div class="parameter">
-                    <label>Boundary:</label>
-                    <select id="boundary">
-                        <option value="periodic" selected>Periodic</option>
-                        <option value="fixed">Fixed</option>
-                        <option value="absorbing">Absorbing</option>
-                    </select>
-                </div>
-            </div>
-            
-            <div class="metric">
-                <strong>🧨 Symbolic Metrics</strong>
-            </div>
-            <div class="metric">
-                <strong>Avg Ricci R^(S):</strong>
-                <div id="avgRicci">--</div>
-            </div>
-            <div class="metric">
-                <strong>Avg Energy T^(S):</strong>
-                <div id="avgEnergy">--</div>
-            </div>
-            <div class="metric">
-                <strong>Einstein Deviation:</strong>
-                <div id="einsteinDev">--</div>
-            </div>
-            <div class="metric">
-                <strong>Total Field Energy:</strong>
-                <div id="totalEnergy">--</div>
-            </div>
-            <div class="metric">
-                <strong>Field Coherence:</strong>
-                <div id="fieldCoherence">--</div>
-            </div>
-            <div class="metric">
-                <strong>Max Curvature:</strong>
-                <div id="maxCurvature">--</div>
-            </div>
-            
-            <button onclick="startSimulation()">Start/Resume</button>
-            <button onclick="pauseSimulation()">Pause</button>
-            <button onclick="resetField()">Reset Field</button>
-            <button onclick="addRandomDisturbance()">Random Disturbance</button>
-            <button onclick="addWavePacket()">Add Wave Packet</button>
-            <button onclick="addVortex()">Add Vortex</button>
-            
-            <div class="parameter-group">
-                <h3>Presets</h3>
-                <button onclick="setQuantumRegime()">Quantum Regime</button>
-                <button onclick="setClassicalRegime()">Classical Regime</button>
-                <button onclick="setTransitionRegime()">Transition Regime</button>
-                <button onclick="setChaosRegime()">Chaos Regime</button>
-            </div>
-            
-            <div class="legend">
-                <h3>Visualization Guide</h3>
-                <div class="legend-item">
-                    <div class="color-box" style="background: linear-gradient(90deg, #000080, #ffffff, #ff0000);"></div>
-                    Field θ: Blue(negative) → White(zero) → Red(positive)
-                </div>
-                <div class="legend-item">
-                    <div class="color-box" style="background: linear-gradient(90deg, #000000, #00ff00);"></div>
-                    Curvature R^(S): Black(low) → Green(high)
-                </div>
-                <div class="legend-item">
-                    <div class="color-box" style="background: linear-gradient(90deg, #000000, #ffff00);"></div>
-                    Energy T^(S): Black(low) → Yellow(high)
-                </div>
-                <div class="legend-item">
-                    <div class="color-box" style="background: linear-gradient(90deg, #000000, #ff00ff);"></div>
-                    Einstein Dev: Black(satisfied) → Magenta(violation)
-                </div>
-            </div>
-            
-            <div style="margin-top: 15px; font-size: 10px; opacity: 0.7;">
-                <p><strong>🧨 Revolutionary Framework:</strong> This implements our validated symbolic coherence field equations on a 2D grid. The field θ(x,y,t) evolves according to symbolic general relativity with quantum-to-classical transitions controlled by G_s parameter.</p>
-                <p><strong>Quantum Regime (G_s ≈ 0):</strong> Free wave oscillations, high Einstein deviation</p>
-                <p><strong>Classical Regime (G_s > 0.1):</strong> Constrained evolution, low Einstein deviation</p>
             </div>
         </div>
     </div>
 
+    <div class="status-bar">
+        <span>Status: <span id="simStatus" class="metric-value">Ready</span></span>
+        <span>FPS: <span id="currentFPS" class="metric-value">--</span></span>
+        <span>Injection: <span id="injectionStatus" class="metric-value">Off</span></span>
+        <span>Data: <span id="dataStatus" class="metric-value">None loaded</span></span>
+    </div>
+
     <script>
-        // Symbolic Physics Grid Engine
-        class SymbolicPhysicsGrid {
+        class FieldDynamicsLab {
             constructor() {
-                this.canvas = document.getElementById('mainCanvas');
+                this.canvas = document.getElementById('fieldCanvas');
                 this.ctx = this.canvas.getContext('2d');
-                this.width = this.canvas.width;
-                this.height = this.canvas.height;
+                this.previewCanvas = document.getElementById('previewCanvas');
+                this.previewCtx = this.previewCanvas.getContext('2d');
                 
-                // Grid parameters
+                // Grid setup
                 this.gridSize = 128;
-                this.cellSize = Math.min(this.width / this.gridSize, this.height / this.gridSize);
                 this.dx = 1.0 / this.gridSize;
                 this.dt = 0.005;
                 this.time = 0;
                 
-                // Physical parameters
+                // Field parameters
                 this.alpha = 0.5;
+                this.coherence = 0.2;
+                this.gamma = 0.05;
                 this.beta = 1.0;
-                this.gamma = 0.1;
                 this.epsilon = 0.1;
-                this.lambda = 0.1;
-                this.G_symbolic = 0.01;
-                this.kappa = 0.1;
-                this.v0 = 1.0;
-                this.omega = 2.0;
-                this.boundary = 'periodic';
                 
-                // Field arrays (2D)
+                // Frequency management
+                this.activeFrequencies = new Map(); // Store all active frequencies
+                this.presetFrequencies = {
+                    'alpha': { freq: 10, amp: 0.01, name: 'Alpha (8-12Hz)' },
+                    'beta': { freq: 20, amp: 0.015, name: 'Beta (13-30Hz)' },
+                    'gamma': { freq: 40, amp: 0.03, name: 'Gamma (30-100Hz)' },
+                    'theta': { freq: 6, amp: 0.015, name: 'Theta (4-8Hz)' },
+                    'delta': { freq: 2, amp: 0.01, name: 'Delta (0.5-4Hz)' },
+                    'schumann': { freq: 7.83, amp: 0.01, name: 'Schumann (7.83Hz)' }
+                };
+                
+                // Injection parameters
+                this.injectionActive = false;
+                this.injectionStrength = 2.0;
+                this.injectionRadius = 8;
+                this.currentWaveData = null;
+                
+                // Field arrays
+                this.initializeArrays();
+                
+                // Visualization
+                this.visualizationMode = 'field';
+                this.running = false;
+                
+                // Animation
+                this.lastTime = 0;
+                this.fps = 0;
+                
+                this.resizeCanvas();
+                this.setupEventListeners();
+                this.initializeField();
+                this.startRenderLoop();
+            }
+            
+            initializeArrays() {
                 this.theta = this.createGrid();
                 this.theta_t = this.createGrid();
                 this.theta_new = this.createGrid();
                 this.theta_t_new = this.createGrid();
-                
-                // Symbolic relativity arrays
-                this.ricci_scalar = this.createGrid();
+                this.coherence_field = this.createGrid();
                 this.energy_density = this.createGrid();
-                this.metric_determinant = this.createGrid();
-                this.einstein_deviation = this.createGrid();
-                this.field_coherence = this.createGrid();
-                
-                // Visualization
-                this.visualizationMode = 'field';
-                this.colorScale = { min: -1, max: 1 };
-                this.zoom = 1.0;
-                this.offsetX = 0;
-                this.offsetY = 0;
-                
-                this.running = false;
-                this.mouseDown = false;
-                this.lastMouseX = 0;
-                this.lastMouseY = 0;
-                
-                this.initializeField();
-                this.setupEventListeners();
+                this.gradient_mag = this.createGrid();
             }
             
             createGrid() {
                 return Array(this.gridSize).fill(0).map(() => Array(this.gridSize).fill(0));
             }
             
-            // Initialize field with wave patterns
+            resizeCanvas() {
+                const container = this.canvas.parentElement;
+                this.canvas.width = container.clientWidth;
+                this.canvas.height = container.clientHeight;
+            }
+            
             initializeField() {
+                // Clean initialization - just minimal noise
                 for (let i = 0; i < this.gridSize; i++) {
                     for (let j = 0; j < this.gridSize; j++) {
-                        const x = i * this.dx;
-                        const y = j * this.dx;
-                        
-                        // Initial symbolic field with multiple wave modes
-                        this.theta[i][j] = 0.3 * Math.sin(4 * Math.PI * x) * Math.cos(4 * Math.PI * y) +
-                                          0.2 * Math.sin(8 * Math.PI * x) * Math.sin(8 * Math.PI * y) +
-                                          0.1 * (Math.random() - 0.5);
-                        
-                        this.theta_t[i][j] = 0.1 * (Math.random() - 0.5);
-                        
-                        // Initialize symbolic relativity fields
-                        this.ricci_scalar[i][j] = 0;
-                        this.energy_density[i][j] = 0;
-                        this.metric_determinant[i][j] = 1;
-                        this.einstein_deviation[i][j] = 0;
-                        this.field_coherence[i][j] = 0;
+                        this.theta[i][j] = 0.01 * (Math.random() - 0.5);
+                        this.theta_t[i][j] = 0.001 * (Math.random() - 0.5);
                     }
                 }
                 this.time = 0;
+                this.computeAuxiliaryFields();
             }
             
-            // Handle boundary conditions
+            // Boundary handling (toroidal)
             getIndex(i, j) {
-                if (this.boundary === 'periodic') {
-                    i = ((i % this.gridSize) + this.gridSize) % this.gridSize;
-                    j = ((j % this.gridSize) + this.gridSize) % this.gridSize;
-                } else if (this.boundary === 'fixed') {
-                    i = Math.max(0, Math.min(this.gridSize - 1, i));
-                    j = Math.max(0, Math.min(this.gridSize - 1, j));
-                } else if (this.boundary === 'absorbing') {
-                    if (i < 0 || i >= this.gridSize || j < 0 || j >= this.gridSize) {
-                        return {i: -1, j: -1}; // Flag for absorption
-                    }
-                }
-                return {i, j};
+                i = ((i % this.gridSize) + this.gridSize) % this.gridSize;
+                j = ((j % this.gridSize) + this.gridSize) % this.gridSize;
+                return { i, j };
             }
             
             getValue(field, i, j) {
                 const idx = this.getIndex(i, j);
-                if (idx.i === -1) return 0; // Absorbing boundary
                 return field[idx.i][idx.j];
             }
             
-            // Compute spatial derivatives
             computeGradient(field, i, j) {
                 const dx_val = (this.getValue(field, i+1, j) - this.getValue(field, i-1, j)) / (2 * this.dx);
                 const dy_val = (this.getValue(field, i, j+1) - this.getValue(field, i, j-1)) / (2 * this.dx);
-                return {x: dx_val, y: dy_val};
+                return { x: dx_val, y: dy_val };
             }
             
             computeLaplacian(field, i, j) {
@@ -417,168 +803,195 @@
                 return dxx + dyy;
             }
             
-            // Symbolic potential
-            potential(theta) {
-                return -this.v0 * Math.cos(this.omega * theta);
-            }
-            
-            potentialDerivative(theta) {
-                return this.v0 * this.omega * Math.sin(this.omega * theta);
-            }
-            
-            // Main evolution step
-            evolveField() {
-                this.updateParameters();
+            computeLocalCoherence(field, i, j) {
+                const centerGrad = this.computeGradient(field, i, j);
+                const centerMag = Math.sqrt(centerGrad.x * centerGrad.x + centerGrad.y * centerGrad.y);
                 
-                // Evolve field using symbolic coherence equations
+                if (centerMag < 1e-10) return 0;
+                
+                let coherenceSum = 0;
+                let count = 0;
+                const radius = 2;
+                
+                for (let di = -radius; di <= radius; di++) {
+                    for (let dj = -radius; dj <= radius; dj++) {
+                        if (di === 0 && dj === 0) continue;
+                        
+                        const ni = i + di;
+                        const nj = j + dj;
+                        const idx = this.getIndex(ni, nj);
+                        
+                        const neighborGrad = this.computeGradient(field, idx.i, idx.j);
+                        const neighborMag = Math.sqrt(neighborGrad.x * neighborGrad.x + neighborGrad.y * neighborGrad.y);
+                        
+                        if (neighborMag > 1e-10) {
+                            const dotProduct = (centerGrad.x * neighborGrad.x + centerGrad.y * neighborGrad.y);
+                            const alignment = dotProduct / (centerMag * neighborMag);
+                            
+                            const dist = Math.sqrt(di*di + dj*dj);
+                            const weight = Math.exp(-dist / radius);
+                            
+                            coherenceSum += alignment * weight;
+                            count += weight;
+                        }
+                    }
+                }
+                
+                return count > 0 ? coherenceSum / count : 0;
+            }
+            
+            generateCombinedWaveValue(time) {
+                if (this.activeFrequencies.size === 0) return 0;
+                
+                let combinedValue = 0;
+                this.activeFrequencies.forEach((freqData) => {
+                    const { freq, amp } = freqData;
+                    // Generate sine wave with exponential decay for natural behavior
+                    const decay = Math.exp(-time * 0.1);
+                    combinedValue += amp * Math.sin(2 * Math.PI * freq * time) * decay;
+                });
+                
+                return combinedValue;
+            }
+            
+            injectWaveData() {
+                if (!this.injectionActive || this.activeFrequencies.size === 0) return;
+                
+                const centerX = Math.floor(this.gridSize / 2);
+                const centerY = Math.floor(this.gridSize / 2);
+                const radius = this.injectionRadius;
+                
+                // Generate combined wave value from all active frequencies
+                const amplitude = this.generateCombinedWaveValue(this.time) * this.injectionStrength * 0.01;
+                
+                // Inject with Gaussian profile
+                for (let di = -radius; di <= radius; di++) {
+                    for (let dj = -radius; dj <= radius; dj++) {
+                        const i = centerX + di;
+                        const j = centerY + dj;
+                        const idx = this.getIndex(i, j);
+                        
+                        const dist2 = di*di + dj*dj;
+                        if (dist2 <= radius*radius) {
+                            const gaussian = Math.exp(-dist2 / (radius*radius/3));
+                            // Actually add to the field - this was missing proper injection
+                            this.theta[idx.i][idx.j] += amplitude * gaussian;
+                            // Also add some velocity to create wave motion
+                            this.theta_t[idx.i][idx.j] += amplitude * gaussian * 0.1;
+                        }
+                    }
+                }
+            }
+            
+            evolveField() {
+                this.updateParametersFromUI();
+                
+                // Inject wave data if active
+                this.injectWaveData();
+                
                 for (let i = 0; i < this.gridSize; i++) {
                     for (let j = 0; j < this.gridSize; j++) {
                         const grad = this.computeGradient(this.theta, i, j);
                         const laplacian = this.computeLaplacian(this.theta, i, j);
                         const grad_mag2 = grad.x * grad.x + grad.y * grad.y;
                         
-                        // Numerical stability
-                        const eps2 = Math.max(this.epsilon * this.epsilon, 1e-8);
+                        // Nonlinear coherence term
+                        const eps2 = this.epsilon * this.epsilon;
+                        const denom = Math.pow(eps2 + grad_mag2, 1.5);
+                        const nonlinear = this.alpha * laplacian / denom;
                         
-                        // Nonlinear terms from symbolic coherence field equation
-                        const denom1 = Math.pow(eps2 + grad_mag2, 5/2);
-                        const denom2 = Math.pow(eps2 + grad_mag2, 3/2);
-                        
-                        const nonlinear1 = 3 * this.alpha * (grad_mag2 * laplacian) / denom1;
-                        const nonlinear2 = -this.alpha * laplacian / denom2;
+                        // Diffusion
                         const diffusion = this.gamma * laplacian;
-                        const potential = this.potentialDerivative(this.theta[i][j]);
                         
-                        // Symbolic field evolution equation
-                        const acceleration = (1 / this.beta) * (nonlinear1 + nonlinear2 + diffusion + potential);
+                        // Coherence feedback
+                        let coherence_feedback = 0;
+                        if (this.coherence > 0) {
+                            const local_coherence = this.computeLocalCoherence(this.theta, i, j);
+                            coherence_feedback = this.coherence * local_coherence * laplacian;
+                        }
                         
-                        // Update using leapfrog method
+                        // Field evolution
+                        const acceleration = (1 / this.beta) * (nonlinear + diffusion + coherence_feedback);
+                        
+                        // Leapfrog integration
                         this.theta_t_new[i][j] = this.theta_t[i][j] + this.dt * acceleration;
                         this.theta_new[i][j] = this.theta[i][j] + this.dt * this.theta_t_new[i][j];
                         
                         // Stability check
-                        if (!isFinite(this.theta_new[i][j]) || Math.abs(this.theta_new[i][j]) > 10) {
+                        if (!isFinite(this.theta_new[i][j]) || Math.abs(this.theta_new[i][j]) > 100) {
                             this.theta_new[i][j] = this.theta[i][j] * 0.9;
                             this.theta_t_new[i][j] = this.theta_t[i][j] * 0.9;
                         }
                     }
                 }
                 
-                // Update arrays
+                // Swap arrays
                 [this.theta, this.theta_new] = [this.theta_new, this.theta];
                 [this.theta_t, this.theta_t_new] = [this.theta_t_new, this.theta_t];
                 
                 this.time += this.dt;
-                this.computeSymbolicRelativity();
-            }
-            
-            // Compute symbolic general relativity quantities
-            computeSymbolicRelativity() {
-                for (let i = 0; i < this.gridSize; i++) {
-                    for (let j = 0; j < this.gridSize; j++) {
-                        const grad = this.computeGradient(this.theta, i, j);
-                        const laplacian = this.computeLaplacian(this.theta, i, j);
-                        const grad_mag2 = grad.x * grad.x + grad.y * grad.y;
-                        
-                        // Symbolic metric determinant g^(S) = det(δ_ij + λ * ∇θ ⊗ ∇θ)
-                        this.metric_determinant[i][j] = 1.0 + this.lambda * grad_mag2;
-                        
-                        // Symbolic Ricci scalar R^(S) = ∇²θ + λ|∇θ|²
-                        this.ricci_scalar[i][j] = laplacian + this.lambda * grad_mag2;
-                        
-                        // Symbolic energy-momentum tensor T^(S)_00 = β(∂θ/∂t)² + V(θ)
-                        const kinetic = this.beta * this.theta_t[i][j] * this.theta_t[i][j];
-                        const potential = this.potential(this.theta[i][j]);
-                        this.energy_density[i][j] = kinetic + potential;
-                        
-                        // Einstein equation deviation |R^(S) - G_s * T^(S)|
-                        const expected_ricci = this.G_symbolic * this.energy_density[i][j];
-                        this.einstein_deviation[i][j] = Math.abs(this.ricci_scalar[i][j] - expected_ricci);
-                        
-                        // Local field coherence
-                        const local_variation = Math.abs(grad.x) + Math.abs(grad.y);
-                        this.field_coherence[i][j] = 1.0 / (1.0 + local_variation * 10);
-                    }
-                }
-                
+                this.computeAuxiliaryFields();
                 this.updateMetrics();
             }
             
-            // Update parameter values from UI
-            updateParameters() {
-                this.alpha = parseFloat(document.getElementById('alpha').value);
-                this.beta = parseFloat(document.getElementById('beta').value);
-                this.gamma = parseFloat(document.getElementById('gamma').value);
-                this.epsilon = parseFloat(document.getElementById('epsilon').value);
-                this.lambda = parseFloat(document.getElementById('lambda').value);
-                this.G_symbolic = parseFloat(document.getElementById('gsymbolic').value);
-                this.kappa = parseFloat(document.getElementById('kappa').value);
-                this.v0 = parseFloat(document.getElementById('v0').value);
-                this.omega = parseFloat(document.getElementById('omega').value);
-                this.dt = parseFloat(document.getElementById('dt').value);
-                this.boundary = document.getElementById('boundary').value;
+            computeAuxiliaryFields() {
+                for (let i = 0; i < this.gridSize; i++) {
+                    for (let j = 0; j < this.gridSize; j++) {
+                        const grad = this.computeGradient(this.theta, i, j);
+                        
+                        this.gradient_mag[i][j] = Math.sqrt(grad.x * grad.x + grad.y * grad.y);
+                        this.coherence_field[i][j] = this.computeLocalCoherence(this.theta, i, j);
+                        
+                        // Energy density
+                        const kinetic = 0.5 * this.beta * this.theta_t[i][j] * this.theta_t[i][j];
+                        const gradient_energy = 0.5 * (grad.x * grad.x + grad.y * grad.y);
+                        this.energy_density[i][j] = kinetic + gradient_energy;
+                    }
+                }
             }
             
-            // Update metrics display
+            updateParametersFromUI() {
+                this.alpha = parseFloat(document.getElementById('alpha').value);
+                this.coherence = parseFloat(document.getElementById('coherence').value);
+                this.gamma = parseFloat(document.getElementById('gamma').value);
+                this.dt = parseFloat(document.getElementById('dt').value);
+                this.injectionStrength = parseFloat(document.getElementById('injectionStrength').value);
+                this.injectionRadius = parseInt(document.getElementById('injectionRadius').value);
+            }
+            
             updateMetrics() {
-                let sumRicci = 0, maxRicci = 0;
-                let sumEnergy = 0, maxEnergy = 0;
-                let sumDeviation = 0, maxDeviation = 0;
-                let sumCoherence = 0;
                 let totalEnergy = 0;
-                let maxCurvature = 0;
+                let avgCoherence = 0;
+                const N = this.gridSize * this.gridSize;
                 
                 for (let i = 0; i < this.gridSize; i++) {
                     for (let j = 0; j < this.gridSize; j++) {
-                        sumRicci += this.ricci_scalar[i][j];
-                        maxRicci = Math.max(maxRicci, Math.abs(this.ricci_scalar[i][j]));
-                        
-                        sumEnergy += this.energy_density[i][j];
-                        maxEnergy = Math.max(maxEnergy, this.energy_density[i][j]);
-                        
-                        sumDeviation += this.einstein_deviation[i][j];
-                        maxDeviation = Math.max(maxDeviation, this.einstein_deviation[i][j]);
-                        
-                        sumCoherence += this.field_coherence[i][j];
-                        
-                        const kinetic = 0.5 * this.beta * this.theta_t[i][j] * this.theta_t[i][j];
-                        const potential = this.potential(this.theta[i][j]);
-                        totalEnergy += (kinetic + potential) * this.dx * this.dx;
-                        
-                        const laplacian = Math.abs(this.computeLaplacian(this.theta, i, j));
-                        maxCurvature = Math.max(maxCurvature, laplacian);
+                        totalEnergy += this.energy_density[i][j];
+                        avgCoherence += this.coherence_field[i][j];
                     }
                 }
                 
-                const n = this.gridSize * this.gridSize;
-                document.getElementById('avgRicci').textContent = (sumRicci / n).toFixed(4);
-                document.getElementById('avgEnergy').textContent = (sumEnergy / n).toFixed(4);
-                document.getElementById('einsteinDev').textContent = (sumDeviation / n).toFixed(6);
-                document.getElementById('totalEnergy').textContent = totalEnergy.toFixed(2);
-                document.getElementById('fieldCoherence').textContent = (sumCoherence / n).toFixed(4);
-                document.getElementById('maxCurvature').textContent = maxCurvature.toFixed(4);
+                document.getElementById('totalEnergy').textContent = (totalEnergy / N).toFixed(3);
+                document.getElementById('avgCoherence').textContent = (avgCoherence / N).toFixed(3);
             }
             
-            // Visualization methods
-            getVisualizationField() {
+            getVisualizationData() {
                 switch (this.visualizationMode) {
-                    case 'field': return this.theta;
-                    case 'curvature': return this.ricci_scalar;
-                    case 'energy': return this.energy_density;
-                    case 'metric': return this.metric_determinant;
-                    case 'deviation': return this.einstein_deviation;
-                    case 'coherence': return this.field_coherence;
-                    default: return this.theta;
+                    case 'field': return { data: this.theta, symmetric: true };
+                    case 'energy': return { data: this.energy_density, symmetric: false };
+                    case 'coherence': return { data: this.coherence_field, symmetric: false };
+                    case 'gradient': return { data: this.gradient_mag, symmetric: false };
+                    default: return { data: this.theta, symmetric: true };
                 }
             }
             
-            updateColorScale() {
-                const field = this.getVisualizationField();
+            updateColorRange() {
+                const { data, symmetric } = this.getVisualizationData();
                 let min = Infinity, max = -Infinity;
                 
                 for (let i = 0; i < this.gridSize; i++) {
                     for (let j = 0; j < this.gridSize; j++) {
-                        const val = field[i][j];
+                        const val = data[i][j];
                         if (isFinite(val)) {
                             min = Math.min(min, val);
                             max = Math.max(max, val);
@@ -586,18 +999,23 @@
                     }
                 }
                 
-                this.colorScale = { min, max };
+                if (symmetric) {
+                    const absMax = Math.max(Math.abs(min), Math.abs(max));
+                    this.colorRange = { min: -absMax, max: absMax };
+                } else {
+                    this.colorRange = { min, max };
+                }
             }
             
-            getColor(value) {
+            getColor(value, mode) {
                 if (!isFinite(value)) return [0, 0, 0];
                 
-                const normalized = (value - this.colorScale.min) / (this.colorScale.max - this.colorScale.min + 1e-8);
+                const { min, max } = this.colorRange;
+                const normalized = (value - min) / (max - min + 1e-10);
                 const clamped = Math.max(0, Math.min(1, normalized));
                 
-                switch (this.visualizationMode) {
+                switch (mode) {
                     case 'field':
-                        // Blue-White-Red for field values
                         if (clamped < 0.5) {
                             const t = clamped * 2;
                             return [t * 255, t * 255, 255];
@@ -605,263 +1023,491 @@
                             const t = (clamped - 0.5) * 2;
                             return [255, (1-t) * 255, (1-t) * 255];
                         }
-                    case 'curvature':
-                        // Black to Green for curvature
-                        return [0, clamped * 255, 0];
                     case 'energy':
-                        // Black to Yellow for energy
                         return [clamped * 255, clamped * 255, 0];
-                    case 'metric':
-                        // Black to Cyan for metric
-                        return [0, clamped * 255, clamped * 255];
-                    case 'deviation':
-                        // Black to Magenta for Einstein deviation
-                        return [clamped * 255, 0, clamped * 255];
                     case 'coherence':
-                        // Black to White for coherence
-                        return [clamped * 255, clamped * 255, clamped * 255];
+                        return [0, clamped * 100, clamped * 255];
+                    case 'gradient':
+                        return [0, clamped * 255, clamped * 255];
                     default:
                         return [clamped * 255, clamped * 255, clamped * 255];
                 }
             }
             
             render() {
-                this.updateColorScale();
-                this.ctx.fillStyle = '#000';
-                this.ctx.fillRect(0, 0, this.width, this.height);
+                this.updateColorRange();
                 
-                const field = this.getVisualizationField();
-                const displaySize = this.cellSize * this.zoom;
+                const { data } = this.getVisualizationData();
+                const imageData = this.ctx.createImageData(this.canvas.width, this.canvas.height);
+                const pixels = imageData.data;
                 
-                for (let i = 0; i < this.gridSize; i++) {
-                    for (let j = 0; j < this.gridSize; j++) {
-                        const x = (i * displaySize) + this.offsetX;
-                        const y = (j * displaySize) + this.offsetY;
+                const scaleX = this.canvas.width / this.gridSize;
+                const scaleY = this.canvas.height / this.gridSize;
+                
+                for (let y = 0; y < this.canvas.height; y++) {
+                    for (let x = 0; x < this.canvas.width; x++) {
+                        const gridX = Math.floor(x / scaleX);
+                        const gridY = Math.floor(y / scaleY);
                         
-                        // Skip if outside visible area
-                        if (x + displaySize < 0 || x > this.width || y + displaySize < 0 || y > this.height) continue;
-                        
-                        const [r, g, b] = this.getColor(field[i][j]);
-                        this.ctx.fillStyle = `rgb(${Math.floor(r)}, ${Math.floor(g)}, ${Math.floor(b)})`;
-                        this.ctx.fillRect(x, y, Math.ceil(displaySize), Math.ceil(displaySize));
-                    }
-                }
-                
-                // Draw grid lines if zoomed in enough
-                if (displaySize > 4) {
-                    this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
-                    this.ctx.lineWidth = 1;
-                    this.ctx.beginPath();
-                    
-                    for (let i = 0; i <= this.gridSize; i++) {
-                        const x = (i * displaySize) + this.offsetX;
-                        const y = (i * displaySize) + this.offsetY;
-                        
-                        this.ctx.moveTo(x, 0);
-                        this.ctx.lineTo(x, this.height);
-                        this.ctx.moveTo(0, y);
-                        this.ctx.lineTo(this.width, y);
-                    }
-                    this.ctx.stroke();
-                }
-            }
-            
-            // User interaction methods
-            setupEventListeners() {
-                this.canvas.addEventListener('mousedown', (e) => this.handleMouseDown(e));
-                this.canvas.addEventListener('mousemove', (e) => this.handleMouseMove(e));
-                this.canvas.addEventListener('mouseup', (e) => this.handleMouseUp(e));
-                this.canvas.addEventListener('wheel', (e) => this.handleWheel(e));
-                document.addEventListener('keydown', (e) => this.handleKeyDown(e));
-            }
-            
-            getGridCoordinates(clientX, clientY) {
-                const rect = this.canvas.getBoundingClientRect();
-                const canvasX = clientX - rect.left;
-                const canvasY = clientY - rect.top;
-                
-                const gridX = Math.floor((canvasX - this.offsetX) / (this.cellSize * this.zoom));
-                const gridY = Math.floor((canvasY - this.offsetY) / (this.cellSize * this.zoom));
-                
-                return {x: gridX, y: gridY};
-            }
-            
-            handleMouseDown(e) {
-                this.mouseDown = true;
-                this.lastMouseX = e.clientX;
-                this.lastMouseY = e.clientY;
-                
-                const coords = this.getGridCoordinates(e.clientX, e.clientY);
-                this.addLocalDisturbance(coords.x, coords.y, 1.0);
-            }
-            
-            handleMouseMove(e) {
-                if (this.mouseDown) {
-                    if (e.shiftKey) {
-                        // Pan mode
-                        const dx = e.clientX - this.lastMouseX;
-                        const dy = e.clientY - this.lastMouseY;
-                        this.offsetX += dx;
-                        this.offsetY += dy;
-                    } else {
-                        // Paint mode
-                        const coords = this.getGridCoordinates(e.clientX, e.clientY);
-                        this.addLocalDisturbance(coords.x, coords.y, 0.5);
-                    }
-                }
-                this.lastMouseX = e.clientX;
-                this.lastMouseY = e.clientY;
-            }
-            
-            handleMouseUp(e) {
-                this.mouseDown = false;
-            }
-            
-            handleWheel(e) {
-                e.preventDefault();
-                const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
-                this.zoom = Math.max(0.1, Math.min(10, this.zoom * zoomFactor));
-            }
-            
-            handleKeyDown(e) {
-                const panSpeed = 20;
-                switch (e.key) {
-                    case 'ArrowLeft': this.offsetX += panSpeed; break;
-                    case 'ArrowRight': this.offsetX -= panSpeed; break;
-                    case 'ArrowUp': this.offsetY += panSpeed; break;
-                    case 'ArrowDown': this.offsetY -= panSpeed; break;
-                    case 'r': this.resetField(); break;
-                    case ' ': e.preventDefault(); this.running ? this.pauseSimulation() : this.startSimulation(); break;
-                }
-            }
-            
-            // Add disturbances
-            addLocalDisturbance(gridX, gridY, amplitude) {
-                if (gridX >= 0 && gridX < this.gridSize && gridY >= 0 && gridY < this.gridSize) {
-                    const radius = 3;
-                    for (let di = -radius; di <= radius; di++) {
-                        for (let dj = -radius; dj <= radius; dj++) {
-                            const i = gridX + di;
-                            const j = gridY + dj;
-                            const idx = this.getIndex(i, j);
-                            if (idx.i >= 0 && idx.i < this.gridSize && idx.j >= 0 && idx.j < this.gridSize) {
-                                const dist = Math.sqrt(di*di + dj*dj);
-                                const factor = Math.exp(-dist * dist / (radius * radius));
-                                this.theta[idx.i][idx.j] += amplitude * factor * (Math.random() - 0.5);
-                                this.theta_t[idx.i][idx.j] += amplitude * factor * 0.1 * (Math.random() - 0.5);
-                            }
+                        if (gridX < this.gridSize && gridY < this.gridSize) {
+                            const [r, g, b] = this.getColor(data[gridX][gridY], this.visualizationMode);
+                            const pixelIndex = (y * this.canvas.width + x) * 4;
+                            
+                            pixels[pixelIndex] = r;
+                            pixels[pixelIndex + 1] = g;
+                            pixels[pixelIndex + 2] = b;
+                            pixels[pixelIndex + 3] = 255;
                         }
                     }
                 }
+                
+                this.ctx.putImageData(imageData, 0, 0);
             }
             
-            // Animation loop
-            animate() {
-                if (this.running) {
-                    this.evolveField();
-                }
-                this.render();
-                requestAnimationFrame(() => this.animate());
+            setupEventListeners() {
+                // Drag and drop
+                const dropArea = document.querySelector('.data-input-area');
+                
+                dropArea.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    dropArea.classList.add('dragover');
+                });
+                
+                dropArea.addEventListener('dragleave', () => {
+                    dropArea.classList.remove('dragover');
+                });
+                
+                dropArea.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    dropArea.classList.remove('dragover');
+                    const files = e.dataTransfer.files;
+                    if (files.length > 0) {
+                        loadDataFile({ files: [files[0]] });
+                    }
+                });
+                
+                // Window resize
+                window.addEventListener('resize', () => this.resizeCanvas());
+            }
+            
+            startRenderLoop() {
+                const loop = (currentTime) => {
+                    const deltaTime = currentTime - this.lastTime;
+                    this.fps = 1000 / deltaTime;
+                    this.lastTime = currentTime;
+                    
+                    if (this.running) {
+                        this.evolveField();
+                    }
+                    
+                    this.render();
+                    this.updateStatus();
+                    
+                    requestAnimationFrame(loop);
+                };
+                requestAnimationFrame(loop);
+            }
+            
+            updateStatus() {
+                document.getElementById('currentTime').textContent = this.time.toFixed(3);
+                document.getElementById('currentFPS').textContent = Math.round(this.fps);
+                document.getElementById('simStatus').textContent = this.running ? 'Running' : 'Paused';
+                document.getElementById('injectionStatus').textContent = this.injectionActive ? 'Active' : 'Off';
             }
         }
         
-        // Initialize engine
-        const engine = new SymbolicPhysicsGrid();
+        // Initialize the lab
+        const lab = new FieldDynamicsLab();
         
-        // Control functions
-        function startSimulation() {
-            engine.running = true;
-        }
+        // Initialize displays
+        updateActiveFrequencyDisplay();
+        updateManualFrequenciesList();
+        regenerateWaveformPreview();
         
-        function pauseSimulation() {
-            engine.running = false;
-        }
-        
-        function resetField() {
-            engine.initializeField();
-        }
-        
-        function addRandomDisturbance() {
-            const x = Math.floor(Math.random() * engine.gridSize);
-            const y = Math.floor(Math.random() * engine.gridSize);
-            engine.addLocalDisturbance(x, y, 2.0);
-        }
-        
-        function addWavePacket() {
-            const cx = engine.gridSize / 2;
-            const cy = engine.gridSize / 2;
-            const width = 10;
+        // UI Control Functions
+        function toggleSection(sectionName) {
+            const content = document.getElementById(sectionName + '-content');
+            const arrow = document.getElementById(sectionName + '-arrow');
             
-            for (let i = 0; i < engine.gridSize; i++) {
-                for (let j = 0; j < engine.gridSize; j++) {
-                    const dx = i - cx;
-                    const dy = j - cy;
-                    const r = Math.sqrt(dx*dx + dy*dy);
-                    const amplitude = Math.exp(-r*r / (width*width));
-                    const wave = Math.sin(r * 0.5) * amplitude;
-                    engine.theta[i][j] += wave;
-                }
-            }
-        }
-        
-        function addVortex() {
-            const cx = engine.gridSize / 2;
-            const cy = engine.gridSize / 2;
-            
-            for (let i = 0; i < engine.gridSize; i++) {
-                for (let j = 0; j < engine.gridSize; j++) {
-                    const dx = i - cx;
-                    const dy = j - cy;
-                    const r = Math.sqrt(dx*dx + dy*dy);
-                    const theta = Math.atan2(dy, dx);
-                    const amplitude = Math.exp(-r*r / 400) * r / 10;
-                    engine.theta[i][j] += amplitude * Math.sin(3 * theta);
-                    engine.theta_t[i][j] += amplitude * Math.cos(3 * theta) * 0.1;
-                }
+            if (content.classList.contains('expanded')) {
+                content.classList.remove('expanded');
+                arrow.textContent = '▶';
+            } else {
+                content.classList.add('expanded');
+                arrow.textContent = '▼';
             }
         }
         
         function setVisualizationMode(mode) {
-            engine.visualizationMode = mode;
+            lab.visualizationMode = mode;
             
-            // Update button states
-            document.querySelectorAll('.visualization-mode button').forEach(btn => {
+            document.querySelectorAll('.vis-btn').forEach(btn => {
                 btn.classList.remove('active');
             });
             event.target.classList.add('active');
         }
         
-        // Preset configurations
-        function setQuantumRegime() {
-            document.getElementById('gsymbolic').value = '0.001';
-            document.getElementById('lambda').value = '0.05';
-            document.getElementById('gamma').value = '0.05';
-            engine.updateParameters();
+        function toggleSimulation() {
+            lab.running = !lab.running;
         }
         
-        function setClassicalRegime() {
-            document.getElementById('gsymbolic').value = '0.1';
-            document.getElementById('lambda').value = '0.2';
-            document.getElementById('gamma').value = '0.2';
-            engine.updateParameters();
+        function toggleInjection() {
+            lab.injectionActive = !lab.injectionActive;
+            const toggle = document.getElementById('injectionToggle');
+            toggle.classList.toggle('active');
         }
         
-        function setTransitionRegime() {
-            document.getElementById('gsymbolic').value = '0.01';
-            document.getElementById('lambda').value = '0.1';
-            document.getElementById('gamma').value = '0.1';
-            engine.updateParameters();
+        function updateParameter(paramName) {
+            // Parameters are updated in real-time via updateParametersFromUI()
         }
         
-        function setChaosRegime() {
-            document.getElementById('gsymbolic').value = '0.001';
-            document.getElementById('lambda').value = '0.3';
-            document.getElementById('alpha').value = '1.0';
-            engine.updateParameters();
+        function loadDataFile(input) {
+            const file = input.files ? input.files[0] : input;
+            if (!file) return;
+            
+            const reader = new FileReader();
+            
+            if (file.name.endsWith('.wav')) {
+                reader.onload = function(e) {
+                    const arrayBuffer = e.target.result;
+                    decodeAudioData(arrayBuffer);
+                };
+                reader.readAsArrayBuffer(file);
+            } else {
+                reader.onload = function(e) {
+                    const text = e.target.result;
+                    parseTextData(text, file.name);
+                };
+                reader.readAsText(file);
+            }
+            
+            document.getElementById('dataStatus').textContent = file.name;
         }
         
-        // Start animation
-        engine.animate();
+        function decodeAudioData(arrayBuffer) {
+            // Simple WAV decoder (this is a simplified version)
+            const view = new DataView(arrayBuffer);
+            const sampleRate = view.getUint32(24, true);
+            const dataStart = 44; // WAV header is typically 44 bytes
+            
+            const samples = [];
+            for (let i = dataStart; i < arrayBuffer.byteLength; i += 2) {
+                const sample = view.getInt16(i, true) / 32768.0; // Normalize to [-1, 1]
+                samples.push(sample);
+            }
+            
+            lab.currentWaveData = samples;
+            renderWaveformPreview(samples);
+            document.getElementById('dataStatus').textContent = `Audio: ${samples.length} samples`;
+        }
+        
+        function parseTextData(text, filename) {
+            try {
+                let data;
+                if (filename.endsWith('.json')) {
+                    data = JSON.parse(text);
+                    if (Array.isArray(data)) {
+                        lab.currentWaveData = data;
+                    } else if (data.values && Array.isArray(data.values)) {
+                        lab.currentWaveData = data.values;
+                    }
+                } else {
+                    // Assume CSV or text with one value per line
+                    const lines = text.split('\n');
+                    data = lines.map(line => parseFloat(line.trim())).filter(x => !isNaN(x));
+                    lab.currentWaveData = data;
+                }
+                
+                if (lab.currentWaveData && lab.currentWaveData.length > 0) {
+                    renderWaveformPreview(lab.currentWaveData);
+                    document.getElementById('dataStatus').textContent = `Data: ${lab.currentWaveData.length} points`;
+                }
+            } catch (error) {
+                console.error('Error parsing data:', error);
+                document.getElementById('dataStatus').textContent = 'Error loading data';
+            }
+        }
+        
+        function togglePresetFrequency(presetKey) {
+            const freqData = lab.presetFrequencies[presetKey];
+            const element = document.getElementById(`preset-${presetKey}`);
+            
+            if (lab.activeFrequencies.has(`preset-${presetKey}`)) {
+                // Turn off
+                lab.activeFrequencies.delete(`preset-${presetKey}`);
+                element.classList.remove('active');
+            } else {
+                // Turn on
+                lab.activeFrequencies.set(`preset-${presetKey}`, {
+                    freq: freqData.freq,
+                    amp: freqData.amp,
+                    name: freqData.name,
+                    type: 'preset',
+                    active: true
+                });
+                element.classList.add('active');
+            }
+            
+            updateActiveFrequencyDisplay();
+            regenerateWaveformPreview();
+        }
+        
+        function addManualFrequency() {
+            const freq = parseFloat(document.getElementById('manualFreq').value);
+            const amp = parseFloat(document.getElementById('manualAmp').value) || 0.01;
+            
+            if (freq && freq > 0 && amp > 0) {
+                const id = `manual-${Date.now()}`;
+                
+                lab.activeFrequencies.set(id, {
+                    freq: freq,
+                    amp: amp,
+                    name: `${freq}Hz (${amp})`,
+                    type: 'manual',
+                    active: true
+                });
+                
+                updateManualFrequenciesList();
+                updateActiveFrequencyDisplay();
+                regenerateWaveformPreview();
+                
+                document.getElementById('manualFreq').value = '';
+                document.getElementById('manualAmp').value = '0.01';
+            }
+        }
+        
+        function removeManualFrequency(id) {
+            lab.activeFrequencies.delete(id);
+            updateManualFrequenciesList();
+            updateActiveFrequencyDisplay();
+            regenerateWaveformPreview();
+        }
+        
+        function toggleManualFrequency(id) {
+            const freqData = lab.activeFrequencies.get(id);
+            if (freqData) {
+                freqData.active = !freqData.active;
+                updateManualFrequenciesList();
+                updateActiveFrequencyDisplay();
+                regenerateWaveformPreview();
+            }
+        }
+        
+        function updateManualFrequenciesList() {
+            const container = document.getElementById('manualFrequenciesList');
+            container.innerHTML = '';
+            
+            lab.activeFrequencies.forEach((freqData, id) => {
+                if (freqData.type === 'manual') {
+                    const item = document.createElement('div');
+                    item.className = `manual-freq-item ${freqData.active !== false ? 'active' : ''}`;
+                    
+                    item.innerHTML = `
+                        <div class="manual-freq-info">${freqData.freq}Hz @ ${freqData.amp}</div>
+                        <div class="manual-freq-controls">
+                            <div class="mini-toggle ${freqData.active !== false ? 'active' : ''}" onclick="toggleManualFrequency('${id}')">
+                                <div class="mini-toggle-slider"></div>
+                            </div>
+                            <div class="remove-btn" onclick="removeManualFrequency('${id}')">×</div>
+                        </div>
+                    `;
+                    
+                    container.appendChild(item);
+                }
+            });
+        }
+        
+        function updateActiveFrequencyDisplay() {
+            const container = document.getElementById('activeFrequencyDisplay');
+            const activeCount = Array.from(lab.activeFrequencies.values()).filter(f => f.active !== false).length;
+            
+            if (activeCount === 0) {
+                container.innerHTML = 'No frequencies active';
+                document.getElementById('dataStatus').textContent = 'None loaded';
+            } else {
+                const freqList = Array.from(lab.activeFrequencies.values())
+                    .filter(f => f.active !== false)
+                    .map(f => `${f.freq}Hz`)
+                    .join(', ');
+                
+                container.innerHTML = `Active: ${freqList}`;
+                document.getElementById('dataStatus').textContent = `${activeCount} frequencies active`;
+            }
+        }
+        
+        function regenerateWaveformPreview() {
+            const sampleRate = 1000;
+            const duration = 2;
+            const samples = [];
+            
+            if (lab.activeFrequencies.size === 0) {
+                renderWaveformPreview([]);
+                return;
+            }
+            
+            for (let i = 0; i < sampleRate * duration; i++) {
+                const t = i / sampleRate;
+                let value = 0;
+                
+                lab.activeFrequencies.forEach((freqData) => {
+                    if (freqData.active !== false) {
+                        const decay = Math.exp(-t * 0.1);
+                        value += freqData.amp * Math.sin(2 * Math.PI * freqData.freq * t) * decay;
+                    }
+                });
+                
+                samples.push(value);
+            }
+            
+            renderWaveformPreview(samples);
+        }
+        
+        function renderWaveformPreview(data) {
+            const canvas = lab.previewCanvas;
+            const ctx = lab.previewCtx;
+            
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            if (!data || data.length === 0) return;
+            
+            // Downsample for preview
+            const step = Math.max(1, Math.floor(data.length / canvas.width));
+            
+            ctx.strokeStyle = '#64ffda';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            
+            for (let x = 0; x < canvas.width; x++) {
+                const sampleIndex = Math.floor(x * step);
+                if (sampleIndex < data.length) {
+                    const y = canvas.height / 2 - (data[sampleIndex] * canvas.height / 4);
+                    if (x === 0) {
+                        ctx.moveTo(x, y);
+                    } else {
+                        ctx.lineTo(x, y);
+                    }
+                }
+            }
+            
+            ctx.stroke();
+        }
+        
+        function injectCurrentWave() {
+            if (lab.activeFrequencies.size > 0) {
+                // Single injection at center using combined frequencies
+                const centerX = Math.floor(lab.gridSize / 2);
+                const centerY = Math.floor(lab.gridSize / 2);
+                const radius = lab.injectionRadius;
+                
+                // Generate initial pulse from combined frequencies
+                const amplitude = lab.generateCombinedWaveValue(0) * lab.injectionStrength * 0.5;
+                
+                for (let di = -radius; di <= radius; di++) {
+                    for (let dj = -radius; dj <= radius; dj++) {
+                        const i = centerX + di;
+                        const j = centerY + dj;
+                        const idx = lab.getIndex(i, j);
+                        
+                        const dist2 = di*di + dj*dj;
+                        if (dist2 <= radius*radius) {
+                            const gaussian = Math.exp(-dist2 / (radius*radius/3));
+                            lab.theta[idx.i][idx.j] += amplitude * gaussian;
+                            lab.theta_t[idx.i][idx.j] += amplitude * gaussian * 0.2;
+                        }
+                    }
+                }
+            }
+        }
+        
+        function setFrequencyPreset(presetType) {
+            // Clear all current frequencies
+            clearAllFrequencies();
+            
+            switch (presetType) {
+                case 'psychedelic':
+                    // High gamma + cross-frequency coupling
+                    addFrequency('manual-gamma40', { freq: 40, amp: 0.03, name: '40Hz (Gamma Peak)', type: 'manual' });
+                    addFrequency('manual-gamma60', { freq: 60, amp: 0.02, name: '60Hz (High Gamma)', type: 'manual' });
+                    addFrequency('manual-beta25', { freq: 25, amp: 0.02, name: '25Hz (High Beta)', type: 'manual' });
+                    addFrequency('manual-theta6', { freq: 6, amp: 0.015, name: '6Hz (Theta)', type: 'manual' });
+                    addFrequency('manual-alpha10', { freq: 10, amp: 0.005, name: '10Hz (Reduced Alpha)', type: 'manual' });
+                    break;
+                case 'meditation':
+                    // Theta + Alpha dominance
+                    togglePresetFrequency('theta');
+                    togglePresetFrequency('alpha');
+                    addFrequency('manual-delta3', { freq: 3, amp: 0.008, name: '3Hz (Deep Delta)', type: 'manual' });
+                    break;
+                case 'focus':
+                    // Beta + low gamma
+                    togglePresetFrequency('beta');
+                    addFrequency('manual-gamma35', { freq: 35, amp: 0.015, name: '35Hz (Focus Gamma)', type: 'manual' });
+                    break;
+                case 'schumann_harmonics':
+                    // Schumann + its natural harmonics
+                    togglePresetFrequency('schumann');
+                    addFrequency('manual-s14', { freq: 14.3, amp: 0.005, name: '14.3Hz (2nd Harmonic)', type: 'manual' });
+                    addFrequency('manual-s20', { freq: 20.8, amp: 0.003, name: '20.8Hz (3rd Harmonic)', type: 'manual' });
+                    addFrequency('manual-s27', { freq: 27.3, amp: 0.002, name: '27.3Hz (4th Harmonic)', type: 'manual' });
+                    break;
+            }
+            
+            updateActiveFrequencyDisplay();
+            updateManualFrequenciesList();
+            regenerateWaveformPreview();
+        }
+        
+        function addFrequency(id, freqData) {
+            freqData.active = true; // Default to active
+            lab.activeFrequencies.set(id, freqData);
+        }
+        
+        function clearAllFrequencies() {
+            // Clear preset toggles
+            document.querySelectorAll('.preset-freq-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            
+            // Clear active frequencies
+            lab.activeFrequencies.clear();
+            
+            updateActiveFrequencyDisplay();
+            updateManualFrequenciesList();
+            regenerateWaveformPreview();
+        }
+        
+        function clearField() {
+            lab.initializeField();
+        }
+        
+        function setPreset(type) {
+            switch (type) {
+                case 'responsive':
+                    document.getElementById('alpha').value = '0.8';
+                    document.getElementById('coherence').value = '0.1';
+                    document.getElementById('gamma').value = '0.02';
+                    break;
+                case 'coherent':
+                    document.getElementById('alpha').value = '0.5';
+                    document.getElementById('coherence').value = '0.4';
+                    document.getElementById('gamma').value = '0.03';
+                    break;
+                case 'chaotic':
+                    document.getElementById('alpha').value = '1.2';
+                    document.getElementById('coherence').value = '0.05';
+                    document.getElementById('gamma').value = '0.01';
+                    break;
+                case 'stable':
+                    document.getElementById('alpha').value = '0.3';
+                    document.getElementById('coherence').value = '0.3';
+                    document.getElementById('gamma').value = '0.08';
+                    break;
+            }
+        }
+        
+        // Don't auto-start - wait for user
+        lab.running = false;
     </script>
 </body>
 </html>
