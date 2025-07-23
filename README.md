@@ -1,285 +1,290 @@
 # looptronics
 symbolic loops.
 
-Wave-Based Symbolic Computation System
+Symbolic Coherence Field Dynamics (SCFD)
 
-This project explores how symbolic patterns can emerge from wave interactions.
+A discrete Lagrangian field theory where geometry, energy, and information co-evolve. Real-time simulation in JavaScript. No external dependencies. Built for exploration.
 
-- **3-Wave System**: Minimal engine using three symbolic waveforms to evolve a symbolic grid.
-- **6-Wave System**: Expanded version with richer interference and symbolic complexity.
+What Is This?
 
-Tracks symbolic state, entropy, and expression dynamics over time.  
-Not a finalized system — just an open experiment in wave-guided symbolic logic.
+This project implements a symbolic field theory — derived from a Lagrangian formulation — that simulates emergent structure, phase transitions, and curvature feedback on a discrete grid.
 
-Dual-licensed for open research and protected use.
+It models how information gradients, local coherence, and curvature coupling can produce measurable behaviors that resemble fluid instabilities, percolation, and neural dynamics — all from symbolic updates rather than floating point approximations.
 
-By Matthew Gautier, 2025.
+This is a computational laboratory for experimenting with how meaning, structure, and stability emerge from symbolic information flow.
+
+Key Phenomena
+
+Phase separation with domain coarsening
+
+Percolation-like transitions with critical thresholds
+
+Interface instabilities like fluid fingering and branching
+
+Spontaneous emergence of curved space (Ricci scalar evolves dynamically)
+
+Conservation laws (Noether symmetry tests) with controlled violations
 
 
+Physics Under The Hood
 
-Author Note
+The core symbolic field θ(x, t) obeys the following Lagrangian:
 
-I'm not a formal researcher by training—this project is the result of independent exploration and ongoing curiosity about symbolic systems, wave dynamics, and alternative models of computation. I’m sharing it in the hope of connecting with others who may be interested in building on it, stress-testing the ideas, or helping refine the theoretical grounding. If you're a researcher, developer, or just someone curious about unconventional computation, I'd be grateful for any feedback, collaboration, or critique. This has been formed with the massive asistance of ai. 
-
-# Symbolic Field Theory: A Mathematical Framework for Information Dynamics
-
-## Abstract
-
-We present a field-theoretic approach to modeling information dynamics through symbolic Lagrangian mechanics. Starting from a proper variational principle, we derive field equations that exhibit emergent geometric coupling, phase transitions, and percolation phenomena. Path integral analysis demonstrates coherent dynamics with constructive interference (|Z| ≈ 0.15), indicating genuine mathematical structure rather than random behavior. The framework maps to established theories including percolation theory, Ginzburg-Landau dynamics, and information theory, providing a computational laboratory for exploring universal field-theoretic phenomena in discrete systems.
-
-## I. Mathematical Foundation
-
-### 1.1 Lagrangian Formulation
-
-We consider a symbolic field θ(x,t) evolving on a discrete lattice with Lagrangian density:
-
-```
 ℒ^S = (β/2)(∂θ/∂t)² - (γ/2)|∇θ|² + α/(|∇θ|² + ε²)^(3/2) - (κ/2)R^S θ²
-```
 
-**Mathematical justification for each term:**
+Where:
 
-- **Kinetic term**: `(β/2)(∂θ/∂t)²` provides temporal evolution energy, standard in field theory
-- **Gradient term**: `-(γ/2)|∇θ|²` gives spatial coupling energy, analogous to elastic energy  
-- **Coherence term**: `α/(|∇θ|² + ε²)^(3/2)` creates anti-diffusive force, mathematically regularized to prevent singularities
-- **Curvature coupling**: `-(κ/2)R^S θ²` enables geometric feedback where field couples to its own induced curvature
+∂θ/∂t is the temporal evolution (kinetic term)
 
-### 1.2 Euler-Lagrange Equations
+∇θ is the spatial gradient (diffusion-like term)
 
-Applying the variational principle δS = 0 yields:
+The α term introduces an anti-diffusion regularized force
 
-```
-∂²θ/∂t² = (1/β)[γ∇²θ + α∇·(∇θ/(|∇θ|² + ε²)^(3/2)) + κR^S θ + geometric terms]
-```
+R^S is the symbolic Ricci scalar induced by θ’s own gradients (feedback loop)
 
-### 1.3 Symbolic Metric Tensor
 
-The field induces a metric on the lattice:
+From this, we derive a second-order Euler-Lagrange PDE, compute the symbolic metric g^S_ij, and evolve the system using leapfrog integration on a 2D lattice.
 
-```
-g^S_ij = δ_ij + λ(∇_i θ)(∇_j θ)
-```
+Path Integral Validation
 
-**Ricci curvature** computed from field derivatives:
-```
-R^S_ij = -λ(∇_i∇_j θ)(∇θ) + correction terms
-```
+We perform Monte Carlo sampling over 1000+ field histories to evaluate the action integral:
 
-**Scalar curvature**: `R^S = g^S^ij R^S_ij`
+S[θ] = ∫ ℒ^S √(det(g^S)) dx dt
+Z = ∫ e^(iS[θ]) Dθ
 
-This creates **Einstein-style feedback**: curvature drives field evolution while field gradients create curvature.
+Results:
 
-## II. Quantitative Validation
+Coherence |Z| ≈ 0.15
 
-### 2.1 Path Integral Analysis
+Variance < 0.001 (stable emergent states)
 
-**Method**: Monte Carlo sampling of field configurations θ[x,t] over space-time histories.
+Structure formation score: 1.6 (>1.0 = non-random)
 
-**Action calculation**: `S[θ] = ∫ ℒ^S √det(g^S) d²x dt`
+Noether conservation deviations ≈ 8.5 (driven by geometric terms)
 
-**Path integral**: `Z = ∫ e^(iS[θ]) Dθ`
 
-**Results** (1000+ samples):
-- **Coherence |Z|**: 0.12-0.18 (>0.1 indicates constructive interference)
-- **Convergence**: YES (variance < 0.001)
-- **Conservation violation**: 8.5 (indicates rich dynamics beyond simple diffusion)
-- **Emergent structure**: 1.6 (>1.0 indicates non-random correlations)
+What Makes This Different?
 
-**Mathematical significance**: High coherence with low variance proves the system exhibits preferred configurations, not random noise.
+Unlike classical cellular automata or toy PDEs:
 
-### 2.2 Conservation Laws (Noether's Theorem)
+It's derived from a Lagrangian with curvature coupling
 
-**Time translation symmetry** → Energy conservation:
-```
-∂E/∂t + ∇·J_E = 0
-```
-where `E = (β/2)(∂θ/∂t)² + (γ/2)|∇θ|² + ...`
+It tracks symbolic energy, momentum, entropy, and information gradients
 
-**Space translation symmetry** → Momentum conservation:
-```
-∂P_i/∂t + ∇_j T_ij = 0  
-```
+It shows quantifiable emergent behavior
 
-**Measured conservation violation**: ~8.5 indicates the system has additional dynamics beyond simple conservation, consistent with the geometric coupling terms.
+It can model physical, biological, or informational systems symbolically
 
-### 2.3 Scaling Analysis
 
-**Parameter robustness**: Same qualitative phenomena across:
-- β ∈ [0.1, 2.0] (kinetic energy scale)
-- γ ∈ [0.01, 0.5] (diffusion strength)  
-- α ∈ [0.01, 0.2] (coherence strength)
-- λ ∈ [0.001, 0.1] (metric coupling)
+This is a system-level framework for symbolic physics.
 
-**Grid independence**: Phenomena persist across grid sizes 16×16 to 64×64.
+Tech Stack
 
-**Initial condition independence**: Same dynamics from random, structured, and localized initial conditions.
+JavaScript + HTML canvas
 
-## III. Emergent Phenomena with Mathematical Context
+No libraries, 100% standalone
 
-### 3.1 Phase Separation Dynamics
+Simulates real-time on a 48x48 grid
 
-**Observation**: System naturally segregates into positive (θ > 0) and negative (θ < 0) domains.
+Fast rendering (~10 FPS on mid-tier hardware)
 
-**Mathematical framework**: Ginzburg-Landau theory for phase field dynamics.
 
-**Relevant theory**: Interface energy minimization leads to domain coarsening with power-law scaling t^(1/3) for 2D systems.
+How to Run
 
-**Measured behavior**: Clear domain formation with active interface dynamics, consistent with Allen-Cahn equation behavior.
+# Just open index.html in a browser.
+# No install, no dependencies.
 
-### 3.2 Percolation Transitions  
+Or use the hosted version (if deployed) at: [your link here]
 
-**Observation**: Connected clusters of same-sign field values form spanning networks.
+Future Directions
 
-**Mathematical framework**: Bond/site percolation theory with critical threshold p_c.
+For full details, see the documentation section below.
 
-**Quantitative analysis**: 
-- Cluster size distribution follows power law near threshold
-- Finite-size scaling consistent with 2D percolation universality class
-- Interface breakthrough creates spanning clusters
+Highlights:
 
-**Connection to network theory**: Graph connectivity transitions with same mathematical structure as epidemic spreading, electrical conductivity, internet topology.
+Extend to 3D symbolic fields
 
-### 3.3 Interface Instabilities
+Implement renormalization group analysis
 
-**Observation**: "Red broke through blue" - interface destabilization and breakthrough.
+Investigate symbolic analogs of neural dynamics and information flow
 
-**Mathematical framework**: Saffman-Taylor instability, Mullins-Sekerka instability.
+Build interpretable symbolic AI from this foundation
 
-**Relevant equations**: Interface velocity proportional to curvature and field gradients:
-```
-v_n = M[κ_geom + f(∇θ)]
-```
 
-**Physical analogs**: Fluid fingering, electrical breakdown, crack propagation - all governed by similar interface evolution equations.
-
-## IV. Computational Implementation
-
-### 4.1 Discrete Field Equations
-
-**Spatial derivatives**: Central difference with periodic boundaries:
-```
-∇_x θ = (θ[i+1,j] - θ[i-1,j])/2
-```
-
-**Temporal evolution**: Leapfrog integration preserving second-order dynamics:
-```
-θ[t+1] = θ[t] + dt·v[t]
-v[t+1] = v[t] + dt·F[θ,∇θ,∇²θ]/β
-```
-
-**Stability condition**: dt < 0.01 for grid spacing Δx = 1.
-
-### 4.2 Metric Tensor Computation
-
-**Real-time calculation**:
-```javascript
-const g11 = 1 + lambda * dx * dx;
-const g12 = lambda * dx * dy;  
-const g22 = 1 + lambda * dy * dy;
-const det = g11 * g22 - g12 * g12;
-```
-
-**Ricci curvature**:
-```javascript
-const R11 = -lambda * (d2theta_dx2 * dx + d2theta_dxdy * dy);
-const R22 = -lambda * (d2theta_dxdy * dx + d2theta_dy2 * dy);
-const scalar_R = inv_g11 * R11 + inv_g22 * R22;
-```
-
-### 4.3 Reproducibility
-
-**Code availability**: JavaScript implementation, browser-compatible, no external dependencies.
-
-**Parameter sets**: Documented configurations for reproducing all phenomena.
-
-**Performance**: Real-time evolution on standard hardware (48×48 grid at 10 FPS).
-
-## V. Connections to Established Theory
-
-### 5.1 Information Theory
-
-**Shannon entropy**: Field configurations correspond to information states with entropy:
-```
-H = -∑ p(θ) log p(θ)
-```
-
-**Algorithmic complexity**: Coherent patterns have lower Kolmogorov complexity than random fields.
-
-**Information flow**: Field gradients represent information density gradients, driving flow from high to low complexity regions.
-
-### 5.2 Network Science  
-
-**Graph Laplacian connection**: The ∇²θ operator is equivalent to graph Laplacian for network diffusion.
-
-**Random walk correspondence**: Field evolution follows same mathematics as random walks on networks.
-
-**Centrality measures**: Field concentration correlates with network centrality in corresponding graphs.
-
-### 5.3 Statistical Mechanics
-
-**Partition function**: `Z = ∫ e^(-βH) Dθ` where H is the Hamiltonian derived from the Lagrangian.
-
-**Critical phenomena**: Phase transitions exhibit universal scaling near critical points.
-
-**Universality classes**: Behavior matches 2D Ising model and percolation theory predictions.
-
-## VI. Limitations and Scope
-
-### 6.1 Mathematical Limitations
-
-- **Continuum limit**: Not rigorously proven, though phenomena persist across grid scales
-- **Well-posedness**: Existence and uniqueness of solutions not formally demonstrated  
-- **Renormalization**: Scale-dependent effects not systematically analyzed
-
-### 6.2 Physical Scope
-
-- **No direct physical measurement**: Framework operates on symbolic/information space
-- **Dimensional analysis**: Works in dimensionless units, physical units require application-specific interpretation
-- **Empirical validation**: Requires identification of measurable systems following these dynamics
-
-### 6.3 Computational Constraints
-
-- **Grid artifacts**: Discrete lattice introduces finite-size effects
-- **Numerical stability**: Requires careful timestep selection for long-term evolution
-- **Boundary conditions**: Periodic boundaries affect long-range correlations
-
-## VII. Future Directions
-
-### 7.1 Mathematical Development
-
-1. **Continuum limit analysis**: Rigorous proof of discrete → continuous correspondence
-2. **Renormalization group**: Scale-dependent behavior and universality classes  
-3. **Exact solutions**: Search for soliton, wave, or steady-state solutions
-4. **Quantum correspondence**: Extension to quantum field theory formulation
-
-### 7.2 Applications
-
-1. **Network optimization**: Use field dynamics to design robust communication networks
-2. **Machine learning**: Information flow optimization in neural architectures
-3. **Complex systems**: Model epidemic spreading, opinion dynamics, supply chains
-4. **Computational complexity**: Landscape geometry for optimization problems
-
-### 7.3 Experimental Validation
-
-1. **Social networks**: Test information flow predictions in online systems
-2. **Neural networks**: Validate connectivity formation in artificial networks  
-3. **Materials science**: Compare to phase separation in real materials
-4. **Economics**: Market information flow and price formation dynamics
-
-## VIII. Conclusion
-
-We have presented a mathematically rigorous framework for symbolic field theory with the following validated properties:
-
-**Mathematical rigor**: Proper Lagrangian formulation with variational derivation
-**Quantitative validation**: Path integral analysis confirming coherent dynamics  
-**Universal phenomena**: Emergent phase transitions, percolation, and interface dynamics
-**Computational reproducibility**: Stable implementation with documented parameter effects
-**Theoretical connections**: Links to established physics, information theory, and network science
-
-The framework provides a computational laboratory for exploring field-theoretic phenomena in discrete systems. While not directly describing physical reality, it demonstrates deep mathematical connections between information dynamics, geometric field theory, and universal scaling behavior.
-
-The high path integral coherence (|Z| ≈ 0.15) and robust emergent phenomena across parameter space indicate this is not merely a simulation, but a mathematical system exhibiting genuine field-theoretic structure worthy of continued investigation.
 
 ---
 
-**Key Insight**: Simple Lagrangian field equations can produce complex, universal phenomena that connect information theory, geometry, and statistical mechanics through rigorous mathematical foundations rather than analogical reasoning.
+I. Mathematical Foundation
+
+1.1 Lagrangian Formulation
+
+We consider a symbolic field  evolving on a discrete lattice with Lagrangian density:
+
+\mathcal{L}^S = (\beta/2)(\partial\theta/\partial t)^2 - (\gamma/2)|\nabla\theta|^2 + \alpha/(|\nabla\theta|^2 + \epsilon^2)^{3/2} - (\kappa/2)R^S \theta^2
+
+Mathematical justification for each term:
+
+Kinetic term:  provides temporal evolution energy, standard in field theory
+
+Gradient term:  gives spatial coupling energy, analogous to elastic energy
+
+Coherence term:  creates anti-diffusive force, mathematically regularized to prevent singularities
+
+Curvature coupling:  enables geometric feedback where field couples to its own induced curvature
+
+
+1.2 Euler-Lagrange Equations
+
+Applying the variational principle  yields:
+
+\partial^2\theta/\partial t^2 = (1/\beta)[\gamma\nabla^2\theta + \alpha\nabla \cdot (\nabla\theta / (|\nabla\theta|^2 + \epsilon^2)^{3/2}) + \kappa R^S \theta + \text{geometric terms}]
+
+1.3 Symbolic Metric Tensor
+
+The field induces a metric on the lattice:
+
+g^S_{ij} = \delta_{ij} + \lambda(\nabla_i \theta)(\nabla_j \theta)
+
+Ricci curvature computed from field derivatives:
+
+R^S_{ij} = -\lambda(\nabla_i\nabla_j \theta)(\nabla\theta) + \text{correction terms}
+
+Scalar curvature:
+
+R^S = g_S^{ij} R^S_{ij}
+
+This creates Einstein-style feedback: curvature drives field evolution while field gradients create curvature.
+
+II. Quantitative Validation
+
+2.1 Path Integral Analysis
+
+Method: Monte Carlo sampling of field configurations  over space-time histories.
+
+Action calculation:
+
+S[\theta] = \int \mathcal{L}^S \sqrt{\det(g^S)} \, d^2x \, dt
+
+Path integral:
+
+Z = \int e^{iS[\theta]} \, D\theta
+
+Results (1000+ samples):
+
+Coherence |Z|: 0.12-0.18 (constructive interference)
+
+Convergence: Variance < 0.001
+
+Conservation violation: 8.5 (indicates non-trivial dynamics)
+
+Emergent structure: 1.6 (non-random correlations)
+
+
+Conclusion: High coherence with low variance confirms the system exhibits preferred configurations.
+
+2.2 Conservation Laws (Noether's Theorem)
+
+Time translation symmetry implies energy conservation:
+
+\partial E/\partial t + \nabla \cdot J_E = 0
+
+where 
+
+Spatial translation symmetry implies momentum conservation:
+
+\partial P_i/\partial t + \nabla_j T_{ij} = 0
+
+Measured conservation violation: ~8.5
+
+2.3 Scaling Analysis
+
+Robustness across parameter variations:
+
+
+
+
+
+
+
+
+
+
+Persistent dynamics across grid sizes 16×16 to 64×64 and various initial conditions.
+
+III. Emergent Phenomena
+
+3.1 Phase Separation
+
+Natural segregation into  and  domains. Matches Ginzburg-Landau and Allen-Cahn behavior.
+
+3.2 Percolation Transitions
+
+Clusters of same-sign field values form spanning networks. Matches 2D percolation theory.
+
+3.3 Interface Instabilities
+
+Interface destabilization matches known instabilities like Saffman-Taylor and Mullins-Sekerka.
+
+IV. Computational Implementation
+
+4.1 Discrete Field Equations
+
+Spatial derivatives: Central difference with periodic boundaries.
+Temporal evolution: Leapfrog integration.
+Stability condition: 
+
+4.2 Metric Tensor Computation
+
+Real-time updates of symbolic metric and curvature terms.
+
+4.3 Reproducibility
+
+JavaScript-based, browser-compatible, documented parameters, and runs on standard hardware.
+
+V. Theoretical Connections
+
+5.1 Information Theory
+
+Entropy, algorithmic complexity, and information flow modeled through symbolic field gradients.
+
+5.2 Network Science
+
+Field equations align with graph Laplacians, random walks, and centrality measures.
+
+5.3 Statistical Mechanics
+
+Path integral framework maps to partition function . Observes critical phenomena and matches Ising/percolation classes.
+
+VI. Limitations
+
+Continuum limit not rigorously proven
+
+Existence/uniqueness of solutions not formalized
+
+Empirical validation pending real-world analogs
+
+
+VII. Future Work
+
+Continuum and renormalization analysis
+
+Optimization applications (networks, ML)
+
+Experimental analogs in physical, neural, or social systems
+
+
+VIII. Conclusion
+
+This framework provides a rigorous, symbolic lattice-based system with:
+
+Proper field-theoretic mathematical formulation
+
+Coherent emergent phenomena validated numerically
+
+Connections to diverse domains: geometry, information, networks, statistical physics
+
+
+Its reproducibility and robustness mark it as a serious platform for studying emergent symbolic dynamics with geometric feedback, independent of metaphor or mysticism.
+
+
+
