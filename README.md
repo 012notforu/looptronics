@@ -1,6 +1,16 @@
 # looptronics
 symbolic loops.
 
+What This Actually Is
+
+This engine is a symbolic computational system that imitates the structure of physical field equations — not by simulating real-world quantities like mass or velocity directly, but by evolving discrete symbolic values across a 2D grid using local update rules.
+
+The core field, θ(x, y, t), represents symbolic phase — an abstract value that doesn’t correspond to physical units, but whose gradients (∇θ), curls (∇×∇θ), and Laplacians (∇²θ) are treated as if they behave like velocity, vorticity, and diffusion in fluid dynamics.
+
+This is not a physics simulation.
+
+It’s a symbolic mimicry of physical principles — an algorithm that structurally mirrors the patterns and causality found in real systems, without relying on actual numeric physics or floating-point continuity
+
 Symbolic Coherence Field Dynamics (SCFD)
 
 A discrete Lagrangian field theory where geometry, energy, and information co-evolve. Real-time simulation in JavaScript. No external dependencies. Built for exploration.
