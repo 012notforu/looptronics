@@ -1,0 +1,653 @@
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Play, Pause, RotateCcw, Zap, Eye, Settings } from 'lucide-react';
+import * as THREE from 'three';
+
+const SymbolicNavierStokes3D = () => {
+  const mountRef = useRef(null);
+  const sceneRef = useRef(null);
+  const rendererRef = useRef(null);
+  const cameraRef = useRef(null);
+  const animationRef = useRef(null);
+  const [isRunning, setIsRunning] = useState(false);
+  
+  // 3D SCNS Parameters
+  const [params, setParams] = useState({
+    gamma: 0.12,      // Symbolic viscosity
+    alpha: 0.6,       // Coherence tension
+    beta: 0.8,        // Inertia damping
+    convection: 0.4,  // Nonlinear convective strength
+    dt: 0.012,        // Time step
+    gridSize: 32      // 32^3 = ~32k points (manageable)
+  });
+  
+  // Visualization controls
+  const [vizParams, setVizParams] = useState({
+    showVorticity: true,
+    showVelocity: true,
+    showIsosurface: true,
+    isoLevel: 0.5,
+    particleCount: 2000
+  });
+  
+  const [grid, setGrid] = useState(null);
+  const [metrics, setMetrics] = useState({
+    energy: 0,
+    helicity: 0,
+    enstrophy: 0,
+    maxVorticity: 0,
+    maxGradient: 0,
+    Re_s: 0
+  });
+  
+  // Three.js objects
+  const meshRefs = useRef({
+    vorticity: null,
+    isosurface: null,
+    particles: null
+  });
+  
+  // Initialize 3D symbolic field
+  const initializeField = useCallback(() => {
+    const { gridSize } = params;
+    
+    const newGrid = {
+      theta: Array(gridSize).fill().map(() => 
+        Array(gridSize).fill().map(() => Array(gridSize).fill(0))
+      ),
+      velocity: Array(gridSize).fill().map(() => 
+        Array(gridSize).fill().map(() => Array(gridSize).fill([0,0,0]))
+      ),
+      vorticity: Array(gridSize).fill().map(() => 
+        Array(gridSize).fill().map(() => Array(gridSize).fill([0,0,0]))
+      ),
+      prevTheta: Array(gridSize).fill().map(() => 
+        Array(gridSize).fill().map(() => Array(gridSize).fill(0))
+      )
+    };
+    
+    // Initialize with 3D symbolic vortex knots and perturbations
+    const centerX = gridSize / 2;
+    const centerY = gridSize / 2;
+    const centerZ = gridSize / 2;
+    
+    for (let i = 0; i < gridSize; i++) {
+      for (let j = 0; j < gridSize; j++) {
+        for (let k = 0; k < gridSize; k++) {
+          const dx = i - centerX;
+          const dy = j - centerY;
+          const dz = k - centerZ;
+          const r = Math.sqrt(dx*dx + dy*dy + dz*dz);
+          
+          // Create helical vortex tube
+          const theta_cyl = Math.atan2(dy, dx);
+          const helical = 4.0 * Math.exp(-r*r / 64) * 
+                         Math.sin(theta_cyl + 0.5*dz) * 
+                         Math.cos(0.3*r);
+          
+          // Add secondary vortex ring
+          const ring_r = Math.sqrt(dx*dx + dy*dy);
+          const ring = 2.0 * Math.exp(-(ring_r - 8)*(ring_r - 8) / 16) * 
+                      Math.exp(-dz*dz / 25) * Math.sin(3*theta_cyl);
+          
+          // Random turbulent noise
+          const noise = 0.3 * (Math.random() - 0.5);
+          
+          newGrid.theta[i][j][k] = helical + ring + noise;
+          newGrid.prevTheta[i][j][k] = newGrid.theta[i][j][k];
+        }
+      }
+    }
+    
+    setGrid(newGrid);
+  }, [params.gridSize]);
+  
+  // 3D SCNS evolution step
+  const evolveField = useCallback(() => {
+    if (!grid) return;
+    
+    const { gridSize } = params;
+    const { theta, velocity, vorticity, prevTheta } = grid;
+    
+    const newTheta = theta.map(plane => plane.map(row => [...row]));
+    const newVelocity = velocity.map(plane => plane.map(row => row.map(v => [...v])));
+    const newVorticity = vorticity.map(plane => plane.map(row => row.map(v => [...v])));
+    
+    let totalEnergy = 0;
+    let totalHelicity = 0;
+    let totalEnstrophy = 0;
+    let maxVort = 0;
+    let maxGrad = 0;
+    
+    // 3D symbolic fluid evolution
+    for (let i = 1; i < gridSize - 1; i++) {
+      for (let j = 1; j < gridSize - 1; j++) {
+        for (let k = 1; k < gridSize - 1; k++) {
+          
+          // 3D gradients (symbolic velocity field)
+          const dtheta_dx = (theta[i+1][j][k] - theta[i-1][j][k]) / 2;
+          const dtheta_dy = (theta[i][j+1][k] - theta[i][j-1][k]) / 2;
+          const dtheta_dz = (theta[i][j][k+1] - theta[i][j][k-1]) / 2;
+          
+          const u = dtheta_dx;
+          const v = dtheta_dy;
+          const w = dtheta_dz;
+          
+          newVelocity[i][j][k] = [u, v, w];
+          const velMag = Math.sqrt(u*u + v*v + w*w);
+          
+          // 3D Laplacian (symbolic viscosity)
+          const d2theta_dx2 = theta[i+1][j][k] - 2*theta[i][j][k] + theta[i-1][j][k];
+          const d2theta_dy2 = theta[i][j+1][k] - 2*theta[i][j][k] + theta[i][j-1][k];
+          const d2theta_dz2 = theta[i][j][k+1] - 2*theta[i][j][k] + theta[i][j][k-1];
+          const laplacian = d2theta_dx2 + d2theta_dy2 + d2theta_dz2;
+          
+          // 3D convective term: (v·∇)θ
+          const convective = params.convection * (
+            u * dtheta_dx + v * dtheta_dy + w * dtheta_dz
+          );
+          
+          // 3D vorticity: ω = ∇ × v
+          const dwdy = j > 0 && j < gridSize-1 ? 
+            (theta[i][j+1][k+1] - theta[i][j+1][k-1] - 
+             theta[i][j-1][k+1] + theta[i][j-1][k-1]) / 4 : 0;
+          const dvdz = k > 0 && k < gridSize-1 ? 
+            (theta[i][j+1][k+1] - theta[i][j-1][k+1] - 
+             theta[i][j+1][k-1] + theta[i][j-1][k-1]) / 4 : 0;
+             
+          const dudz = k > 0 && k < gridSize-1 ? 
+            (theta[i+1][j][k+1] - theta[i-1][j][k+1] - 
+             theta[i+1][j][k-1] + theta[i-1][j][k-1]) / 4 : 0;
+          const dwdx = i > 0 && i < gridSize-1 ? 
+            (theta[i+1][j][k+1] - theta[i+1][j][k-1] - 
+             theta[i-1][j][k+1] + theta[i-1][j][k-1]) / 4 : 0;
+             
+          const dvdx = i > 0 && i < gridSize-1 ? 
+            (theta[i+1][j+1][k] - theta[i-1][j+1][k] - 
+             theta[i+1][j-1][k] + theta[i-1][j-1][k]) / 4 : 0;
+          const dudy = j > 0 && j < gridSize-1 ? 
+            (theta[i+1][j+1][k] - theta[i+1][j-1][k] - 
+             theta[i-1][j+1][k] + theta[i-1][j-1][k]) / 4 : 0;
+          
+          const omega_x = dwdy - dvdz;
+          const omega_y = dudz - dwdx; 
+          const omega_z = dvdx - dudy;
+          
+          newVorticity[i][j][k] = [omega_x, omega_y, omega_z];
+          const vortMag = Math.sqrt(omega_x*omega_x + omega_y*omega_y + omega_z*omega_z);
+          
+          // Symbolic coherence potential
+          const coherenceTension = params.alpha * Math.sin(theta[i][j][k]);
+          
+          // 3D SYMBOLIC NAVIER-STOKES UPDATE:
+          // ∂θ/∂t + (v·∇)θ = -V'(θ) + γ∇²θ
+          const dthetaDt = -convective + coherenceTension + params.gamma * laplacian;
+          
+          // Second-order time evolution
+          const acceleration = dthetaDt / params.beta;
+          newTheta[i][j][k] = theta[i][j][k] + 
+                             params.dt * (theta[i][j][k] - prevTheta[i][j][k]) + 
+                             params.dt * params.dt * acceleration;
+          
+          // Symbolic bounds (prevent blow-up)
+          newTheta[i][j][k] = Math.max(-15, Math.min(15, newTheta[i][j][k]));
+          
+          // Collect 3D metrics
+          totalEnergy += velMag * velMag;
+          totalHelicity += u*omega_x + v*omega_y + w*omega_z;  // v·ω
+          totalEnstrophy += vortMag * vortMag;                // |ω|²
+          maxVort = Math.max(maxVort, vortMag);
+          maxGrad = Math.max(maxGrad, velMag);
+        }
+      }
+    }
+    
+    const gridVolume = (gridSize-2) * (gridSize-2) * (gridSize-2);
+    
+    // Update 3D grid state
+    setGrid({
+      theta: newTheta,
+      velocity: newVelocity,
+      vorticity: newVorticity,
+      prevTheta: theta.map(plane => plane.map(row => [...row]))
+    });
+    
+    // Update 3D metrics
+    setMetrics({
+      energy: totalEnergy / gridVolume,
+      helicity: totalHelicity / gridVolume,
+      enstrophy: totalEnstrophy / gridVolume,
+      maxVorticity: maxVort,
+      maxGradient: maxGrad,
+      Re_s: maxGrad * params.gridSize / (params.gamma + 0.001)
+    });
+  }, [grid, params]);
+  
+  // Initialize Three.js scene
+  useEffect(() => {
+    if (!mountRef.current) return;
+    
+    // Scene setup
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x001122);
+    
+    // Camera
+    const camera = new THREE.PerspectiveCamera(
+      75,
+      mountRef.current.clientWidth / mountRef.current.clientHeight,
+      0.1,
+      1000
+    );
+    camera.position.set(50, 50, 50);
+    camera.lookAt(0, 0, 0);
+    
+    // Renderer
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(mountRef.current.clientWidth, mountRef.current.clientHeight);
+    renderer.setClearColor(0x001122);
+    mountRef.current.appendChild(renderer.domElement);
+    
+    // Lighting
+    const ambientLight = new THREE.AmbientLight(0x404040, 0.4);
+    scene.add(ambientLight);
+    
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    directionalLight.position.set(100, 100, 100);
+    scene.add(directionalLight);
+    
+    // Store refs
+    sceneRef.current = scene;
+    rendererRef.current = renderer;
+    cameraRef.current = camera;
+    
+    // Simple orbit controls (mouse rotation)
+    let mouseDown = false;
+    let mouseX = 0;
+    let mouseY = 0;
+    
+    const handleMouseDown = (e) => {
+      mouseDown = true;
+      mouseX = e.clientX;
+      mouseY = e.clientY;
+    };
+    
+    const handleMouseUp = () => {
+      mouseDown = false;
+    };
+    
+    const handleMouseMove = (e) => {
+      if (!mouseDown) return;
+      
+      const deltaX = e.clientX - mouseX;
+      const deltaY = e.clientY - mouseY;
+      
+      // Rotate camera around origin
+      const spherical = new THREE.Spherical();
+      spherical.setFromVector3(camera.position);
+      spherical.theta -= deltaX * 0.01;
+      spherical.phi += deltaY * 0.01;
+      spherical.phi = Math.max(0.1, Math.min(Math.PI - 0.1, spherical.phi));
+      
+      camera.position.setFromSpherical(spherical);
+      camera.lookAt(0, 0, 0);
+      
+      mouseX = e.clientX;
+      mouseY = e.clientY;
+    };
+    
+    renderer.domElement.addEventListener('mousedown', handleMouseDown);
+    renderer.domElement.addEventListener('mouseup', handleMouseUp);
+    renderer.domElement.addEventListener('mousemove', handleMouseMove);
+    
+    return () => {
+      if (mountRef.current && renderer.domElement) {
+        mountRef.current.removeChild(renderer.domElement);
+      }
+      renderer.dispose();
+    };
+  }, []);
+  
+  // Update 3D visualization
+  const updateVisualization = useCallback(() => {
+    if (!grid || !sceneRef.current || !rendererRef.current || !cameraRef.current) return;
+    
+    const scene = sceneRef.current;
+    const { gridSize } = params;
+    
+    // Clear previous meshes
+    Object.values(meshRefs.current).forEach(mesh => {
+      if (mesh) scene.remove(mesh);
+    });
+    
+    // Create vorticity visualization (point cloud)
+    if (vizParams.showVorticity) {
+      const geometry = new THREE.BufferGeometry();
+      const positions = [];
+      const colors = [];
+      
+      for (let i = 2; i < gridSize - 2; i += 2) {
+        for (let j = 2; j < gridSize - 2; j += 2) {
+          for (let k = 2; k < gridSize - 2; k += 2) {
+            const [omega_x, omega_y, omega_z] = grid.vorticity[i][j][k];
+            const vortMag = Math.sqrt(omega_x*omega_x + omega_y*omega_y + omega_z*omega_z);
+            
+            if (vortMag > 0.1) {
+              positions.push(
+                (i - gridSize/2) * 2,
+                (j - gridSize/2) * 2,
+                (k - gridSize/2) * 2
+              );
+              
+              // Color by vorticity magnitude
+              const intensity = Math.min(vortMag / 2, 1);
+              colors.push(intensity, 0.2, 1 - intensity);
+            }
+          }
+        }
+      }
+      
+      geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+      geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+      
+      const material = new THREE.PointsMaterial({ 
+        size: 3, 
+        vertexColors: true,
+        transparent: true,
+        opacity: 0.8
+      });
+      
+      meshRefs.current.vorticity = new THREE.Points(geometry, material);
+      scene.add(meshRefs.current.vorticity);
+    }
+    
+    // Create isosurface visualization
+    if (vizParams.showIsosurface) {
+      const geometry = new THREE.BufferGeometry();
+      const vertices = [];
+      const normals = [];
+      
+      // Simple marching cubes-like approach for symbolic coherence isosurface
+      for (let i = 1; i < gridSize - 1; i += 3) {
+        for (let j = 1; j < gridSize - 1; j += 3) {
+          for (let k = 1; k < gridSize - 1; k += 3) {
+            const value = Math.abs(grid.theta[i][j][k]);
+            
+            if (Math.abs(value - vizParams.isoLevel) < 0.2) {
+              // Create small cube at isosurface points
+              const x = (i - gridSize/2) * 2;
+              const y = (j - gridSize/2) * 2;
+              const z = (k - gridSize/2) * 2;
+              
+              const size = 1;
+              const cubeVertices = [
+                x-size, y-size, z-size,  x+size, y-size, z-size,  x+size, y+size, z-size,
+                x-size, y-size, z-size,  x+size, y+size, z-size,  x-size, y+size, z-size,
+                
+                x-size, y-size, z+size,  x+size, y+size, z+size,  x+size, y-size, z+size,
+                x-size, y-size, z+size,  x-size, y+size, z+size,  x+size, y+size, z+size,
+              ];
+              
+              vertices.push(...cubeVertices);
+              
+              // Simple normals
+              for (let n = 0; n < 12; n++) {
+                normals.push(0, 0, 1);
+              }
+            }
+          }
+        }
+      }
+      
+      geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+      geometry.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
+      
+      const material = new THREE.MeshLambertMaterial({ 
+        color: 0x44ff88,
+        transparent: true,
+        opacity: 0.6,
+        side: THREE.DoubleSide
+      });
+      
+      meshRefs.current.isosurface = new THREE.Mesh(geometry, material);
+      scene.add(meshRefs.current.isosurface);
+    }
+    
+    // Render
+    rendererRef.current.render(scene, cameraRef.current);
+  }, [grid, params, vizParams]);
+  
+  // Animation loop
+  useEffect(() => {
+    if (isRunning) {
+      const animate = () => {
+        evolveField();
+        updateVisualization();
+        animationRef.current = requestAnimationFrame(animate);
+      };
+      animationRef.current = requestAnimationFrame(animate);
+    } else {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    }
+    
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    };
+  }, [isRunning, evolveField, updateVisualization]);
+  
+  // Update visualization when params change
+  useEffect(() => {
+    updateVisualization();
+  }, [updateVisualization, vizParams]);
+  
+  // Initialize on mount
+  useEffect(() => {
+    initializeField();
+  }, [initializeField]);
+  
+  return (
+    <div className="w-full max-w-7xl mx-auto p-6 bg-gray-900 text-white">
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold mb-2">3D Symbolic Coherence Navier-Stokes Engine</h1>
+        <p className="text-gray-300 mb-4">
+          Full 3D symbolic fluid dynamics with vortex tubes, helical structures, and turbulent cascades.
+          The field θ evolves in 3D space with velocity = ∇θ and vorticity = ∇×v.
+        </p>
+        
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+          <div className="bg-gray-800 p-3 rounded">
+            <div className="text-sm text-gray-400">3D Energy</div>
+            <div className="text-xl font-mono">{metrics.energy.toFixed(3)}</div>
+          </div>
+          <div className="bg-gray-800 p-3 rounded">
+            <div className="text-sm text-gray-400">Helicity</div>
+            <div className="text-xl font-mono">{metrics.helicity.toFixed(3)}</div>
+          </div>
+          <div className="bg-gray-800 p-3 rounded">
+            <div className="text-sm text-gray-400">Enstrophy</div>
+            <div className="text-xl font-mono">{metrics.enstrophy.toFixed(3)}</div>
+          </div>
+          <div className="bg-gray-800 p-3 rounded">
+            <div className="text-sm text-gray-400">Max Vorticity</div>
+            <div className="text-xl font-mono">{metrics.maxVorticity.toFixed(3)}</div>
+          </div>
+          <div className="bg-gray-800 p-3 rounded">
+            <div className="text-sm text-gray-400">Max Gradient</div>
+            <div className="text-xl font-mono">{metrics.maxGradient.toFixed(3)}</div>
+          </div>
+          <div className="bg-gray-800 p-3 rounded">
+            <div className="text-sm text-gray-400">Re_s (3D)</div>
+            <div className="text-xl font-mono text-yellow-400">{metrics.Re_s.toFixed(1)}</div>
+          </div>
+        </div>
+      </div>
+      
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div className="lg:col-span-3">
+          <div className="bg-gray-800 p-4 rounded-lg">
+            <div className="mb-4 flex gap-2">
+              <button
+                onClick={() => setIsRunning(!isRunning)}
+                className={`px-4 py-2 rounded flex items-center gap-2 ${
+                  isRunning ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'
+                }`}
+              >
+                {isRunning ? <Pause size={16} /> : <Play size={16} />}
+                {isRunning ? 'Pause' : 'Evolve 3D'}
+              </button>
+              
+              <button
+                onClick={initializeField}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded flex items-center gap-2"
+              >
+                <RotateCcw size={16} />
+                Reset Field
+              </button>
+            </div>
+            
+            <div 
+              ref={mountRef} 
+              className="w-full h-96 border border-gray-600 rounded"
+              style={{ minHeight: '400px' }}
+            />
+            
+            <p className="text-sm text-gray-400 mt-2">
+              <span className="text-blue-400">Blue/Red points = vorticity magnitude</span>, 
+              <span className="text-green-400"> Green surfaces = coherence isosurfaces</span>
+              <br />
+              Drag to rotate camera. Watching: 3D symbolic vortex tubes and turbulent structures.
+            </p>
+          </div>
+        </div>
+        
+        <div>
+          <div className="bg-gray-800 p-4 rounded-lg mb-4">
+            <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+              <Settings size={16} />
+              3D SCNS Parameters
+            </h3>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">
+                  Symbolic Viscosity (γ): {params.gamma.toFixed(3)}
+                </label>
+                <input
+                  type="range"
+                  min="0.01"
+                  max="0.3"
+                  step="0.01"
+                  value={params.gamma}
+                  onChange={(e) => setParams(p => ({...p, gamma: parseFloat(e.target.value)}))}
+                  className="w-full"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">
+                  Coherence Tension (α): {params.alpha.toFixed(3)}
+                </label>
+                <input
+                  type="range"
+                  min="0"
+                  max="2"
+                  step="0.05"
+                  value={params.alpha}
+                  onChange={(e) => setParams(p => ({...p, alpha: parseFloat(e.target.value)}))}
+                  className="w-full"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">
+                  3D Convection: {params.convection.toFixed(3)}
+                </label>
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.05"
+                  value={params.convection}
+                  onChange={(e) => setParams(p => ({...p, convection: parseFloat(e.target.value)}))}
+                  className="w-full"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">
+                  Inertia (β): {params.beta.toFixed(3)}
+                </label>
+                <input
+                  type="range"
+                  min="0.1"
+                  max="2"
+                  step="0.05"
+                  value={params.beta}
+                  onChange={(e) => setParams(p => ({...p, beta: parseFloat(e.target.value)}))}
+                  className="w-full"
+                />
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-gray-800 p-4 rounded-lg">
+            <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+              <Eye size={16} />
+              3D Visualization
+            </h3>
+            
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={vizParams.showVorticity}
+                  onChange={(e) => setVizParams(p => ({...p, showVorticity: e.target.checked}))}
+                />
+                <label className="text-sm">Show Vorticity</label>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={vizParams.showIsosurface}
+                  onChange={(e) => setVizParams(p => ({...p, showIsosurface: e.target.checked}))}
+                />
+                <label className="text-sm">Show Isosurfaces</label>
+              </div>
+              
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">
+                  Iso Level: {vizParams.isoLevel.toFixed(2)}
+                </label>
+                <input
+                  type="range"
+                  min="0.1"
+                  max="2"
+                  step="0.1"
+                  value={vizParams.isoLevel}
+                  onChange={(e) => setVizParams(p => ({...p, isoLevel: parseFloat(e.target.value)}))}
+                  className="w-full"
+                />
+              </div>
+            </div>
+            
+            <div className="mt-4 p-3 bg-purple-900 rounded">
+              <h4 className="font-bold text-sm mb-2">3D Fluid Regime</h4>
+              <div className="text-xs">
+                <div>Status: {metrics.Re_s < 20 ? 'Laminar' : 
+                           metrics.Re_s < 100 ? 'Transitional' : 
+                           'Turbulent'}</div>
+                <div>Helicity: {metrics.helicity > 0 ? 'Positive' : 'Negative'}</div>
+                <div>Grid: {params.gridSize}³ = {(params.gridSize**3).toLocaleString()} points</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default SymbolicNavierStokes3D;
