@@ -1,0 +1,429 @@
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Play, Pause, RotateCcw, Zap, Waves, Target } from 'lucide-react';
+
+const SymbolicNavierStokes = () => {
+  const canvasRef = useRef(null);
+  const animationRef = useRef(null);
+  const [isRunning, setIsRunning] = useState(false);
+  
+  // SCNS Parameters
+  const [params, setParams] = useState({
+    gamma: 0.15,      // Symbolic viscosity
+    alpha: 0.8,       // Coherence tension
+    beta: 0.9,        // Inertia damping
+    convection: 0.3,  // Nonlinear convective strength
+    dt: 0.016,        // Time step
+    Re_s: 50          // Symbolic Reynolds number
+  });
+  
+  // Grid and state
+  const gridSize = 64;
+  const [grid, setGrid] = useState(null);
+  const [metrics, setMetrics] = useState({
+    energy: 0,
+    vorticity: 0,
+    maxGradient: 0,
+    circulation: 0
+  });
+  
+  // Initialize symbolic field
+  const initializeField = useCallback(() => {
+    const newGrid = {
+      theta: Array(gridSize).fill().map(() => Array(gridSize).fill(0)),
+      velocity: Array(gridSize).fill().map(() => Array(gridSize).fill(0)),
+      vorticity: Array(gridSize).fill().map(() => Array(gridSize).fill(0)),
+      pressure: Array(gridSize).fill().map(() => Array(gridSize).fill(0)),
+      prevTheta: Array(gridSize).fill().map(() => Array(gridSize).fill(0))
+    };
+    
+    // Initialize with symbolic vortex + random perturbations
+    const centerX = gridSize / 2;
+    const centerY = gridSize / 2;
+    
+    for (let i = 0; i < gridSize; i++) {
+      for (let j = 0; j < gridSize; j++) {
+        const dx = i - centerX;
+        const dy = j - centerY;
+        const r = Math.sqrt(dx*dx + dy*dy);
+        const angle = Math.atan2(dy, dx);
+        
+        // Symbolic vortex + noise
+        const vortexStr = 8.0;
+        const vortex = vortexStr * Math.exp(-r*r / 100) * Math.sin(2*angle);
+        const noise = 0.3 * (Math.random() - 0.5);
+        
+        newGrid.theta[i][j] = vortex + noise;
+        newGrid.prevTheta[i][j] = newGrid.theta[i][j];
+      }
+    }
+    
+    setGrid(newGrid);
+  }, []);
+  
+  // Symbolic Navier-Stokes evolution step
+  const evolveField = useCallback(() => {
+    if (!grid) return;
+    
+    const { theta, velocity, vorticity, pressure, prevTheta } = grid;
+    const newTheta = theta.map(row => [...row]);
+    const newVelocity = velocity.map(row => [...row]);
+    const newVorticity = vorticity.map(row => [...row]);
+    const newPressure = pressure.map(row => [...row]);
+    
+    let totalEnergy = 0;
+    let totalVorticity = 0;
+    let maxGrad = 0;
+    let circulation = 0;
+    
+    for (let i = 1; i < gridSize - 1; i++) {
+      for (let j = 1; j < gridSize - 1; j++) {
+        // Compute gradients (symbolic velocity field)
+        const dtheta_dx = (theta[i+1][j] - theta[i-1][j]) / 2;
+        const dtheta_dy = (theta[i][j+1] - theta[i][j-1]) / 2;
+        
+        // Symbolic velocity = gradient of phase
+        const u = dtheta_dx;
+        const v = dtheta_dy;
+        newVelocity[i][j] = Math.sqrt(u*u + v*v);
+        
+        // Compute second derivatives (symbolic viscosity)
+        const d2theta_dx2 = theta[i+1][j] - 2*theta[i][j] + theta[i-1][j];
+        const d2theta_dy2 = theta[i][j+1] - 2*theta[i][j] + theta[i][j-1];
+        const laplacian = d2theta_dx2 + d2theta_dy2;
+        
+        // Convective term: (∇θ·∇)θ ≈ u∂θ/∂x + v∂θ/∂y  
+        const convective = params.convection * (u * dtheta_dx + v * dtheta_dy);
+        
+        // Symbolic pressure (coherence potential)
+        const coherenceTension = params.alpha * Math.sin(theta[i][j]);
+        newPressure[i][j] = -coherenceTension;
+        
+        // Symbolic vorticity (discrete curl)
+        const du_dy = i > 0 && i < gridSize-1 ? 
+          ((theta[i+1][j+1] - theta[i-1][j+1]) - (theta[i+1][j-1] - theta[i-1][j-1])) / 4 : 0;
+        const dv_dx = j > 0 && j < gridSize-1 ? 
+          ((theta[i+1][j+1] - theta[i+1][j-1]) - (theta[i-1][j+1] - theta[i-1][j-1])) / 4 : 0;
+        
+        newVorticity[i][j] = du_dy - dv_dx;
+        
+        // SYMBOLIC NAVIER-STOKES UPDATE:
+        // ∂θ/∂t = -convective + symbolic_pressure + γ∇²θ
+        const dthetaDt = -convective + coherenceTension + params.gamma * laplacian;
+        
+        // Second-order time evolution with inertia
+        const acceleration = dthetaDt / params.beta;
+        newTheta[i][j] = theta[i][j] + params.dt * (theta[i][j] - prevTheta[i][j]) + 
+                        params.dt * params.dt * acceleration;
+        
+        // Apply symbolic constraints (prevent unbounded growth)
+        newTheta[i][j] = Math.max(-10, Math.min(10, newTheta[i][j]));
+        
+        // Collect metrics
+        totalEnergy += u*u + v*v;
+        totalVorticity += Math.abs(newVorticity[i][j]);
+        maxGrad = Math.max(maxGrad, Math.sqrt(dtheta_dx*dtheta_dx + dtheta_dy*dtheta_dy));
+        circulation += newVorticity[i][j];
+      }
+    }
+    
+    // Update state
+    setGrid({
+      theta: newTheta,
+      velocity: newVelocity, 
+      vorticity: newVorticity,
+      pressure: newPressure,
+      prevTheta: theta.map(row => [...row])
+    });
+    
+    // Update metrics
+    setMetrics({
+      energy: totalEnergy / (gridSize * gridSize),
+      vorticity: totalVorticity / (gridSize * gridSize),
+      maxGradient: maxGrad,
+      circulation: circulation / (gridSize * gridSize)
+    });
+  }, [grid, params]);
+  
+  // Animation loop
+  useEffect(() => {
+    if (isRunning) {
+      const animate = () => {
+        evolveField();
+        animationRef.current = requestAnimationFrame(animate);
+      };
+      animationRef.current = requestAnimationFrame(animate);
+    } else {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    }
+    
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    };
+  }, [isRunning, evolveField]);
+  
+  // Render field to canvas
+  useEffect(() => {
+    if (!grid || !canvasRef.current) return;
+    
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    const { theta, velocity, vorticity } = grid;
+    
+    // Clear canvas
+    ctx.fillStyle = '#000012';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    const cellWidth = canvas.width / gridSize;
+    const cellHeight = canvas.height / gridSize;
+    
+    // Render symbolic field with flow visualization
+    for (let i = 0; i < gridSize; i++) {
+      for (let j = 0; j < gridSize; j++) {
+        const x = i * cellWidth;
+        const y = j * cellHeight;
+        
+        // Phase field as background color
+        const phase = theta[i][j];
+        const intensity = Math.abs(phase) / 10;
+        const hue = ((phase + Math.PI) / (2 * Math.PI)) * 360;
+        
+        ctx.fillStyle = `hsla(${hue}, 70%, ${20 + intensity * 30}%, 0.8)`;
+        ctx.fillRect(x, y, cellWidth, cellHeight);
+        
+        // Vorticity as overlaid streams
+        if (Math.abs(vorticity[i][j]) > 0.01) {
+          const vortStr = Math.abs(vorticity[i][j]) * 50;
+          ctx.fillStyle = vorticity[i][j] > 0 ? '#ff4444' : '#4444ff';
+          ctx.globalAlpha = Math.min(vortStr, 0.7);
+          ctx.fillRect(x + cellWidth/4, y + cellHeight/4, cellWidth/2, cellHeight/2);
+          ctx.globalAlpha = 1;
+        }
+        
+        // Velocity vectors
+        if (velocity[i][j] > 0.1 && (i % 4 === 0 && j % 4 === 0)) {
+          const vel = velocity[i][j];
+          const angle = Math.atan2(
+            j > 0 ? theta[i][j] - theta[i][j-1] : 0,
+            i > 0 ? theta[i][j] - theta[i-1][j] : 0
+          );
+          
+          ctx.strokeStyle = '#ffffff';
+          ctx.lineWidth = Math.min(vel * 2, 3);
+          ctx.globalAlpha = 0.6;
+          
+          ctx.beginPath();
+          ctx.moveTo(x + cellWidth/2, y + cellHeight/2);
+          ctx.lineTo(
+            x + cellWidth/2 + Math.cos(angle) * vel * 10,
+            y + cellHeight/2 + Math.sin(angle) * vel * 10
+          );
+          ctx.stroke();
+          ctx.globalAlpha = 1;
+        }
+      }
+    }
+  }, [grid]);
+  
+  // Initialize on mount
+  useEffect(() => {
+    initializeField();
+  }, [initializeField]);
+  
+  // Perturbation functions
+  const addVortex = (x, y) => {
+    if (!grid) return;
+    
+    const newGrid = { ...grid };
+    const gridX = Math.floor((x / 512) * gridSize);
+    const gridY = Math.floor((y / 512) * gridSize);
+    
+    for (let i = Math.max(0, gridX - 5); i < Math.min(gridSize, gridX + 5); i++) {
+      for (let j = Math.max(0, gridY - 5); j < Math.min(gridSize, gridY + 5); j++) {
+        const dx = i - gridX;
+        const dy = j - gridY;
+        const r = Math.sqrt(dx*dx + dy*dy);
+        if (r < 5) {
+          const angle = Math.atan2(dy, dx);
+          newGrid.theta[i][j] += 2.0 * Math.exp(-r*r/4) * Math.cos(2*angle);
+        }
+      }
+    }
+    
+    setGrid(newGrid);
+  };
+  
+  const handleCanvasClick = (e) => {
+    const rect = canvasRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    addVortex(x, y);
+  };
+  
+  // Calculate symbolic Reynolds number
+  const currentReynolds = metrics.maxGradient * 32 / params.gamma;
+  
+  return (
+    <div className="w-full max-w-6xl mx-auto p-6 bg-gray-900 text-white">
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold mb-2">Symbolic Coherence Navier-Stokes Engine</h1>
+        <p className="text-gray-300 mb-4">
+          A symbolic implementation of fluid dynamics where coherence flows obey Navier-Stokes-like equations.
+          The field θ represents symbolic phase, with velocity = ∇θ and vorticity = ∇×v.
+        </p>
+        
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+          <div className="bg-gray-800 p-3 rounded">
+            <div className="text-sm text-gray-400">Symbolic Energy</div>
+            <div className="text-xl font-mono">{metrics.energy.toFixed(3)}</div>
+          </div>
+          <div className="bg-gray-800 p-3 rounded">
+            <div className="text-sm text-gray-400">Total Vorticity</div>
+            <div className="text-xl font-mono">{metrics.vorticity.toFixed(3)}</div>
+          </div>
+          <div className="bg-gray-800 p-3 rounded">
+            <div className="text-sm text-gray-400">Max Gradient</div>
+            <div className="text-xl font-mono">{metrics.maxGradient.toFixed(3)}</div>
+          </div>
+          <div className="bg-gray-800 p-3 rounded">
+            <div className="text-sm text-gray-400">Re_s (Symbolic)</div>
+            <div className="text-xl font-mono text-yellow-400">{currentReynolds.toFixed(1)}</div>
+          </div>
+        </div>
+      </div>
+      
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+          <div className="bg-gray-800 p-4 rounded-lg">
+            <div className="mb-4 flex gap-2">
+              <button
+                onClick={() => setIsRunning(!isRunning)}
+                className={`px-4 py-2 rounded flex items-center gap-2 ${
+                  isRunning ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'
+                }`}
+              >
+                {isRunning ? <Pause size={16} /> : <Play size={16} />}
+                {isRunning ? 'Pause' : 'Evolve'}
+              </button>
+              
+              <button
+                onClick={initializeField}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded flex items-center gap-2"
+              >
+                <RotateCcw size={16} />
+                Reset
+              </button>
+            </div>
+            
+            <canvas
+              ref={canvasRef}
+              width={512}
+              height={512}
+              className="w-full border border-gray-600 cursor-crosshair"
+              onClick={handleCanvasClick}
+            />
+            
+            <p className="text-sm text-gray-400 mt-2">
+              Click to inject symbolic vortices. 
+              <span className="text-blue-400"> Blue/Red = vorticity</span>, 
+              <span className="text-white"> White arrows = velocity</span>
+            </p>
+          </div>
+        </div>
+        
+        <div>
+          <div className="bg-gray-800 p-4 rounded-lg">
+            <h3 className="text-lg font-bold mb-4">SCNS Parameters</h3>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">
+                  Symbolic Viscosity (γ): {params.gamma.toFixed(3)}
+                </label>
+                <input
+                  type="range"
+                  min="0.01"
+                  max="0.5"
+                  step="0.01"
+                  value={params.gamma}
+                  onChange={(e) => setParams(p => ({...p, gamma: parseFloat(e.target.value)}))}
+                  className="w-full"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">
+                  Coherence Tension (α): {params.alpha.toFixed(3)}
+                </label>
+                <input
+                  type="range"
+                  min="0"
+                  max="2"
+                  step="0.05"
+                  value={params.alpha}
+                  onChange={(e) => setParams(p => ({...p, alpha: parseFloat(e.target.value)}))}
+                  className="w-full"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">
+                  Convection Strength: {params.convection.toFixed(3)}
+                </label>
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.05"
+                  value={params.convection}
+                  onChange={(e) => setParams(p => ({...p, convection: parseFloat(e.target.value)}))}
+                  className="w-full"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">
+                  Inertia Damping (β): {params.beta.toFixed(3)}
+                </label>
+                <input
+                  type="range"
+                  min="0.1"
+                  max="2"
+                  step="0.05"
+                  value={params.beta}
+                  onChange={(e) => setParams(p => ({...p, beta: parseFloat(e.target.value)}))}
+                  className="w-full"
+                />
+              </div>
+            </div>
+            
+            <div className="mt-6 p-3 bg-gray-700 rounded">
+              <h4 className="font-bold text-sm mb-2">System Status</h4>
+              <div className="text-xs space-y-1">
+                <div>Regime: {currentReynolds < 20 ? 'Laminar' : currentReynolds < 100 ? 'Transitional' : 'Turbulent'}</div>
+                <div>Circulation: {metrics.circulation.toFixed(4)}</div>
+                <div>Energy Flux: {(metrics.energy / (params.gamma + 0.001)).toFixed(2)}</div>
+              </div>
+            </div>
+            
+            <div className="mt-4 p-3 bg-blue-900 rounded">
+              <h4 className="font-bold text-sm mb-2">The SCNS Equation</h4>
+              <div className="text-xs font-mono">
+                ∂θ/∂t + (∇θ·∇)θ = -V'(θ) + γ∇²θ
+              </div>
+              <div className="text-xs text-gray-300 mt-1">
+                Where θ is symbolic phase, V'(θ) is coherence potential, 
+                and the convective term creates symbolic turbulence.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default SymbolicNavierStokes;
