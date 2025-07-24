@@ -1,0 +1,699 @@
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Play, Pause, RotateCcw, Settings } from 'lucide-react';
+
+const QuantumSymbolicComplexity = () => {
+  const canvasRef = useRef(null);
+  const animationRef = useRef(null);
+  const [isRunning, setIsRunning] = useState(false);
+  const [time, setTime] = useState(0);
+  const [settings, setSettings] = useState({
+    gridSize: 64,
+    diffusionRate: 0.1,
+    nonlinearStrength: 0.8,
+    complexityThreshold: 0.7,
+    showGrid: false,
+    showTrails: false,
+    trailDecay: 0.95
+  });
+
+  // System state
+  const [field, setField] = useState(null);
+  const [trailBuffer, setTrailBuffer] = useState(null);
+  const [complexity, setComplexity] = useState([]);
+  const [entropy, setEntropy] = useState([]);
+  const [circuitDepth, setCircuitDepth] = useState([]);
+  const [entropySpikes, setEntropySpikes] = useState([]);
+
+  // Initialize field
+  const initializeField = useCallback(() => {
+    const { gridSize } = settings;
+    const newField = Array(gridSize).fill().map(() => Array(gridSize).fill().map(() => ({
+      phase: Math.random() * 2 * Math.PI,
+      amplitude: Math.random() * 0.5 + 0.1,
+      complexity: 0
+    })));
+    
+    // Add some initial coherent structures
+    for (let i = 0; i < 3; i++) {
+      const cx = Math.floor(Math.random() * gridSize);
+      const cy = Math.floor(Math.random() * gridSize);
+      const radius = Math.floor(8 + Math.random() * 12); // INTEGER radius!
+      
+      for (let dx = -radius; dx <= radius; dx++) {
+        for (let dy = -radius; dy <= radius; dy++) {
+          const x = cx + dx; // Now guaranteed to be integer
+          const y = cy + dy; // Now guaranteed to be integer
+          const dist = Math.sqrt(dx*dx + dy*dy);
+          
+          if (x >= 0 && x < gridSize && y >= 0 && y < gridSize && dist <= radius) {
+            const strength = Math.exp(-dist*dist / (radius*radius/4));
+            newField[x][y].phase = Math.atan2(dy, dx) + Math.random() * 0.5;
+            newField[x][y].amplitude = strength * (0.8 + Math.random() * 0.4);
+          }
+        }
+      }
+    }
+    
+    // Initialize trail buffer
+    const newTrailBuffer = Array(gridSize).fill().map(() => Array(gridSize).fill(0));
+    setTrailBuffer(newTrailBuffer);
+    
+    setField(newField);
+    setTime(0);
+    setComplexity([]);
+    setEntropy([]);
+    setCircuitDepth([]);
+    setEntropySpikes([]);
+  }, [settings]);
+
+  // Utility function for getting neighbors (DRY principle)
+  const getNeighbors = useCallback((x, y, grid, gridSize) => {
+    return [
+      grid[(x+1) % gridSize]?.[y],
+      grid[x]?.[(y+1) % gridSize],
+      grid[(x-1+gridSize) % gridSize]?.[y],
+      grid[x]?.[(y-1+gridSize) % gridSize]
+    ].filter(Boolean);
+  }, []);
+
+  // Calculate complexity metrics
+  const calculateMetrics = useCallback((field) => {
+    if (!field || !Array.isArray(field) || field.length === 0) {
+      return { complexity: 0, entropy: 0, circuitDepth: 0 };
+    }
+    
+    const { gridSize } = settings;
+    let totalComplexity = 0;
+    let totalEntropy = 0;
+    let circuitSteps = 0;
+    
+    for (let x = 0; x < gridSize; x++) {
+      for (let y = 0; y < gridSize; y++) {
+        if (!field[x] || !field[x][y]) continue;
+        const cell = field[x][y];
+        
+        // Local complexity: gradient of phase and amplitude
+        const neighbors = getNeighbors(x, y, field, gridSize);
+        
+        let phaseGradient = 0;
+        let ampGradient = 0;
+        
+        neighbors.forEach(neighbor => {
+          // Proper circular phase difference calculation
+          let phaseDiff = neighbor.phase - cell.phase;
+          phaseDiff = Math.atan2(Math.sin(phaseDiff), Math.cos(phaseDiff));
+          phaseGradient += Math.abs(phaseDiff);
+          
+          const ampDiff = Math.abs(cell.amplitude - neighbor.amplitude);
+          ampGradient += ampDiff;
+        });
+        
+        // Complexity grows with local variation
+        const localComplexity = (phaseGradient + ampGradient) * cell.amplitude;
+        cell.complexity = localComplexity;
+        totalComplexity += localComplexity;
+        
+        // Entropy from amplitude distribution
+        if (cell.amplitude > 0) {
+          totalEntropy -= cell.amplitude * Math.log(cell.amplitude + 1e-10);
+        }
+        
+        // Circuit depth analog: number of significant phase changes
+        if (phaseGradient > 0.5) circuitSteps++;
+      }
+    }
+    
+    return {
+      complexity: totalComplexity / (gridSize * gridSize),
+      entropy: totalEntropy / (gridSize * gridSize),
+      circuitDepth: circuitSteps
+    };
+  }, [settings]);
+
+  // Evolution step
+  const evolveField = useCallback((field) => {
+    if (!field || !Array.isArray(field) || field.length === 0) return null;
+    
+    const { gridSize, diffusionRate, nonlinearStrength, complexityThreshold } = settings;
+    const newField = field.map(row => row.map(cell => ({ ...cell })));
+    
+    for (let x = 0; x < gridSize; x++) {
+      for (let y = 0; y < gridSize; y++) {
+        if (!field[x] || !field[x][y]) continue;
+        const cell = field[x][y];
+        const newCell = newField[x][y];
+        
+        // Get neighbors with proper utility function
+        const neighbors = getNeighbors(x, y, field, gridSize);
+        
+        // Diffusion of phase and amplitude
+        let avgPhaseX = 0, avgPhaseY = 0, avgAmp = 0;
+        if (neighbors.length > 0) {
+          neighbors.forEach(n => {
+            avgPhaseX += Math.cos(n.phase) * n.amplitude;
+            avgPhaseY += Math.sin(n.phase) * n.amplitude;
+            avgAmp += n.amplitude;
+          });
+          
+          avgPhaseX /= neighbors.length;
+          avgPhaseY /= neighbors.length;
+          avgAmp /= neighbors.length;
+        }
+        
+        const avgPhase = Math.atan2(avgPhaseY, avgPhaseX);
+        
+        // Update with proper circular phase diffusion
+        const phaseDiff = Math.atan2(Math.sin(avgPhase - cell.phase), Math.cos(avgPhase - cell.phase));
+        newCell.phase += diffusionRate * phaseDiff;
+        newCell.amplitude += diffusionRate * (avgAmp - cell.amplitude);
+        
+        // Nonlinear dynamics - complexity growth
+        const complexityFactor = cell.complexity / (complexityThreshold + cell.complexity);
+        newCell.phase += nonlinearStrength * complexityFactor * Math.sin(cell.phase * 3);
+        
+        // Complexity saturation and reorganization
+        if (cell.complexity > complexityThreshold) {
+          newCell.amplitude *= 0.95; // Decay
+          newCell.phase += Math.random() * 0.1 - 0.05; // Small randomization
+        } else {
+          newCell.amplitude *= 1.002; // Slight growth
+        }
+        
+        // Keep amplitude bounded
+        newCell.amplitude = Math.max(0, Math.min(1, newCell.amplitude));
+      }
+    }
+    
+    return newField;
+  }, [settings]);
+
+  // Render field
+  const renderField = useCallback((field, canvas) => {
+    if (!field || !canvas || !Array.isArray(field) || field.length === 0) return;
+    
+    const ctx = canvas.getContext('2d');
+    const { gridSize, showGrid, showTrails } = settings;
+    
+    // Safe guard against division by zero
+    if (gridSize <= 0) return;
+    
+    const cellSize = canvas.width / gridSize;
+    
+    // Only clear if not showing trails
+    if (!showTrails) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+    
+    // Draw trails first (background layer)
+    if (showTrails && trailBuffer) {
+      for (let x = 0; x < gridSize && x < trailBuffer.length; x++) {
+        if (!trailBuffer[x]) continue;
+        for (let y = 0; y < gridSize && y < trailBuffer[x].length; y++) {
+          const trailIntensity = trailBuffer[x][y];
+          if (trailIntensity > 0.1) {
+            ctx.fillStyle = `rgba(255, 255, 255, ${Math.min(0.3, trailIntensity * 0.2)})`;
+            ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+          }
+        }
+      }
+    }
+    
+    // Draw current field (foreground layer)
+    for (let x = 0; x < gridSize && x < field.length; x++) {
+      if (!field[x]) continue;
+      for (let y = 0; y < gridSize && y < field[x].length; y++) {
+        if (!field[x][y]) continue;
+        const cell = field[x][y];
+        
+        // Color based on phase and complexity
+        const hue = (cell.phase / (2 * Math.PI)) * 360;
+        const saturation = Math.min(100, cell.complexity * 200);
+        const lightness = 30 + cell.amplitude * 50;
+        
+        // Make current field slightly transparent if showing trails
+        const alpha = showTrails ? 0.8 : 1.0;
+        ctx.fillStyle = `hsla(${hue}, ${saturation}%, ${lightness}%, ${alpha})`;
+        ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+        
+        // Grid overlay
+        if (showGrid) {
+          ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+          ctx.lineWidth = 0.5;
+          ctx.strokeRect(x * cellSize, y * cellSize, cellSize, cellSize);
+        }
+        
+        // Highlight high complexity regions
+        if (cell.complexity > settings.complexityThreshold) {
+          ctx.strokeStyle = showTrails ? 'rgba(255,255,255,0.9)' : 'white';
+          ctx.lineWidth = 1;
+          ctx.strokeRect(x * cellSize, y * cellSize, cellSize, cellSize);
+        }
+      }
+    }
+  }, [settings, trailBuffer]);
+
+  // Effects
+  useEffect(() => {
+    initializeField();
+  }, [initializeField]);
+
+  // Separate rendering effect
+  useEffect(() => {
+    if (field && canvasRef.current) {
+      renderField(field, canvasRef.current);
+    }
+  }, [field, renderField]);
+
+  // Fixed animation loop - inline all logic to avoid dependency issues
+  useEffect(() => {
+    if (!isRunning) return;
+    
+    let animationId;
+    
+    const animate = () => {
+      setField(prevField => {
+        if (!prevField || !Array.isArray(prevField) || prevField.length === 0) {
+          return prevField;
+        }
+        
+        // Get current settings directly
+        const currentSettings = settings;
+        const { gridSize, diffusionRate, nonlinearStrength, complexityThreshold } = currentSettings;
+        
+        // Inline evolveField logic
+        const newField = prevField.map(row => row.map(cell => ({ ...cell })));
+        
+        for (let x = 0; x < gridSize; x++) {
+          for (let y = 0; y < gridSize; y++) {
+            if (!prevField[x] || !prevField[x][y]) continue;
+            const cell = prevField[x][y];
+            const newCell = newField[x][y];
+            
+            // Get neighbors inline
+            const neighbors = [
+              prevField[(x+1) % gridSize]?.[y],
+              prevField[x]?.[(y+1) % gridSize],
+              prevField[(x-1+gridSize) % gridSize]?.[y],
+              prevField[x]?.[(y-1+gridSize) % gridSize]
+            ].filter(Boolean);
+            
+            // Diffusion
+            let avgPhaseX = 0, avgPhaseY = 0, avgAmp = 0;
+            if (neighbors.length > 0) {
+              neighbors.forEach(n => {
+                avgPhaseX += Math.cos(n.phase) * n.amplitude;
+                avgPhaseY += Math.sin(n.phase) * n.amplitude;
+                avgAmp += n.amplitude;
+              });
+              
+              avgPhaseX /= neighbors.length;
+              avgPhaseY /= neighbors.length;
+              avgAmp /= neighbors.length;
+            }
+            
+            const avgPhase = Math.atan2(avgPhaseY, avgPhaseX);
+            const phaseDiff = Math.atan2(Math.sin(avgPhase - cell.phase), Math.cos(avgPhase - cell.phase));
+            
+            newCell.phase += diffusionRate * phaseDiff;
+            newCell.amplitude += diffusionRate * (avgAmp - cell.amplitude);
+            
+            // Nonlinear dynamics
+            const complexityFactor = cell.complexity / (complexityThreshold + cell.complexity);
+            newCell.phase += nonlinearStrength * complexityFactor * Math.sin(cell.phase * 3);
+            
+            // Complexity saturation
+            if (cell.complexity > complexityThreshold) {
+              newCell.amplitude *= 0.95;
+              newCell.phase += Math.random() * 0.1 - 0.05;
+            } else {
+              newCell.amplitude *= 1.002;
+            }
+            
+            newCell.amplitude = Math.max(0, Math.min(1, newCell.amplitude));
+          }
+        }
+        
+        // Inline calculateMetrics logic
+        let totalComplexity = 0;
+        let totalEntropy = 0;
+        let circuitSteps = 0;
+        
+        for (let x = 0; x < gridSize; x++) {
+          for (let y = 0; y < gridSize; y++) {
+            if (!newField[x] || !newField[x][y]) continue;
+            const cell = newField[x][y];
+            
+            const neighbors = [
+              newField[(x+1) % gridSize]?.[y],
+              newField[x]?.[(y+1) % gridSize],
+              newField[(x-1+gridSize) % gridSize]?.[y],
+              newField[x]?.[(y-1+gridSize) % gridSize]
+            ].filter(Boolean);
+            
+            let phaseGradient = 0;
+            let ampGradient = 0;
+            
+            neighbors.forEach(neighbor => {
+              let phaseDiff = neighbor.phase - cell.phase;
+              phaseDiff = Math.atan2(Math.sin(phaseDiff), Math.cos(phaseDiff));
+              phaseGradient += Math.abs(phaseDiff);
+              
+              const ampDiff = Math.abs(cell.amplitude - neighbor.amplitude);
+              ampGradient += ampDiff;
+            });
+            
+            const localComplexity = (phaseGradient + ampGradient) * cell.amplitude;
+            cell.complexity = localComplexity;
+            totalComplexity += localComplexity;
+            
+            if (cell.amplitude > 0) {
+              totalEntropy -= cell.amplitude * Math.log(cell.amplitude + 1e-10);
+            }
+            
+            if (phaseGradient > 0.5) circuitSteps++;
+          }
+        }
+        
+        // Update trail buffer
+        setTrailBuffer(prevTrails => {
+          if (!prevTrails) return null;
+          
+          const newTrails = prevTrails.map(row => row.map(val => val * currentSettings.trailDecay));
+          
+          // Add current field intensity to trails
+          for (let x = 0; x < gridSize; x++) {
+            for (let y = 0; y < gridSize; y++) {
+              if (newField[x] && newField[x][y]) {
+                const intensity = newField[x][y].amplitude * (1 + newField[x][y].complexity);
+                newTrails[x][y] = Math.max(newTrails[x][y], intensity);
+              }
+            }
+          }
+          
+          return newTrails;
+        });
+        
+        const metrics = {
+          complexity: totalComplexity / (gridSize * gridSize),
+          entropy: totalEntropy / (gridSize * gridSize),
+          circuitDepth: circuitSteps
+        };
+        
+        // Update metrics first
+        setTime(t => {
+          const newTime = t + 1;
+          
+          // Entropy spike detection with current time
+          setComplexity(prevComplexity => {
+            setEntropy(prevEntropy => {
+              const lastEntropy = prevEntropy.length > 0 ? prevEntropy[prevEntropy.length - 1] : 0;
+              const entropyJump = Math.abs(metrics.entropy - lastEntropy);
+              
+              if (entropyJump > 0.1 && prevEntropy.length > 5) {
+                setEntropySpikes(prevSpikes => {
+                  const newSpikes = [...prevSpikes, {
+                    time: newTime,
+                    magnitude: entropyJump,
+                    entropy: metrics.entropy
+                  }];
+                  return newSpikes.filter(spike => newTime - spike.time < 50);
+                });
+              }
+              
+              return [...prevEntropy.slice(-200), metrics.entropy];
+            });
+            
+            setCircuitDepth(prev => [...prev.slice(-200), metrics.circuitDepth]);
+            return [...prevComplexity.slice(-200), metrics.complexity];
+          });
+          
+          return newTime;
+        });
+        
+        return newField;
+      });
+      
+      // Continue animation
+      if (isRunning) {
+        animationId = requestAnimationFrame(animate);
+      }
+    };
+    
+    animationId = requestAnimationFrame(animate);
+    
+    return () => {
+      if (animationId) {
+        cancelAnimationFrame(animationId);
+      }
+    };
+  }, [isRunning, settings]); // Only depend on isRunning and settings
+
+  useEffect(() => {
+    if (field && canvasRef.current) {
+      renderField(field, canvasRef.current);
+    }
+  }, [field, renderField]);
+
+  // Chart component for metrics - extra bulletproof
+  const MetricChart = ({ data, label, color, maxY }) => {
+    const safeData = Array.isArray(data) ? data.filter(v => typeof v === 'number' && !isNaN(v) && isFinite(v)) : [];
+    const safeMaxY = typeof maxY === 'number' && !isNaN(maxY) && isFinite(maxY) && maxY > 0 ? maxY : 1;
+    const currentValue = safeData.length > 0 ? safeData[safeData.length - 1] : 0;
+    
+    return (
+      <div className="bg-gray-800 rounded p-3 h-32">
+        <div className="text-xs text-gray-300 mb-2">{label}</div>
+        <svg width="100%" height="80" className="overflow-visible">
+          {safeData.length > 1 && (
+            <polyline
+              fill="none"
+              stroke={color}
+              strokeWidth="1.5"
+              points={safeData.map((val, i) => {
+                const x = (i / Math.max(1, safeData.length - 1)) * 100;
+                const y = Math.max(0, Math.min(80, 80 - (val / safeMaxY) * 80));
+                return `${x},${y}`;
+              }).join(' ')}
+            />
+          )}
+          <text x="2" y="12" fill={color} fontSize="10">
+            {currentValue.toFixed(3)}
+          </text>
+        </svg>
+      </div>
+    );
+  };
+
+  return (
+    <div className="w-full max-w-6xl mx-auto p-6 bg-black text-white">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold mb-2">Quantum Complexity in Symbolic Systems</h1>
+        <p className="text-gray-300 text-sm">
+          Exploring how symbolic field evolution mirrors quantum circuit complexity growth
+        </p>
+      </div>
+      
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Main visualization */}
+        <div className="lg:col-span-2">
+          <div className="bg-gray-900 rounded-lg p-4">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold">Symbolic Field Evolution</h2>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setIsRunning(!isRunning)}
+                  className="flex items-center gap-2 px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded text-sm"
+                >
+                  {isRunning ? <Pause size={16} /> : <Play size={16} />}
+                  {isRunning ? 'Pause' : 'Play'}
+                </button>
+                <button
+                  onClick={initializeField}
+                  className="flex items-center gap-2 px-3 py-1 bg-gray-600 hover:bg-gray-700 rounded text-sm"
+                >
+                  <RotateCcw size={16} />
+                  Reset
+                </button>
+              </div>
+            </div>
+            
+            <canvas 
+              ref={canvasRef}
+              width={512}
+              height={512}
+              className="w-full border border-gray-700 rounded"
+            />
+            
+            <div className="mt-2 text-xs text-gray-400">
+              <p>Color: Phase | Brightness: Amplitude | White borders: High complexity regions</p>
+              <p>Time: {time} steps</p>
+            </div>
+          </div>
+        </div>
+        
+        {/* Metrics and controls */}
+        <div className="space-y-4">
+          {/* Metrics */}
+          <div className="space-y-3">
+            <MetricChart 
+              data={complexity} 
+              label="Symbolic Complexity" 
+              color="#ff6b6b" 
+              maxY={complexity.length > 0 ? Math.max(0.1, ...complexity.filter(v => typeof v === 'number' && !isNaN(v) && isFinite(v))) * 1.1 : 1}
+            />
+            <MetricChart 
+              data={entropy} 
+              label="Phase Entropy" 
+              color="#4ecdc4" 
+              maxY={entropy.length > 0 ? Math.max(0.1, ...entropy.filter(v => typeof v === 'number' && !isNaN(v) && isFinite(v))) * 1.1 : 1}
+            />
+            <MetricChart 
+              data={circuitDepth} 
+              label="Circuit Depth Analog" 
+              color="#45b7d1" 
+              maxY={circuitDepth.length > 0 ? Math.max(10, ...circuitDepth.filter(v => typeof v === 'number' && !isNaN(v) && isFinite(v))) * 1.1 : 100}
+            />
+            
+            {/* Entropy Spike Events */}
+            <div className="bg-gray-800 rounded p-3 h-32">
+              <div className="text-xs text-gray-300 mb-2">Entropy Spikes (Info Events)</div>
+              <div className="h-20 overflow-y-auto text-xs">
+                {entropySpikes.length === 0 ? (
+                  <div className="text-gray-500">No significant entropy events detected</div>
+                ) : (
+                  entropySpikes.slice(-5).reverse().map((spike, i) => (
+                    <div key={i} className="mb-1 text-yellow-400">
+                      <span className="text-gray-400">t={spike.time}:</span> Δ{spike.magnitude.toFixed(3)} 
+                      <span className="text-xs text-gray-500 ml-1">({spike.entropy.toFixed(3)})</span>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+          
+          {/* Controls */}
+          <div className="bg-gray-900 rounded-lg p-4">
+            <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+              <Settings size={18} />
+              Parameters
+            </h3>
+            
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">Grid Size</label>
+                <input
+                  type="range"
+                  min="32"
+                  max="128"
+                  step="16"
+                  value={settings.gridSize}
+                  onChange={(e) => setSettings(s => ({ ...s, gridSize: parseInt(e.target.value) }))}
+                  className="w-full"
+                />
+                <span className="text-xs text-gray-500">{settings.gridSize}</span>
+              </div>
+              
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">Diffusion Rate</label>
+                <input
+                  type="range"
+                  min="0.01"
+                  max="0.5"
+                  step="0.01"
+                  value={settings.diffusionRate}
+                  onChange={(e) => setSettings(s => ({ ...s, diffusionRate: parseFloat(e.target.value) }))}
+                  className="w-full"
+                />
+                <span className="text-xs text-gray-500">{settings.diffusionRate}</span>
+              </div>
+              
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">Nonlinear Strength</label>
+                <input
+                  type="range"
+                  min="0"
+                  max="2"
+                  step="0.1"
+                  value={settings.nonlinearStrength}
+                  onChange={(e) => setSettings(s => ({ ...s, nonlinearStrength: parseFloat(e.target.value) }))}
+                  className="w-full"
+                />
+                <span className="text-xs text-gray-500">{settings.nonlinearStrength}</span>
+              </div>
+              
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">Complexity Threshold</label>
+                <input
+                  type="range"
+                  min="0.1"
+                  max="2"
+                  step="0.1"
+                  value={settings.complexityThreshold}
+                  onChange={(e) => setSettings(s => ({ ...s, complexityThreshold: parseFloat(e.target.value) }))}
+                  className="w-full"
+                />
+                <span className="text-xs text-gray-500">{settings.complexityThreshold}</span>
+              </div>
+              
+              <div>
+                <label className="flex items-center gap-2 text-xs text-gray-400">
+                  <input
+                    type="checkbox"
+                    checked={settings.showGrid}
+                    onChange={(e) => setSettings(s => ({ ...s, showGrid: e.target.checked }))}
+                    className="rounded"
+                  />
+                  Show Grid Overlay
+                </label>
+              </div>
+              
+              <div>
+                <label className="flex items-center gap-2 text-xs text-gray-400">
+                  <input
+                    type="checkbox"
+                    checked={settings.showTrails}
+                    onChange={(e) => setSettings(s => ({ ...s, showTrails: e.target.checked }))}
+                    className="rounded"
+                  />
+                  Show Motion Trails
+                </label>
+              </div>
+              
+              {settings.showTrails && (
+                <div>
+                  <label className="block text-xs text-gray-400 mb-1">Trail Decay Rate</label>
+                  <input
+                    type="range"
+                    min="0.8"
+                    max="0.99"
+                    step="0.01"
+                    value={settings.trailDecay}
+                    onChange={(e) => setSettings(s => ({ ...s, trailDecay: parseFloat(e.target.value) }))}
+                    className="w-full"
+                  />
+                  <span className="text-xs text-gray-500">{settings.trailDecay}</span>
+                </div>
+              )}
+            </div>
+          </div>
+          
+          {/* Theory connections */}
+          <div className="bg-gray-900 rounded-lg p-4">
+            <h3 className="text-lg font-semibold mb-3">Quantum Parallels</h3>
+            <div className="text-xs text-gray-300 space-y-2">
+              <p><strong>Complexity Growth:</strong> Tracks local phase gradients - analog to quantum circuit depth</p>
+              <p><strong>Entropy Evolution:</strong> Phase distribution entropy continues evolving past equilibrium</p>
+              <p><strong>Circuit Depth:</strong> Counts significant symbolic transitions per step</p>
+              <p><strong>Saturation & Reorganization:</strong> High complexity regions decay and reorganize - like quantum block cipher saturation</p>
+              <p><strong>Motion Trails:</strong> Reveal wave dynamics and symbolic memory through temporal persistence</p>
+              <p><strong>Entropy Spikes:</strong> Detect information collapse/burst events - sudden phase transitions</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default QuantumSymbolicComplexity;
